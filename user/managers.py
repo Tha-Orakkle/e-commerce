@@ -40,7 +40,7 @@ class UserManager(BaseUserManager):
         """
         return self.filter(is_active=True)
 
-    def get_active_users(self):
+    def get_staff(self):
         """
         Returns users with is_staff=True
         """
