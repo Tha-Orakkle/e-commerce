@@ -1,18 +1,36 @@
 from django.contrib.auth.models import BaseUserManager
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 
 class UserManager(BaseUserManager):
     """
     Custom manager for custom user model
     """
+
+    def validate_and_normalize_email(self, email):
+        """
+        Validates and normalizes the email
+        """
+        if not email:
+            raise ValidationError('The email field is required.')
+        email = self.normalize_email(email).lower()
+        try:
+            validate_email(email)
+        except ValidationError:
+            raise ValueError("Invalid email format")
+        
+        return email
+
     
     def create_user(self, email, password=None, **extra_fields):
         """
         Create and return a regular user with the given email and pasword
         """
-        if not email:
-            raise ValueError("Email field must be set.")
+        email = self.validate_and_normalize_email(email)
+
+        if self.model.objects.filter(email=email).exists():
+            raise ValueError("User with email already exists.")
         
-        email = self.normalize_email(email)
         extra_fields.setdefault('is_active', True)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
