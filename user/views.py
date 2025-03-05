@@ -41,10 +41,10 @@ class LoginView(APIView):
         lifespan = timedelta(days=7) if remember_me else timedelta(days=7)
 
         if not email or not pwd:
-            return Response({'error': 'Please provide email and password.'})
+            return Response({'error': 'Please provide email and password.'}, status=400)
         user = authenticate(email=email, password=pwd)
         if not user:
-            return Response({'error': 'Invalid login credentials.'})
+            return Response({'error': 'Invalid login credentials.'}, status=400)
         
         refresh = RefreshToken.for_user(user)
         refresh.set_exp(lifetime=lifespan)

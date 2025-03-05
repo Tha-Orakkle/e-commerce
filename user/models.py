@@ -16,7 +16,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     unique identifier for authentication
     """
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4, unique=True, null=False)
-    email = models.EmailField(unique=True, null=False, blank=True)
+    email = models.EmailField(unique=True, null=False, blank=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)

@@ -45,13 +45,22 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # third_party_apps
-    'rest_framework',
     'phonenumber_field',
     'corsheaders',
+    'rest_framework',
+    'rest_framework_simplejwt',
+
+    'rest_framework.authtoken',
+
+    'allauth',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
     
     # local_apps
     'user',
 ]
+
+USE_JWT = True
 
 AUTH_USER_MODEL = 'user.User'
 
@@ -143,6 +152,11 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# user model settings
+# ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USER_MODEL_USERNAME_FIELD = 'email'
+
 # rest_framework configurations
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -150,18 +164,43 @@ REST_FRAMEWORK = {
     ],
 }
 
+
+JWT_AUTH_HTTPONLY = True
+
 # simple_jwt configurations
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    "SIGNING_KEY": SECRET_KEY,
     'ALGORITHM': 'HS256',
     'UPDATE_LAST_LOGIN': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token', 
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_SECURE': True,
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
 # Authentication Backends conf
-
 AUTHENTICATION_BACKENDS = [
-    # 'social_core.backends.google.GoogleOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": os.getenv('AUTH_GOOGLE_CLIENT_ID'),
+            "secret": os.getenv('AUTH_GOOGLE_CLIENT_SECRET'),
+            "key": "",
+        },
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "offline",
+        },
+    }
+}
