@@ -53,6 +53,8 @@ class UserProfile(models.Model):
         return f"<UserProfile: {self.id}> {self.user.email}"
 
 
+# signal to create a userprofile for a user immediately a
+# user object is created
 @receiver(sender=User, signal=post_save)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
