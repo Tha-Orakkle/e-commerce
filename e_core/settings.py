@@ -50,11 +50,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
 
-    'rest_framework.authtoken',
+    # 'rest_framework.authtoken',
 
-    'allauth',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
+    # 'allauth',
+    # 'allauth.socialaccount',
+    # 'allauth.socialaccount.providers.google',
     
     # local_apps
     'user',
@@ -173,7 +173,7 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     "SIGNING_KEY": SECRET_KEY,
     'ALGORITHM': 'HS256',
-    'UPDATE_LAST_LOGIN': False,
+    'UPDATE_LAST_LOGIN': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_COOKIE': 'access_token',
     'AUTH_COOKIE_REFRESH': 'refresh_token', 
@@ -187,20 +187,3 @@ SIMPLE_JWT = {
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
-
-SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "APP": {
-            "client_id": os.getenv('AUTH_GOOGLE_CLIENT_ID'),
-            "secret": os.getenv('AUTH_GOOGLE_CLIENT_SECRET'),
-            "key": "",
-        },
-        "SCOPE": [
-            "profile",
-            "email",
-        ],
-        "AUTH_PARAMS": {
-            "access_type": "offline",
-        },
-    }
-}
