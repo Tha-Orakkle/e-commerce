@@ -20,7 +20,9 @@ class RegisterView(APIView):
         """
         data = request.data
         if not data or not data.get('email') or not data.get('password'):
-            return Response({'error': 'Please provide email and password'}, status=400)
+            return Response({'error': 'Please provide email and password.'}, status=400)
+        if not data.get('confirm_password') or data.get('password') != data.get('password'):
+            return Response({'error': 'Please, provide matching passwords.'})
         try:
             user = User.objects.create_user(email=data.get('email'), password=data.get('password'))
         except (ValidationError, ValueError) as e:
@@ -38,7 +40,7 @@ class LoginView(APIView):
         email = request.data.get('email', None)
         pwd = request.data.get('password', None)
         remember_me = request.data.get('remember_me', False)
-        lifespan = timedelta(days=7) if remember_me else timedelta(days=7)
+        lifespan = timedelta(days=7) if remember_me else timedelta(days=1)
 
         if not email or not pwd:
             return Response({'error': 'Please provide email and password.'}, status=400)
@@ -52,12 +54,12 @@ class LoginView(APIView):
         response.set_cookie(
             'refresh_token', str(refresh),
             httponly=True, secure=False,
-            samesite='Lax'
+            samesite='Lax', max_age=(604800 if remember_me else 86400)
         )
         response.set_cookie(
             'access_token', str(refresh.access_token),
             httponly=True, secure=False,
-            samesite='Lax'
+            samesite='Lax', max_age=3600 # 1 hr
         )
         return response
 
