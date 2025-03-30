@@ -16,9 +16,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     unique identifier for authentication
     """
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4, unique=True, null=False)
-    email = models.EmailField(unique=True, null=False, blank=True)
+    email = models.EmailField(unique=True, null=False, blank=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     username = None
         
@@ -53,6 +54,8 @@ class UserProfile(models.Model):
         return f"<UserProfile: {self.id}> {self.user.email}"
 
 
+# signal to create a userprofile for a user immediately a
+# user object is created
 @receiver(sender=User, signal=post_save)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:

@@ -1,0 +1,64 @@
+<!-- 
+Hi [name],
+
+Thanks for getting started with our [customer portal]!
+
+We need a little more information to complete your registration, including a confirmation of your email address.
+
+Click below to confirm your email address:
+
+[link]
+
+If you have problems, please paste the above URL into your web browser. -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 20px 0;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007BFF;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <h1>Welcome, {{ user }}!</h1>
+        <p>Thank you for signing up for our e-commerce platform. To complete your registration, we need to verify your email address.</p>
+        <p>Please click the button below to confirm your email address:</p>
+        <a href="{{ link }}" class="button">Verify Email</a>
+        <p>If the button above does not work, copy and paste the following URL into your web browser:</p>
+        <p><a href="{{ link }}">{{ link }}</a></p>
+        <p>Thank you,<br>The E-commerce Team</p>
+    </div>
+</body>
+</html>
