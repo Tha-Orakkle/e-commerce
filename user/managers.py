@@ -17,7 +17,7 @@ class UserManager(BaseUserManager):
         try:
             validate_email(email)
         except ValidationError:
-            raise ValueError("Invalid email format")
+            raise ValueError("The email address is invalid.")
         
         return email
 
