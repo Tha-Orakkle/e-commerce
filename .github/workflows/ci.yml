@@ -41,10 +41,5 @@ jobs:
       
       - name: Run tests
         run: |
-          # Wait for MySQL to be ready
-          while ! mysqladmin ping -h "localhost" --silent; do
-            sleep 1
-          done
-          
           # Run your tests here
           pytest
