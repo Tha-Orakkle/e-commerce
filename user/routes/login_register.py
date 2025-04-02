@@ -21,7 +21,7 @@ class RegisterView(APIView):
         if not data or not data.get('email') or not data.get('password'):
             return Response({'error': 'Please provide email and password.'}, status=400)
         if data.get('password') != data.get('confirm_password', None):
-            return Response({'error': 'Passwords do not match.'})
+            return Response({'error': 'Passwords do not match.'}, status=400)
         try:
             user = User.objects.create_user(
                 email=data.get('email'), password=data.get('password'))
@@ -47,6 +47,8 @@ class LoginView(APIView):
             return Response({'error': 'Please provide email and password.'}, status=400)
         user = authenticate(email=email, password=pwd)
         if not user:
+            return Response({'error': 'Invalid login credentials.'}, status=400)
+        if not user.is_active:
             return Response({'error': 'Invalid login credentials.'}, status=400)
         refresh = RefreshToken.for_user(user)
         refresh.set_exp(lifetime=lifespan)
