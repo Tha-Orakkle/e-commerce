@@ -15,27 +15,27 @@ jobs:
         ports:
           - 3306:3306
         env:
-          MYSQL_ROOT_PASSWORD: root
+          MYSQL_ROOT_PASSWORD: testrootpassword
           MYSQL_DATABASE: test_db
         options: >-
-          --health-cmd "mysqladmin ping -h localhost" 
+          --health-cmd "mysqladmin ping" 
           --health-interval 10s 
           --health-timeout 5s 
           --health-retries 5
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: '3.12'
       
-      - name: Install MySQL Client
+      - name: Install Ubuntu dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y mysql-client
+          sudo apt-get install -y libcurl4-openssl-dev libmysqlclient-dev libgirepository1.0-dev
 
       - name: Install dependencies
         run: |
@@ -47,13 +47,6 @@ jobs:
           cp .env-sample .env
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
           cat .env
-      
-      - name: Wait for MySQL to be ready
-        run: |
-          until mysqladmin ping -h "localhost" --silent -P 3306 -u root -proot; do
-            echo "Waiting for MySQL..."
-            sleep 2
-          done
 
       - name: Run tests
         run: |
