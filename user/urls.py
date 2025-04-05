@@ -3,6 +3,7 @@ from django.urls import path
 
 from .routes.refresh_tokens import SecureTokenRefreshView
 from .routes.login_register import RegisterView, LoginView, UserView
+from .routes.logout import LogoutView
 from .routes.verify_email import VerifyEmailView
 # from .routes.google_oauth import google_login, google_callback
 
@@ -10,6 +11,7 @@ urlpatterns = [
     # registration and tokens generation
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
     path('token/refresh/', SecureTokenRefreshView.as_view(), name='token_refresh'),
 
     # sign in with google
