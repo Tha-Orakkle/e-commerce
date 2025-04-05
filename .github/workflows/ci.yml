@@ -39,9 +39,9 @@ jobs:
 
       - name: Create .env file
         run: |
-          cp .env.sample .env
-          echo "SECRET_KEY=sample-secret-key" >> .env
+          cp .env-sample .env
           echo "DATABASE_URL=mysql+pymysql://test_user:test_password@localhost:3306/test_db" >> .env
+          cat .env
       
       - name: Run tests
         run: |
