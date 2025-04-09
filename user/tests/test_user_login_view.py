@@ -9,12 +9,15 @@ def test_user_login(client, user):
     url = reverse('login')
     data = {
         'email': user.email,
-        'password': 'password123#',
+        'password': 'Password123#',
         'remember_me': True
     }
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
-    assert response.data['success'] == f"User {user.email} login succesful."
+    assert response.data['status'] == "success"
+    assert response.data['message'] == f"User login successful."
+    assert response.data['data']['id'] == str(user.id)
+    assert response.data['data']['email'] == user.email
     assert response.cookies['refresh_token']['httponly'] is True
     assert response.cookies['access_token']['httponly'] is True
 
@@ -30,7 +33,8 @@ def test_user_login_missing_email(client):
 
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['error'] == "Please provide email and password."
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Please provide email and password."
 
 
 def test_user_login_missing_password(client):
@@ -43,7 +47,8 @@ def test_user_login_missing_password(client):
     }
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['error'] == "Please provide email and password."
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Please provide email and password."
 
 
 def test_user_login_invalid_password(client, user):
@@ -57,7 +62,8 @@ def test_user_login_invalid_password(client, user):
     }
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['error'] == "Invalid login credentials."
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Invalid login credentials."
 
 
 def test_user_login_invalid_email(client, db_access):
@@ -71,7 +77,8 @@ def test_user_login_invalid_email(client, db_access):
     }
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['error'] == "Invalid login credentials."
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Invalid login credentials."
 
 
 def test_user_login_nonexistent_email(client, db_access):
@@ -85,7 +92,8 @@ def test_user_login_nonexistent_email(client, db_access):
     }
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['error'] == "Invalid login credentials."
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Invalid login credentials."
 
 
 def test_user_login_inactive_user(client, inactive_user):
@@ -95,11 +103,12 @@ def test_user_login_inactive_user(client, inactive_user):
     url = reverse('login')
     data = {
         'email': inactive_user.email,
-        'password': 'password123#'
+        'password': 'Password123#'
     }
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['error'] == "Invalid login credentials."
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Invalid login credentials."
 
 
 def test_user_login_no_remember_me(client, user):
@@ -109,12 +118,13 @@ def test_user_login_no_remember_me(client, user):
     url = reverse('login')
     data = {
         'email': user.email,
-        'password': 'password123#',
+        'password': 'Password123#',
         'remember_me': False
     }
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
-    assert response.data['success'] == f"User {user.email} login succesful."
+    assert response.data['status'] == "success"
+    assert response.data['message'] == f"User login successful."
     assert response.cookies['refresh_token']
     assert response.cookies['refresh_token']['max-age'] is not None
     assert response.cookies['refresh_token']['max-age'] == 86400
@@ -127,11 +137,12 @@ def test_user_login_remember_me(client, user):
     url = reverse('login')
     data = {
         'email': user.email,
-        'password': 'password123#',
+        'password': 'Password123#',
         'remember_me': True
     }
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
-    assert response.data['success'] == f"User {user.email} login succesful."
+    assert response.data['status'] == "success"
+    assert response.data['message'] == f"User login successful."
     assert response.cookies['refresh_token']['max-age'] is not None
     assert response.cookies['refresh_token']['max-age'] == 604800

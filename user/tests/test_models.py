@@ -15,8 +15,8 @@ def test_user_creation(user):
     assert user.is_verified == False
     assert user.is_superuser == False
     assert user.email == "user@email.com"
-    assert user.password != "password123#"
-    assert user.check_password("password123#")
+    assert user.password != "Password123#"
+    assert user.check_password("Password123#")
 
 
 def test_user_str(user):

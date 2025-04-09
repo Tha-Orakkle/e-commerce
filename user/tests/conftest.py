@@ -25,7 +25,7 @@ def user(db):
     """
     return User.objects.create_user(
         email="user@email.com",
-        password="password123#",    
+        password="Password123#",    
     )
 
 
@@ -36,7 +36,7 @@ def inactive_user(db):
     """
     return User.objects.create_user(
         email="inactiveuser@email.com",
-        password="password123#",
+        password="Password123#",
         is_active=False,
     )
 
@@ -50,7 +50,7 @@ def signed_in_user(client, user):
     login_url = reverse('login')
     data = {
         'email': user.email,
-        'password': 'password123#'
+        'password': 'Password123#'
     }
     response = client.post(login_url, data, format='json')
     assert response.status_code == 200
