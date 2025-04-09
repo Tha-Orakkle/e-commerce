@@ -1,11 +1,12 @@
 from django.urls import path, include
 from django.urls import path
 
-from .routes.refresh_tokens import SecureTokenRefreshView
-from .routes.login_register import RegisterView, LoginView, UserView
-from .routes.logout import LogoutView
-from .routes.verify_email import VerifyEmailView
-# from .routes.google_oauth import google_login, google_callback
+from .api.v1.routes.refresh_tokens import SecureTokenRefreshView
+from .api.v1.routes.users import UsersView, UserView
+from .api.v1.routes.login_register import RegisterView, LoginView
+from .api.v1.routes.logout import LogoutView
+from .api.v1.routes.verify_email import VerifyEmailView
+# from .api.v1.routes.google_oauth import google_login, google_callback
 
 urlpatterns = [
     # registration and tokens generation
@@ -22,6 +23,6 @@ urlpatterns = [
     path('verify/', VerifyEmailView.as_view(), name='verify_email'),
 
     # User
-    path('users/', UserView.as_view(), name='user'),
+    path('users/', UsersView.as_view(), name='users'),
     path('users/<str:id>/', UserView.as_view(), name='user'),
 ]
