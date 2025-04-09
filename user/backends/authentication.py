@@ -1,5 +1,7 @@
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+
 
 class CookieJWTAuthentication(JWTAuthentication):
     """ Custom Authentication for API requests """
@@ -23,3 +25,20 @@ class CookieJWTAuthentication(JWTAuthentication):
         except AuthenticationFailed:
             return None
         return self.get_user(validated_token), validated_token
+
+
+class CookieJWTAuthenticationScheme(OpenApiAuthenticationExtension):
+    target_class = "user.backends.authentication.CookieJWTAuthentication"
+    name = "CookieJWTAuthentication"
+
+    def get_security_definition(self, auto_schema):
+        """
+        defines the security details for the API docs
+        """
+        view = auto_schema.view
+        return {
+            'type': 'apiKey',
+            'in': 'cookie',
+            'name': 'access_token',
+            'description': 'JWT access token stored in http-only cookie'
+        }
