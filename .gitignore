@@ -7,3 +7,6 @@ __pycache__/
 */*/__pycache__/
 
 app-emails/
+
+# temp
+user/api/v1/routes/google_oauth.py
