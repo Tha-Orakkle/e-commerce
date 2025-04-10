@@ -106,7 +106,7 @@ class AdminUserLoginView(APIView):
         if not user:
             return Response(
                 ErrorAPIResponse(
-                    message="Invalid login credentials"
+                    message="Invalid login credentials."
                 ).to_dict(), status=400
             )
         serializer = UserSerializer(user)
