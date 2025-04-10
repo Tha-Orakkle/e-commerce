@@ -35,7 +35,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         Returns:
             str: A string in the format "<User: {self.id}> {self.email}".
         """
-        return f"<User: {self.id}> {self.email or self.user.staff_id + ' (Admin)'}"
+        return f"<User: {self.id}> {self.email or self.staff_id + ' (Admin)'}"
     
     
 class UserProfile(models.Model):
@@ -55,7 +55,7 @@ class UserProfile(models.Model):
         Returns:
             str: A string in the format "<UserProfile: {self.id}> {self.user.email}".
         """
-        return f"<UserProfile: {self.id}> {self.user.email or self.user.staff_id + ' (Admin)'}"
+        return f"<UserProfile: {self.id}> {self.user.email or self.staff_id + ' (Admin)'}"
 
 
 # signal to create a userprofile for a user immediately a

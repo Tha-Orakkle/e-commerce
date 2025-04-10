@@ -62,7 +62,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_verified', True)
 
         if self.model.objects.filter(staff_id=staff_id).exists():
-            raise ValueError("Staff user with staff id already exists")
+            raise ValueError("Admin user with staff id already exists.")
         user = self.model(staff_id=staff_id, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)

@@ -55,6 +55,9 @@ def test_user_registration_missing_password(client):
 
 
 def test_user_registration_password_mismatch(client):
+    """
+    Test the user registration process with mismatching passwords.
+    """
     url = reverse('register')
     data = {
         'email': 'user@email.com',

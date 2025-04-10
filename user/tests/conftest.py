@@ -18,6 +18,7 @@ def db_access(db):
     """
     pass
 
+
 @pytest.fixture
 def user(db):
     """
@@ -28,6 +29,28 @@ def user(db):
         password="Password123#",    
     )
 
+
+@pytest.fixture
+def super_user(db):
+    """
+    Creates an admin user
+    """
+    return User.objects.create_superuser(
+        email='admin_superuser@email.com',
+        staff_id='admin-superuser',
+        password="Password123#"
+    )
+
+
+@pytest.fixture
+def admin_user(db):
+    """
+    Create an admin user.
+    """
+    return User.objects.create_staff(
+        staff_id='admin-user',
+        password='Password123#'
+    )
 
 @pytest.fixture
 def inactive_user(db):
@@ -53,6 +76,48 @@ def signed_in_user(client, user):
         'password': 'Password123#'
     }
     response = client.post(login_url, data, format='json')
+    assert response.status_code == 200
+    assert 'refresh_token' in response.cookies
+    assert 'access_token' in response.cookies
+    return {
+        'refresh_token': response.cookies['refresh_token'].value,
+        'access_token': response.cookies['access_token'].value
+    }
+    
+
+@pytest.fixture
+def signed_in_superuser(client, super_user):
+    """
+    Sign in the super user.
+    Return the refresh token and access token
+    """
+    admin_login_url = reverse('admin-login')
+    data = {
+        'staff_id': super_user.staff_id,
+        'password': 'Password123#'
+    }
+    response = client.post(admin_login_url, data, format='json')
+    assert response.status_code == 200
+    assert 'refresh_token' in response.cookies
+    assert 'access_token' in response.cookies
+    return {
+        'refresh_token': response.cookies['refresh_token'].value,
+        'access_token': response.cookies['access_token'].value
+    }
+    
+
+@pytest.fixture
+def signed_in_admin(client, admin_user):
+    """
+    Sign in the admin.
+    Return the refresh token and access token
+    """
+    admin_login_url = reverse('admin-login')
+    data = {
+        'staff_id': admin_user.staff_id,
+        'password': 'Password123#'
+    }
+    response = client.post(admin_login_url, data, format='json')
     assert response.status_code == 200
     assert 'refresh_token' in response.cookies
     assert 'access_token' in response.cookies
