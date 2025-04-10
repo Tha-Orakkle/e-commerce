@@ -24,7 +24,7 @@ from user.utils.password_validation import password_check
 
 
 class RegisterView(APIView):
-    permission_classes = []
+    authentication_classes = []
 
     @extend_schema(
         summary='Register a new user',
@@ -73,7 +73,7 @@ class RegisterView(APIView):
     
 
 class LoginView(APIView):
-    permission_classes = []
+    authentication_classes = []
 
     @extend_schema(
         summary='Login a user',
