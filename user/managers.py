@@ -22,7 +22,7 @@ class UserManager(BaseUserManager):
         return email
 
     
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, email, password, **extra_fields):
         """
         Create and return a regular user with the given email and pasword
         """
@@ -51,6 +51,23 @@ class UserManager(BaseUserManager):
             raise ValueError("Superuser must have is_superuser=True.")
 
         return self.create_user(email, password, **extra_fields)
+    
+    def create_staff(self, staff_id, password, **extra_fields):
+        """
+        Create staff with staff_id (username) and password.
+        Email not required for the staff creation.
+        """
+        extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_verified', True)
+
+        if self.model.objects.filter(staff_id=staff_id).exists():
+            raise ValueError("Staff user with staff id already exists")
+        user = self.model(staff_id=staff_id, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+        
     
     def get_active_users(self):
         """

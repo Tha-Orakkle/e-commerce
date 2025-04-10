@@ -160,7 +160,7 @@ class UserView(APIView):
         if data.get('password', None) and (data.get('password') != data.get('confirm_password', None)):
             return Response(
                 ErrorAPIResponse(
-                    message='password and confirm_password fields do not match.'
+                    message='Password and confirm_password fields do not match.'
                 ).to_dict(), status=400
             )
         if data.get('email') and data.get('email') != user.email:

@@ -29,8 +29,10 @@ class SecureTokenRefreshView(TokenRefreshView):
         refresh_token = request.COOKIES.get('refresh_token', None)
         if not refresh_token:
             raise AuthenticationFailed('Refresh token was not provided.')
-
-        refresh = RefreshToken(refresh_token)
+        try:
+            refresh = RefreshToken(refresh_token)
+        except Exception as e:
+            raise AuthenticationFailed(str(e))
         if not refresh:
             raise AuthenticationFailed('Invalid refresh token.')
         response = Response(

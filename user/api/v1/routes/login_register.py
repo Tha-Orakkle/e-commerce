@@ -51,7 +51,7 @@ class RegisterView(APIView):
         if data.get('password') != data.get('confirm_password', None):
             return Response(
                 ErrorAPIResponse(
-                    message='Passwords do not match.',
+                    message='Password and confirm_password fields do not match.',
                 ).to_dict(), status=400
             )
         try:

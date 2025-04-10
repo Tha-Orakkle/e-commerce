@@ -167,7 +167,7 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = 'email'
 # rest_framework configurations
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'user.backends.authentication.CookieJWTAuthentication'
+        'common.backends.authentication.CookieJWTAuthentication'
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'common.utils.error_handlers.custom_exception_handler',
@@ -194,6 +194,7 @@ SIMPLE_JWT = {
 
 # Authentication Backends conf
 AUTHENTICATION_BACKENDS = [
+    'common.backends.authentication.AdminUserBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
