@@ -5,6 +5,24 @@ from .user import UserSerializer
 
 
 # SWAGGER UI REQUEST SERIALIZERS
+# staff user
+class AdminUserRegistrationRequestSerializer(serializers.Serializer):
+    """
+    Serializer for admin user registration requests.
+    """
+    staff_id = serializers.CharField()
+    password = serializers.CharField()
+    confirm_password = serializers.CharField()
+
+class AdminUserLoginRequestSerializer(serializers.Serializer):
+    """
+    Serializer for admin user login requests.
+    """
+    staff_id = serializers.CharField()
+    password = serializers.CharField()
+    remember_me = serializers.BooleanField()
+
+# regular user
 class UserRegistrationRequestSerializer(serializers.Serializer):
     """
     Serializer for user registration requests.
