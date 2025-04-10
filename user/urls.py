@@ -14,19 +14,20 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    
+    path('token/refresh/', SecureTokenRefreshView.as_view(), name='token-refresh'),
 
     # admin creation and login
     path('admin/create/', AdminUserRegistrationView.as_view(), name='create-admin'),
     path('admin/login/', AdminUserLoginView.as_view(), name='admin-login'),
-
-    path('token/refresh/', SecureTokenRefreshView.as_view(), name='token_refresh'),
+    
 
     # sign in with google
     # path('auth/google/login/', google_login),
     # path('auth/callback/google/', google_callback),
 
     # email address verification
-    path('verify/', VerifyEmailView.as_view(), name='verify_email'),
+    path('verify/', VerifyEmailView.as_view(), name='verify-email'),
 
     # User
     path('users/', UsersView.as_view(), name='users'),
