@@ -74,7 +74,7 @@ class AdminUserRegistrationView(APIView):
 
 
 class AdminUserLoginView(APIView):
-    # permission_classes = [IsAdminUser]
+    authentication_classes = []
 
     @extend_schema(
         summary="Login an admin user",

@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 import uuid
+import os
 
 from common.swagger import (
     BadRequestSerializer,
@@ -15,6 +16,7 @@ from common.utils.api_responses import (
     SuccessAPIResponse,
     ErrorAPIResponse
 )
+from common.utils.pagination import Pagination
 from user.serializers.user import UserSerializer
 from user.serializers.swagger import (
     UserResponseSerializer,
@@ -44,14 +46,18 @@ class UsersView(APIView):
         """
         Gets all users.
         """
-        users = User.objects.all()
-        serializers = UserSerializer(users, many=True)
+        paginator = Pagination()
+        queryset = User.objects.all()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializers = UserSerializer(paginated_queryset, many=True)
+        data = paginator.get_paginated_response(serializers.data).data
         return Response(
             SuccessAPIResponse(
                 message="Users retrieved successfully.",
-                data= serializers.data
+                data=data
             ).to_dict(), status=200
         )
+
 
 class UserView(APIView):
     permission_classes = [IsAuthenticated]
