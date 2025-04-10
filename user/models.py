@@ -16,16 +16,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     unique identifier for authentication
     """
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4, unique=True, null=False)
-    email = models.EmailField(unique=True, null=False, blank=False)
+    email = models.EmailField(unique=True, null=True, blank=True)
+    staff_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     username = None
-        
+
     objects = UserManager()
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['staff_id'] # just for the creation of super user
     
     def __str__(self):
         """
@@ -33,7 +35,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         Returns:
             str: A string in the format "<User: {self.id}> {self.email}".
         """
-        return f"<User: {self.id}> {self.email}"
+        return f"<User: {self.id}> {self.email or self.user.staff_id + ' (Admin)'}"
     
     
 class UserProfile(models.Model):
@@ -44,6 +46,8 @@ class UserProfile(models.Model):
     last_name = models.CharField(max_length=30)
     telephone = PhoneNumberField()
     user = models.OneToOneField(User, related_name='profile', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         """
@@ -51,7 +55,7 @@ class UserProfile(models.Model):
         Returns:
             str: A string in the format "<UserProfile: {self.id}> {self.user.email}".
         """
-        return f"<UserProfile: {self.id}> {self.user.email}"
+        return f"<UserProfile: {self.id}> {self.user.email or self.user.staff_id + ' (Admin)'}"
 
 
 # signal to create a userprofile for a user immediately a
