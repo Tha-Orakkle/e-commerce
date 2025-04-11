@@ -7,8 +7,7 @@ import pytest
 
 User = get_user_model()
 
-@patch('user.tasks.send_verification_mail_task.delay')
-def test_user_registration(mock_test,  client, db_access):
+def test_user_registration(mock_verification_email_task,  client, db_access):
     """"
     Test the user registration process.
     """
@@ -19,6 +18,7 @@ def test_user_registration(mock_test,  client, db_access):
         'confirm_password': 'Password123#'
     }
     response = client.post(url, data, format='json')
+    mock_verification_email_task.assert_called_once
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data['status'] == "success"
     assert response.data['message'] == f"User {data['email']} created successfully."
@@ -153,7 +153,7 @@ def test_user_regitration_password_without_special_char(client):
 
 def test_user_regitration_password_without_letters(client):
     """
-    Test the user registration process with a password without special character.
+    Test the user registration process with a password without letters.
     """
     url = reverse('register')
     data = {
