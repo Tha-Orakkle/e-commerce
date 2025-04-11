@@ -127,6 +127,7 @@ class UserView(APIView):
         """
         Updates a specific user where id is not None.
         """
+        send_mail = False
         if not id:
             return Response(
                 ErrorAPIResponse(
@@ -156,12 +157,7 @@ class UserView(APIView):
                 ), status=400
             )
         if user != request.user:
-            return Response(
-                ErrorAPIResponse(
-                    code=403,
-                    message='You do not have permission to perform this action.'
-                ).to_dict(), status=403
-            )
+            raise PermissionDenied()
         data = request.data.copy()
         if data.get('password', None) and (data.get('password') != data.get('confirm_password', None)):
             return Response(
@@ -171,15 +167,18 @@ class UserView(APIView):
             )
         if data.get('email') and data.get('email') != user.email:
             data['is_verified'] = False
+            send_mail = True
         serializer = UserSerializer(data=data, instance=user, partial=True)
+
         if serializer.is_valid():
             serializer.save()
-            if data.get('email') and data.get('email') != user.email:
+            if send_mail:
                 send_verification_mail_task.delay(str(user.id), user.email)
         else:
             return Response(
                 ErrorAPIResponse(
-                    message=serializer.errors
+                    message="Validation failed.",
+                    errors=serializer.errors
                 ).to_dict(), status=400
             )
         return Response(
