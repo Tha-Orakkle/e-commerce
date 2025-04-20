@@ -89,7 +89,7 @@ def test_admin_user_creation_missing_password(client, signed_in_superuser):
 
 
 
-def test_admin_user_creation_missing_password(client, signed_in_superuser):
+def test_admin_user_creation_mismatching_password(client, signed_in_superuser):
     """
     Test admin user creation by super user process with
     mismatching passwords.
