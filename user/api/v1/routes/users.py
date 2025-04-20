@@ -13,8 +13,10 @@ from common.swagger import (
     ForbiddenSerializer,
 )
 from common.utils.api_responses import (
+    DeleteAPIResponse,
+    ErrorAPIResponse,
     SuccessAPIResponse,
-    ErrorAPIResponse
+    InvalidIdAPIResponse
 )
 from common.utils.pagination import Pagination
 from user.serializers.user import UserSerializer
@@ -28,7 +30,7 @@ from user.tasks import send_verification_mail_task
 
 
 class UsersView(APIView):
-    permission_classes = [IsAdminUser, IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     @extend_schema(
         operation_id='users_list',
         tags=['Users'],
@@ -44,10 +46,10 @@ class UsersView(APIView):
     )
     def get(self, request):
         """
-        Gets all users.
+        Gets all non admin users.
         """
         paginator = Pagination()
-        queryset = User.objects.all()
+        queryset = User.objects.exclude(is_staff=True)
         paginated_queryset = paginator.paginate_queryset(queryset, request)
         serializers = UserSerializer(paginated_queryset, many=True)
         data = paginator.get_paginated_response(serializers.data).data
@@ -74,33 +76,17 @@ class UserView(APIView):
             403: ForbiddenSerializer
         }
     )
-    def get(self, request, id=None):
+    def get(self, request, id):
         """
-        Gets a specific user where id is not None.
+        Gets a specific user.
         """
-        if not id:
-            return Response(
-                ErrorAPIResponse(
-                    message='Please provide a user id.'
-                ).to_dict(), status=400
-            )
         try:
             uuid.UUID(id)
-        except ValueError:
-            return Response(
-                ErrorAPIResponse(
-                    message='Invalid user id.'
-                ).to_dict(), status=400
-            )
-        user = User.objects.filter(id=id).first()
+        except Exception:
+            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+        user = User.objects.exclude(is_staff=True).filter(id=id).first() # admin endpoint should be used to get admin data
         if not user:
-            return Response(
-                ErrorAPIResponse(
-                    message='Invalid user id.'
-                ).to_dict(), status=400
-            )
-        if user != request.user and not request.user.is_staff:
-            raise PermissionDenied()
+            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
         serializer = UserSerializer(user)
         return Response(
             SuccessAPIResponse(
@@ -128,62 +114,59 @@ class UserView(APIView):
         Updates a specific user where id is not None.
         """
         send_mail = False
-        if not id:
-            return Response(
-                ErrorAPIResponse(
-                    message='Please provide a user id.'
-                ).to_dict(), status=400
-            )
         try:
             uuid.UUID(id)
-        except ValueError:
-            return Response(
-                ErrorAPIResponse(
-                    message='Invalid user id.'
-                ).to_dict(), status=400
-            )
-        if not request.data:
-            return Response(
-                ErrorAPIResponse(
-                    code=400,
-                    message='Please provide data to update.'
-                ).to_dict(), status=400
-            )
-        user = User.objects.filter(id=id).first()
-        if not user:
-            return Response(
-                ErrorAPIResponse(
-                    message='Invalid user id.'
-                ), status=400
-            )
-        if user != request.user:
-            raise PermissionDenied()
-        data = request.data.copy()
-        if data.get('password', None) and (data.get('password') != data.get('confirm_password', None)):
+        except Exception:
+            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+        data = {
+            'email': request.data.get('email', None),
+            'password': request.data.get('password', None)
+        }
+        if data['password'] and (data['password'] != request.data.get('confirm_password')):
             return Response(
                 ErrorAPIResponse(
                     message='Password and confirm_password fields do not match.'
                 ).to_dict(), status=400
             )
-        if data.get('email') and data.get('email') != user.email:
+        user = User.objects.exclude(is_staff=True).filter(id=id).first()
+        if not user:
+            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+        if user != request.user:
+            raise PermissionDenied()
+        if data['email'] and data['email'] != user.email:
             data['is_verified'] = False
             send_mail = True
+        data.pop('email') if not data['email'] else None
+        data.pop('password') if not data['password'] else None
+        
         serializer = UserSerializer(data=data, instance=user, partial=True)
-
-        if serializer.is_valid():
-            serializer.save()
-            if send_mail:
-                send_verification_mail_task.delay(str(user.id), user.email)
-        else:
+        if not serializer.is_valid():
             return Response(
                 ErrorAPIResponse(
-                    message="Validation failed.",
+                    message="User update failed.",
                     errors=serializer.errors
                 ).to_dict(), status=400
             )
+        serializer.save()
+        if send_mail: send_verification_mail_task.delay(str(user.id), user.email)
         return Response(
             SuccessAPIResponse(
                 message='User updated successfully.',
                 data=serializer.data
             ).to_dict(), status=200)
     
+
+    def delete(self, request, id):
+        try:
+            uuid.UUID(id)
+        except Exception:
+            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+
+        user = User.objects.exclude(is_staff=True).filter(id=id).first()
+        if not user:
+            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+
+        if user != request.user:
+            raise PermissionDenied()
+        user.delete()
+        return Response(DeleteAPIResponse("User").to_dict(), status=200)
