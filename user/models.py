@@ -28,6 +28,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['staff_id'] # just for the creation of super user
+
+    class Meta:
+        ordering = ['date_joined']
     
     def __str__(self):
         """

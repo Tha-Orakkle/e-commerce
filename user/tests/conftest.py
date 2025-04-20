@@ -1,16 +1,19 @@
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
+from unittest.mock import patch
 import pytest
 
 User = get_user_model()
 
 
+# CLIENT
 @pytest.fixture
 def client():
     return APIClient()
 
 
+# DB ACCESS
 @pytest.fixture
 def db_access(db):
     """
@@ -19,6 +22,7 @@ def db_access(db):
     pass
 
 
+# USERS
 @pytest.fixture
 def user(db):
     """
@@ -51,6 +55,7 @@ def admin_user(db):
         staff_id='admin-user',
         password='Password123#'
     )
+
 
 @pytest.fixture
 def inactive_user(db):
@@ -125,4 +130,10 @@ def signed_in_admin(client, admin_user):
         'refresh_token': response.cookies['refresh_token'].value,
         'access_token': response.cookies['access_token'].value
     }
-    
+
+
+# MOCKED TASKS
+@pytest.fixture
+def mock_verification_email_task():
+    with patch('user.tasks.send_verification_mail_task.delay') as mocked_task:
+        yield mocked_task

@@ -2,20 +2,32 @@
 from datetime import timedelta
 from django.contrib.auth import authenticate
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+import uuid
+
 from common.backends.permissions import IsSuperUser
-from common.swagger import BadRequestSerializer
-from common.utils.api_responses import ErrorAPIResponse, SuccessAPIResponse
+from common.swagger import (
+    BadRequestSerializer,
+    UnauthorizedSerializer,
+    ForbiddenSerializer
+)
+from common.utils.api_responses import (
+    DeleteAPIResponse, ErrorAPIResponse,
+    InvalidIdAPIResponse, SuccessAPIResponse
+)
+from common.utils.pagination import Pagination
 from user.models import User
 from user.utils.password_validation import password_check
 from user.serializers.user import UserSerializer
 from user.serializers.swagger import (
     AdminUserLoginRequestSerializer,
     AdminUserRegistrationRequestSerializer,
+    BaseSuccessSerializer,
     RegistrationSuccessSerializer,
     UserResponseSerializer
 )
@@ -63,8 +75,6 @@ class AdminUserRegistrationView(APIView):
                     message=str(e)
                 ).to_dict(), status=400
             )
-        print(user)
-        print("PASSED STAFF_ID", staff_id)
         return Response(
             SuccessAPIResponse(
                 code=201,
@@ -112,7 +122,7 @@ class AdminUserLoginView(APIView):
         serializer = UserSerializer(user)
         response = Response(
             SuccessAPIResponse(
-                message="Staff user login successful.",
+                message="Admin user login successful.",
                 data=serializer.data
             ).to_dict(), status=200
         )
@@ -129,3 +139,167 @@ class AdminUserLoginView(APIView):
             samesite='Lax'
         )
         return response
+    
+
+class AdminsView(APIView):
+    permission_classes = [IsSuperUser, IsAuthenticated]
+
+    @extend_schema(
+        description="Get all the admin users",
+        tags=['Admin'],
+        request=None,
+        responses={
+            200: UserResponseSerializer,
+            400: BadRequestSerializer,
+            401: UnauthorizedSerializer, 
+            403: ForbiddenSerializer
+        }
+    )
+    def get(self, request):
+        """
+        Gets all admin users.
+        """
+        paginator = Pagination()
+        queryset = User.objects.exclude(is_staff=False)
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializers =  UserSerializer(paginated_queryset, many=True)
+        data = paginator.get_paginated_response(serializers.data).data
+        return Response(
+            SuccessAPIResponse(
+                message="Admin users retrieved successfully.",
+                data=data
+            ).to_dict(), status=200
+        )
+
+
+class AdminView(APIView):
+    permission_classes = [IsAdminUser, IsAuthenticated]
+
+    @extend_schema(
+        description="Get a specific admin user",
+        tags=['Admin'],
+        request=None,
+        responses={
+            200: UserResponseSerializer,
+            400: BadRequestSerializer,
+            401: UnauthorizedSerializer, 
+            403: ForbiddenSerializer
+        }
+    )
+    def get(self, request, id):
+        """
+        Get a specific admin user.
+        """
+        try:
+            uuid.UUID(id)
+        except ValueError:
+            return Response(InvalidIdAPIResponse("admin user").to_dict(), status=400)
+        user = User.objects.exclude(is_staff=False).filter(id=id).first()
+        if not user:
+            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+        if user != request.user and not request.user.is_superuser:
+            raise PermissionDenied()
+        serializer = UserSerializer(user)
+        return Response(
+            SuccessAPIResponse(
+                message="Admin user retrieved successfully.",
+                data=serializer.data
+            ).to_dict(), status=200
+        )
+    
+    @extend_schema(
+        description="Update a specific admin user",
+        tags=['Admin'],
+        request=AdminUserRegistrationRequestSerializer,
+        responses={
+            200: UserResponseSerializer,
+            400: BadRequestSerializer,
+            401: UnauthorizedSerializer, 
+            403: ForbiddenSerializer
+        }
+    )
+
+    def put(self, request, id):
+        """
+        Update an admin user.
+        Admin users can change only their passwords and not their staff_id.
+        Only a super user can change staff_id.
+        """
+        try:
+            uuid.UUID(id)
+        except Exception:
+            return Response(InvalidIdAPIResponse("admin user").to_dict(), status=400)
+        data = {
+            'staff_id': request.data.get('staff_id', None),
+            'password': request.data.get('password', None)
+        }
+        if data['staff_id'] and not request.user.is_superuser:
+            raise PermissionDenied()
+        if data['password'] and data['password'] != request.data['confirm_password']:
+            return Response(
+                ErrorAPIResponse(
+                    message="Password and confirm_password fields do not match."
+                ).to_dict(), status=400
+            )
+        data.pop('password') if not data['password'] else None
+        data.pop('staff_id') if not data['staff_id'] else None
+        user = User.objects.exclude(is_staff=False).filter(id=id).first()
+        if not user:
+            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+
+        if user != request.user and not request.user.is_superuser:
+            raise PermissionDenied()
+        
+        serializer = UserSerializer(data=data, instance=user, partial=True)
+        if not serializer.is_valid():
+            return Response(
+                ErrorAPIResponse(
+                    message="Admin user update failed.",
+                    errors=serializer.errors
+                ).to_dict(), status=400
+            )
+        serializer.save()
+        return Response(
+            SuccessAPIResponse(
+                message="Admin user updated successfully.",
+                data=serializer.data
+            ).to_dict(), status=200
+        )
+    
+
+    @extend_schema(
+        summary="Delete an admin user",
+        description="Only a super user can delete an admin.",
+        request=None,
+        responses={
+            200: BaseSuccessSerializer,
+            400: BadRequestSerializer,
+            401: UnauthorizedSerializer, 
+            403: ForbiddenSerializer
+
+        }
+    )
+
+    def delete(self, request, id):
+        """
+        Delete an admin user.
+        Only a super user can delete an admin.
+        """
+        if not request.user.is_superuser:
+            raise PermissionDenied()
+        try:
+            uuid.UUID(id)
+        except Exception:
+            return Response(InvalidIdAPIResponse("admin user").to_dict(), status=400)
+        user = User.objects.exclude(is_staff=False).filter(id=id).first()
+        if not user:
+            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+        if user == request.user:
+            return Response(
+                ErrorAPIResponse(
+                    message="A super user cannot delete itself."
+                ).to_dict(), status=400
+            )
+        user.delete()
+        return Response(DeleteAPIResponse("Admin user").to_dict(), status=200)
+        
