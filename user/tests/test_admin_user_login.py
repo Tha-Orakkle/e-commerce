@@ -14,7 +14,7 @@ def test_admin_user_login(client, admin_user):
     }
     response = client.post(admin_login_url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
-    assert response.data['message'] == "Staff user login successful."
+    assert response.data['message'] == "Admin user login successful."
     assert response.data['data']['staff_id'] == admin_user.staff_id
     assert response.cookies['access_token'].value is not None
     assert response.cookies['refresh_token'].value is not None
@@ -88,7 +88,7 @@ def test_admin_user_login_no_remember_me(client, admin_user):
     response = client.post(admin_login_url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['status'] == "success"
-    assert response.data['message'] == "Staff user login successful."
+    assert response.data['message'] == "Admin user login successful."
     assert response.cookies['refresh_token']
     assert response.cookies['refresh_token']['max-age'] is not None
     assert response.cookies['refresh_token']['max-age'] == 86400
@@ -106,7 +106,7 @@ def test_admin_user_login_remember_me(client, admin_user):
     response = client.post(admin_login_url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['status'] == "success"
-    assert response.data['message'] == "Staff user login successful."
+    assert response.data['message'] == "Admin user login successful."
     assert response.cookies['refresh_token']['max-age'] is not None
     assert response.cookies['refresh_token']['max-age'] == 604800
 
