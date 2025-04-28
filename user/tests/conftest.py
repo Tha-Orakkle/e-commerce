@@ -30,7 +30,7 @@ def user(db):
     """
     return User.objects.create_user(
         email="user@email.com",
-        password="Password123#",    
+    password="Password123#",    
     )
 
 
@@ -136,4 +136,9 @@ def signed_in_admin(client, admin_user):
 @pytest.fixture
 def mock_verification_email_task():
     with patch('user.tasks.send_verification_mail_task.delay') as mocked_task:
+        yield mocked_task
+
+@pytest.fixture
+def mock_password_reset_email_task():
+    with patch('user.tasks.send_password_reset_mail_task.delay') as mocked_task:
         yield mocked_task
