@@ -246,9 +246,15 @@ class AdminView(APIView):
         user = User.objects.exclude(is_staff=False).filter(id=id).first()
         if not user:
             return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
-
         if user != request.user and not request.user.is_superuser:
             raise PermissionDenied()
+        if data['password']:
+            if not user.check_password(request.data.get('old_password', None)):
+                return Response(
+                    ErrorAPIResponse(
+                        message="Old password is incorrect."
+                    ).to_dict(), status=400
+                )
         
         serializer = UserSerializer(data=data, instance=user, partial=True)
         if not serializer.is_valid():

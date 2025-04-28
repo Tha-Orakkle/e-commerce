@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from django.contrib.auth import authenticate
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -138,6 +139,13 @@ class UserView(APIView):
             send_mail = True
         data.pop('email') if not data['email'] else None
         data.pop('password') if not data['password'] else None
+        if data.get('password'):
+            if not user.check_password(request.data.get('old_password', None)):
+                return Response(
+                    ErrorAPIResponse(
+                        message='Old password is incorrect.'
+                    ).to_dict(), status=400
+                )
         
         serializer = UserSerializer(data=data, instance=user, partial=True)
         if not serializer.is_valid():
