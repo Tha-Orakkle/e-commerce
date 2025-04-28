@@ -28,7 +28,7 @@ urlpatterns = [
 
     # password reset
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
-    path('reset-password-confirm/', ResetPasswordConfirmView.as_view(), name='reset-password'),
+    path('reset-password-confirm/', ResetPasswordConfirmView.as_view(), name='reset-password-confirm'),
     
     # admin creation and login
     path('admin/create/', AdminUserRegistrationView.as_view(), name='create-admin'),
