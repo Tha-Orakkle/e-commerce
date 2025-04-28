@@ -3,7 +3,7 @@ from django.template.loader import render_to_string
 from django.conf import settings
 
 def send_verification_mail(email, link):
-    """send verification mail to user. Mail will a
+    """send verification mail to user. Mail will
     contain link which will consist of the verification token
     Args:
         email (str): recipient email address
@@ -18,6 +18,27 @@ def send_verification_mail(email, link):
         'link': link,
     }
     html_content = render_to_string('user/email_verification.html', context) 
+    email = EmailMultiAlternatives(subject, text_content, _from, to)
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+
+def send_password_reset_mail(email, link):
+    """send password reset mail to user. Mail will
+    contain link which will consist of the verification token
+    Args:
+        email (str): recipient email address
+        link (str): verification link
+    """
+    subject = 'Reset Your Password'
+    to = [email]
+    _from = settings.DEFAULT_FROM_EMAIL
+    text_content = f"Click the link to reset your password: {link}"
+    context = {
+        'user': email,
+        'link': link,
+    }
+    html_content = render_to_string('user/password_reset.html', context) 
     email = EmailMultiAlternatives(subject, text_content, _from, to)
     email.attach_alternative(html_content, "text/html")
     email.send()
