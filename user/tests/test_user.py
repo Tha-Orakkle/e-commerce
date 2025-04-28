@@ -167,6 +167,7 @@ def test_put_user_password(mock_verification_email_task, client, user, signed_in
     url = reverse('user', kwargs={'id': user.id})
     tokens = signed_in_user
     data = {
+        'old_password': 'Password123#',
         'password': 'Example123#',
         'confirm_password': 'Example123#'
     }
@@ -181,12 +182,52 @@ def test_put_user_password(mock_verification_email_task, client, user, signed_in
     assert response.data['data']['id'] == str(user.id)
 
 
+def test_put_user_password_without_old_password(mock_verification_email_task, client, user, signed_in_user):
+    """
+    Test update user password without old password.
+    """
+    url = reverse('user', kwargs={'id': user.id})
+    tokens = signed_in_user
+    data = {
+        'password': 'Example123#',
+        'confirm_password': 'Example123#'
+    }
+    client.cookies['access_token'] = tokens['access_token']
+    response = client.put(url, data, format='json')
+    mock_verification_email_task.assert_not_called()
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data['code'] == 400
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Old password is incorrect."
+
+
+def test_put_user_password_with_incorecrt_old_password(mock_verification_email_task, client, user, signed_in_user):
+    """
+    Test update user password without old password.
+    """
+    url = reverse('user', kwargs={'id': user.id})
+    tokens = signed_in_user
+    data = {
+        'old_password': 'IncorrectOldPassword123#',
+        'password': 'Example123#',
+        'confirm_password': 'Example123#'
+    }
+    client.cookies['access_token'] = tokens['access_token']
+    response = client.put(url, data, format='json')
+    mock_verification_email_task.assert_not_called()
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data['code'] == 400
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Old password is incorrect."
+
+
 def test_put_user_password_mismatch(mock_verification_email_task, client, user, signed_in_user):
     """
     Test update user password with mismatching password.
     """
     url = reverse('user', kwargs={'id': user.id})
     data = {
+        'old_password': 'Password123#',
         'password': 'Example123#',
         'confirm_password': 'Example1234#',
     }
@@ -206,6 +247,7 @@ def test_put_user_password_length(mock_verification_email_task, client, user, si
     """
     url = reverse('user', kwargs={'id': user.id})
     data = {
+        'old_password': 'Password123#',
         'password': 'Exa12#',
         'confirm_password': 'Exa12#',
     }
@@ -228,6 +270,7 @@ def test_put_user_password_without_digit(mock_verification_email_task, client, u
     """
     url = reverse('user', kwargs={'id': user.id})
     data = {
+        'old_password': 'Password123#',
         'password': 'Example#$',
         'confirm_password': 'Example#$',
     }
@@ -249,6 +292,7 @@ def test_put_user_password_without_special_char(mock_verification_email_task, cl
     """
     url = reverse('user', kwargs={'id': user.id})
     data = {
+        'old_password': 'Password123#',
         'password': 'Example123',
         'confirm_password': 'Example123',
     }
@@ -270,6 +314,7 @@ def test_put_user_password_without_letters(mock_verification_email_task, client,
     """
     url = reverse('user', kwargs={'id': user.id})
     data = {
+        'old_password': 'Password123#',
         'password': '12345678#',
         'confirm_password': '12345678#',
     }
