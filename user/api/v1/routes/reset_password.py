@@ -100,6 +100,6 @@ class ResetPasswordConfirmView(APIView):
         
         return Response(
             SuccessAPIResponse(
-                message="Password has been reset successfully."
+                message="Password reset successfully."
             ).to_dict(), status=status.HTTP_200_OK
         )
