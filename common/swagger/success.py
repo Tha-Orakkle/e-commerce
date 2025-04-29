@@ -7,5 +7,12 @@ class BaseSuccessSerializer(BaseResponseSerializer):
     """
     Base class for success serializers.
     """
-    code = serializers.IntegerField(default=200)
     status = serializers.CharField(default='success')
+    code = serializers.IntegerField(default=200)
+
+
+class AcceptedSuccessSerializer(BaseSuccessSerializer):
+    """
+    Serializer for accepted success responses.
+    """
+    code = serializers.IntegerField(default=202)
