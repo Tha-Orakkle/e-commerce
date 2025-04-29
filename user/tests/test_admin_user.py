@@ -96,6 +96,7 @@ def test_put_admin_user_by_superuser(client, admin_user, signed_in_superuser):
     url = reverse('admin-user', kwargs={'id': admin_user.id})
     data = {
         'staff_id': 'admin-user-updated',
+        'old_password': 'Password123#',
         'password': "Password12345#",
         'confirm_password': "Password12345#"
     }
@@ -114,8 +115,9 @@ def test_put_admin_user_password_by_same_admin_user(client, admin_user, signed_i
     """
     url = reverse('admin-user', kwargs={'id': admin_user.id})
     data = {
-        'password': "New-passwoord123#",
-        'confirm_password': "New-passwoord123#"
+        'old_password': 'Password123#',
+        'password': "New-password123#",
+        'confirm_password': "New-password123#"
     }
     client.cookies['access_token'] = signed_in_admin['access_token']
     response = client.put(url, data=data, format='json')
@@ -134,6 +136,7 @@ def test_put_admin_user_by_another_user(client, signed_in_admin):
     )
     url = reverse('admin-user', kwargs={'id': admin.id})
     data = {
+        'old_password': 'Password123#',
         'password': 'Password123#',
         'confirm_password': 'Password123#'
         }
@@ -187,12 +190,47 @@ def test_put_admin_user_with_invalid_id(client, signed_in_superuser):
     assert response.data['message'] == "Invalid admin user id."
 
 
+def test_put_admin_user_password_without_old_password(client, admin_user, signed_in_admin):
+    """
+    Test update admin user password without old password.
+    """
+    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    data = {
+        'password': 'Password123#',
+        'confirm_password': 'Password123#'
+        }
+    client.cookies['access_token'] = signed_in_admin['access_token']
+    response = client.put(url, data=data, format='json')
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data['code'] == 400
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Old password is incorrect."
+
+
+def test_put_admin_user_password_with_incorrect_old_password(client, admin_user, signed_in_admin):
+    """
+    Test update admin user password without old password.
+    """
+    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    data = {
+        'old_password': 'IncorrectOldPassword123#',
+        'password': 'Password123#',
+        'confirm_password': 'Password123#'
+        }
+    client.cookies['access_token'] = signed_in_admin['access_token']
+    response = client.put(url, data=data, format='json')
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data['code'] == 400
+    assert response.data['status'] == "error"
+    assert response.data['message'] == "Old password is incorrect."
+
 def test_put_admin_user_password_mismatch(client, admin_user, signed_in_admin):
     """
     Test update admin user password with mismatching password.
     """
     url = reverse('admin-user', kwargs={'id': admin_user.id})
     data = {
+        'old_password': 'Password123#',
         'password': 'Example123#',
         'confirm_password': 'Example1234#',
     }
@@ -210,6 +248,7 @@ def test_admin_put_user_password_length(client, admin_user, signed_in_admin):
     """
     url = reverse('admin-user', kwargs={'id': admin_user.id})
     data = {
+        'old_password': 'Password123#',
         'password': 'Exa12#',
         'confirm_password': 'Exa12#',
     }
@@ -230,6 +269,7 @@ def test_put_admin_user_password_without_digit(client, admin_user, signed_in_adm
     """
     url = reverse('admin-user', kwargs={'id': admin_user.id})
     data = {
+        'old_password': 'Password123#',
         'password': 'Example#$',
         'confirm_password': 'Example#$',
     }
@@ -249,6 +289,7 @@ def test_put_admin_user_password_without_special_char(client, admin_user, signed
     """
     url = reverse('admin-user', kwargs={'id': admin_user.id})
     data = {
+        'old_password': 'Password123#',
         'password': 'Example123',
         'confirm_password': 'Example123',
     }
@@ -268,6 +309,7 @@ def test_put_admin_user_password_without_letters(client, admin_user, signed_in_a
     """
     url = reverse('admin-user', kwargs={'id': admin_user.id})
     data = {
+        'old_password': 'Password123#',
         'password': '12345678#',
         'confirm_password': '12345678#',
     }

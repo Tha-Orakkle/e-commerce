@@ -10,6 +10,9 @@ from .api.v1.routes.users import UsersView, UserView
 from .api.v1.routes.login_register import RegisterView, LoginView
 from .api.v1.routes.logout import LogoutView
 from .api.v1.routes.verify_email import VerifyEmailView
+from .api.v1.routes.reset_password import (
+    ForgotPasswordView, ResetPasswordConfirmView
+)
 # from .api.v1.routes.google_oauth import google_login, google_callback
 
 urlpatterns = [
@@ -22,6 +25,10 @@ urlpatterns = [
 
     # email address verification
     path('verify/', VerifyEmailView.as_view(), name='verify-email'),
+
+    # password reset
+    path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('reset-password-confirm/', ResetPasswordConfirmView.as_view(), name='reset-password-confirm'),
     
     # admin creation and login
     path('admin/create/', AdminUserRegistrationView.as_view(), name='create-admin'),
