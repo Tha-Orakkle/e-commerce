@@ -3,11 +3,17 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, serializers
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
 
 from common.utils.api_responses import (
     ErrorAPIResponse,
     SuccessAPIResponse
+)
+from common.swagger import (
+    AcceptedSuccessSerializer,
+    BaseSuccessSerializer,
+    BadRequestSerializer
 )
 from user.models import User
 from user.tasks import send_password_reset_mail_task
@@ -18,6 +24,19 @@ class ForgotPasswordView(APIView):
     """
     authentication_classes = []
 
+    @extend_schema(
+        summary="Password reset link generation",
+        description="Generates a password reset link and sends it to the user's email address.",
+        tags=["Users"],
+        request=inline_serializer(
+            name="ForgotPasswordRequest",
+            fields={"email": serializers.EmailField()}
+        ),
+        responses={
+            202: AcceptedSuccessSerializer,
+            400: BadRequestSerializer,
+        }
+    )
     def post(self, request):
         # Logic for handling password reset
         email = request.data.get('email')
@@ -45,7 +64,6 @@ class ForgotPasswordView(APIView):
             SuccessAPIResponse(
                 message="Password reset link will be sent to your email address.",
                 code=202,
-                data={"link": link}
             ).to_dict(), status=status.HTTP_202_ACCEPTED
         )
     
@@ -55,6 +73,37 @@ class ResetPasswordConfirmView(APIView):
     Confirms the password reset link and resets the password.
     """
     authentication_classes = []
+
+    @extend_schema(
+        summary="Reset password confirm",
+        description="Confirms the password reset link and resets the password.",
+        tags=["Users"],
+        parameters=[
+            OpenApiParameter(
+                name='uid',
+                type=str,
+                description="Base64 encoded unique email",
+                required=True
+            ),
+            OpenApiParameter(
+                name='token',
+                type=str,
+                description="Password reset token",
+                required=True
+            )
+        ],
+        request=inline_serializer(
+            name='ResetPasswordConfirmRequest',
+            fields={
+                'new_password': serializers.CharField(),
+                'confirm_password': serializers.CharField()
+            }
+        ),
+        responses={
+            200: BaseSuccessSerializer,
+            400: BadRequestSerializer,
+        }
+    )
     def post(self, request):
         uid = request.GET.get('uid')
         token = request.GET.get('token')
