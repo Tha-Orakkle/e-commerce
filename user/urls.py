@@ -13,6 +13,7 @@ from .api.v1.routes.verify_email import VerifyEmailView
 from .api.v1.routes.reset_password import (
     ForgotPasswordView, ResetPasswordConfirmView
 )
+from .api.v1.routes.profile import UserProfileView
 # from .api.v1.routes.google_oauth import google_login, google_callback
 
 urlpatterns = [
@@ -47,5 +48,10 @@ urlpatterns = [
     # users
     path('users/', UsersView.as_view(), name='users'),
     path('users/<str:id>/', UserView.as_view(), name='user'),
+
+    # user profile
+    path('users/me/profile/', UserProfileView.as_view(), name='user-profile'),
+
+    
 
 ]
