@@ -11,3 +11,4 @@ app-emails/
 # temp
 user/api/v1/routes/google_oauth.py
 todo.txt
+alias.sh
