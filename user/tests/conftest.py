@@ -30,7 +30,7 @@ def user(db):
     """
     return User.objects.create_user(
         email="user@email.com",
-    password="Password123#",    
+        password="Password123#", 
     )
 
 
