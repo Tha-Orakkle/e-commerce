@@ -45,6 +45,7 @@ class UserProfile(models.Model):
     """
     User Profile model. Connected to each user object.
     """
+    id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4, unique=True, null=False)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     telephone = PhoneNumberField()
@@ -58,7 +59,7 @@ class UserProfile(models.Model):
         Returns:
             str: A string in the format "<UserProfile: {self.id}> {self.user.email}".
         """
-        return f"<UserProfile: {self.id}> {self.user.email or self.staff_id + ' (Admin)'}"
+        return f"<UserProfile: {self.id}> {self.user.email or self.user.staff_id + ' (Admin)'}"
 
 
 # signal to create a userprofile for a user immediately a
