@@ -52,6 +52,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, related_name='profile', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    preferred_categories = models.ManyToManyField('product.Category', blank=True)
 
     def __str__(self):
         """
