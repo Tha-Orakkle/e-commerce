@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     
     # local_apps
     'user',
+    'product',
 ]
 
 USE_JWT = True
