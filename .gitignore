@@ -12,3 +12,4 @@ app-emails/
 user/api/v1/routes/google_oauth.py
 todo.txt
 alias.sh
+media/
