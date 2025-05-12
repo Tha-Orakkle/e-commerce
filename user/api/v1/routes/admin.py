@@ -2,24 +2,23 @@
 from datetime import timedelta
 from django.contrib.auth import authenticate
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-import uuid
 
+from common.exceptions import ErrorException
+from common.utils.check_valid_uuid import validate_id
 from common.backends.permissions import IsSuperUser
 from common.swagger import (
     BadRequestSerializer,
     UnauthorizedSerializer,
     ForbiddenSerializer
 )
-from common.utils.api_responses import (
-    DeleteAPIResponse, ErrorAPIResponse,
-    InvalidIdAPIResponse, SuccessAPIResponse
-)
+from common.utils.api_responses import SuccessAPIResponse
 from common.utils.pagination import Pagination
 from user.models import User
 from user.utils.password_validation import password_check
@@ -54,32 +53,20 @@ class AdminUserRegistrationView(APIView):
         staff_id = request.data.get('staff_id', None)
         pwd = request.data.get('password', None)
         if not staff_id or not pwd:
-            return Response(
-                ErrorAPIResponse(
-                    message="Please, provide staff_id (username) and password for the staff."
-                ).to_dict(), status=400
-            )
+            raise ErrorException("Please, provide staff_id (username) and password for the staff.")
         if pwd and pwd != request.data.get('confirm_password'):
-            return Response(
-                ErrorAPIResponse(
-                    message="Password and confirm_password fields do not match."
-                ).to_dict(), status=400
-            )
+            raise ErrorException("Password and confirm_password fields do not match.")
         try:
             password_check(pwd)
             user = User.objects.create_staff(
                 staff_id=staff_id, password=pwd)
         except ValueError as e:
-            return Response(
-                ErrorAPIResponse(
-                    message=str(e)
-                ).to_dict(), status=400
-            )
+            raise ErrorException(str(e))
         return Response(
             SuccessAPIResponse(
                 code=201,
                 message=f"Admin user {user.staff_id} created successfully."
-            ).to_dict(), status=201
+            ).to_dict(), status=status.HTTP_201_CREATED
         )
 
 
@@ -107,24 +94,16 @@ class AdminUserLoginView(APIView):
         lifespan = timedelta(days=7) if remember_me else timedelta(days=1)
 
         if not staff_id or not pwd:
-            return Response(
-                ErrorAPIResponse(
-                    message="Please provide staff id and password."
-                ).to_dict(), status=400
-            )
+            raise ErrorException("Please provide staff id and password.")
         user = authenticate(staff_id=staff_id, password=pwd)
         if not user:
-            return Response(
-                ErrorAPIResponse(
-                    message="Invalid login credentials."
-                ).to_dict(), status=400
-            )
+            raise ErrorException("Invalid login credentials.")
         serializer = UserSerializer(user)
         response = Response(
             SuccessAPIResponse(
                 message="Admin user login successful.",
                 data=serializer.data
-            ).to_dict(), status=200
+            ).to_dict(), status=status.HTTP_200_OK
         )
         refresh = RefreshToken.for_user(user)
         refresh.set_exp(lifetime=lifespan)
@@ -168,7 +147,7 @@ class AdminsView(APIView):
             SuccessAPIResponse(
                 message="Admin users retrieved successfully.",
                 data=data
-            ).to_dict(), status=200
+            ).to_dict(), status=status.HTTP_200_OK
         )
 
 
@@ -190,13 +169,10 @@ class AdminView(APIView):
         """
         Get a specific admin user.
         """
-        try:
-            uuid.UUID(id)
-        except ValueError:
-            return Response(InvalidIdAPIResponse("admin user").to_dict(), status=400)
+        validate_id(id, "admin user")
         user = User.objects.exclude(is_staff=False).filter(id=id).first()
         if not user:
-            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+            raise ErrorException("Invalid user id.")
         if user != request.user and not request.user.is_superuser:
             raise PermissionDenied()
         serializer = UserSerializer(user)
@@ -204,7 +180,7 @@ class AdminView(APIView):
             SuccessAPIResponse(
                 message="Admin user retrieved successfully.",
                 data=serializer.data
-            ).to_dict(), status=200
+            ).to_dict(), status=status.HTTP_200_OK
         )
     
     @extend_schema(
@@ -225,10 +201,7 @@ class AdminView(APIView):
         Admin users can change only their passwords and not their staff_id.
         Only a super user can change staff_id.
         """
-        try:
-            uuid.UUID(id)
-        except Exception:
-            return Response(InvalidIdAPIResponse("admin user").to_dict(), status=400)
+        validate_id(id, "admin user")
         data = {
             'staff_id': request.data.get('staff_id', None),
             'password': request.data.get('password', None)
@@ -236,40 +209,29 @@ class AdminView(APIView):
         if data['staff_id'] and not request.user.is_superuser:
             raise PermissionDenied()
         if data['password'] and data['password'] != request.data['confirm_password']:
-            return Response(
-                ErrorAPIResponse(
-                    message="Password and confirm_password fields do not match."
-                ).to_dict(), status=400
-            )
+            raise ErrorException("Password and confirm_password fields do not match.")
         data.pop('password') if not data['password'] else None
         data.pop('staff_id') if not data['staff_id'] else None
         user = User.objects.exclude(is_staff=False).filter(id=id).first()
         if not user:
-            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+            raise ErrorException("Invalid user id.")
         if user != request.user and not request.user.is_superuser:
             raise PermissionDenied()
         if data['password']:
             if not user.check_password(request.data.get('old_password', None)):
-                return Response(
-                    ErrorAPIResponse(
-                        message="Old password is incorrect."
-                    ).to_dict(), status=400
-                )
+                raise ErrorException("Old password is incorrect.")
         
         serializer = UserSerializer(data=data, instance=user, partial=True)
         if not serializer.is_valid():
-            return Response(
-                ErrorAPIResponse(
-                    message="Admin user update failed.",
-                    errors=serializer.errors
-                ).to_dict(), status=400
-            )
+            raise ErrorException(
+                detail="Admin user update failed.",
+                errors=serializer.errors)
         serializer.save()
         return Response(
             SuccessAPIResponse(
                 message="Admin user updated successfully.",
                 data=serializer.data
-            ).to_dict(), status=200
+            ).to_dict(), status=status.HTTP_200_OK
         )
     
 
@@ -293,19 +255,12 @@ class AdminView(APIView):
         """
         if not request.user.is_superuser:
             raise PermissionDenied()
-        try:
-            uuid.UUID(id)
-        except Exception:
-            return Response(InvalidIdAPIResponse("admin user").to_dict(), status=400)
+        validate_id(id, "admin user")
         user = User.objects.exclude(is_staff=False).filter(id=id).first()
         if not user:
-            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+            raise ErrorException("Invalid user id.")
         if user == request.user:
-            return Response(
-                ErrorAPIResponse(
-                    message="A super user cannot delete itself."
-                ).to_dict(), status=400
-            )
+            raise ErrorException("A super user cannot delete itself.")
         user.delete()
-        return Response(DeleteAPIResponse("Admin user").to_dict(), status=200)
+        return Response({}, status=status.HTTP_204_NO_CONTENT)
         

@@ -336,11 +336,8 @@ def test_delete_admin_user(client, signed_in_superuser):
     url = reverse('admin-user', kwargs={'id': admin.id})
     client.cookies['access_token'] == signed_in_superuser['access_token']
     response = client.delete(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['status'] == 'success'
-    assert response.data['code'] == 200
-    assert response.data['message'] == "Admin user deleted successfully."
-
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    
 
 def test_delete_admin_user_by_non_superuser(client, admin_user, signed_in_admin):
     """

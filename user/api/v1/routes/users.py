@@ -1,24 +1,19 @@
 from drf_spectacular.utils import extend_schema
 from django.contrib.auth import authenticate
+from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-import uuid
-import os
 
 from common.swagger import (
     BadRequestSerializer,
     UnauthorizedSerializer,
     ForbiddenSerializer,
 )
-from common.utils.api_responses import (
-    DeleteAPIResponse,
-    ErrorAPIResponse,
-    SuccessAPIResponse,
-    InvalidIdAPIResponse
-)
+from common.utils.api_responses import SuccessAPIResponse
+from common.exceptions import ErrorException
+from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination
 from user.serializers.user import UserSerializer
 from user.serializers.swagger import (
@@ -81,17 +76,13 @@ class UserView(APIView):
         """
         Gets a specific user.
         """
-        try:
-            uuid.UUID(id)
-        except Exception:
-            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+        validate_id(id, "user")
         user = User.objects.exclude(is_staff=True).filter(id=id).first() # admin endpoint should be used to get admin data
         if not user:
-            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+            raise ("Invalid user id.")
         serializer = UserSerializer(user)
         return Response(
             SuccessAPIResponse(
-                code=200,
                 message='User retrieved successfully.',
                 data=serializer.data
             ).to_dict()
@@ -115,23 +106,16 @@ class UserView(APIView):
         Updates a specific user where id is not None.
         """
         send_mail = False
-        try:
-            uuid.UUID(id)
-        except Exception:
-            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+        validate_id(id, "user")
         data = {
             'email': request.data.get('email', None),
             'password': request.data.get('password', None)
         }
         if data['password'] and (data['password'] != request.data.get('confirm_password')):
-            return Response(
-                ErrorAPIResponse(
-                    message='Password and confirm_password fields do not match.'
-                ).to_dict(), status=400
-            )
+            raise ErrorException("Password and confirm_password fields do not match.")
         user = User.objects.exclude(is_staff=True).filter(id=id).first()
         if not user:
-            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
+            raise ErrorException("Invalid user id.")
         if user != request.user:
             raise PermissionDenied()
         if data['email'] and data['email'] != user.email:
@@ -141,20 +125,14 @@ class UserView(APIView):
         data.pop('password') if not data['password'] else None
         if data.get('password'):
             if not user.check_password(request.data.get('old_password', None)):
-                return Response(
-                    ErrorAPIResponse(
-                        message='Old password is incorrect.'
-                    ).to_dict(), status=400
-                )
-        
+                raise ErrorException("Old password is incorrect.")
         serializer = UserSerializer(data=data, instance=user, partial=True)
         if not serializer.is_valid():
-            return Response(
-                ErrorAPIResponse(
-                    message="User update failed.",
-                    errors=serializer.errors
-                ).to_dict(), status=400
+            raise ErrorException(
+                detail="User update failed.",
+                errors=serializer.errors
             )
+
         serializer.save()
         if send_mail: send_verification_mail_task.delay(str(user.id), user.email)
         return Response(
@@ -165,16 +143,14 @@ class UserView(APIView):
     
 
     def delete(self, request, id):
-        try:
-            uuid.UUID(id)
-        except Exception:
-            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
-
+        """
+        Delete a specific non-admin user.
+        """
+        validate_id(id, "user")
         user = User.objects.exclude(is_staff=True).filter(id=id).first()
         if not user:
-            return Response(InvalidIdAPIResponse("user").to_dict(), status=400)
-
+            raise ErrorException("Invalid user id.")
         if user != request.user:
             raise PermissionDenied()
         user.delete()
-        return Response(DeleteAPIResponse("User").to_dict(), status=200)
+        return Response({}, status=status.HTTP_204_NO_CONTENT)
