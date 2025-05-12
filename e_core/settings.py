@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     
     # local_apps
     'user',
+    'product',
 ]
 
 USE_JWT = True
@@ -233,3 +234,7 @@ PASSWORD_RESET_TIMEOUT = 900  # 15 mins
 # PHONENUMBER settings
 PHONENUMBER_DEFAULT_REGION = "NG"
 PHONENUMBER_DEFAULT_FORMAT = "INTERNATIONAL"
+
+# media settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
