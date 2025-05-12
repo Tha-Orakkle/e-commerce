@@ -52,10 +52,10 @@ def custom_exception_handler(exc, context):
     
     response = exception_handler(exc, context)
     if response is not None:
-        return Response(
-            ErrorAPIResponse(
-                code=response.status_code,
-                message=exc.detail if hasattr(exc, 'detail') else str(exc),
-            ).to_dict(), status=response.status_code
-        )
+        error = ErrorAPIResponse(
+            code=response.status_code,
+            message=exc.detail if hasattr(exc, 'detail') else str(exc))
+        if hasattr(exc, 'errors') and exc.errors:
+            error.errors = exc.errors
+        return Response(error.to_dict(), status=response.status_code)
     return response
