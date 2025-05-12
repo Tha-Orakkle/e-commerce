@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.apps import apps
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -28,13 +29,54 @@ class Product(models.Model):
         return f"<Product: {self.id}> {self.name}"
 
 
+    def get_image_path(self):
+        """
+        Return the upload path for product image.
+        """
+        from e_core.settings import MEDIA_ROOT
+        product_image_dir = f'products/pdt_{self.id}'
+        return MEDIA_ROOT / product_image_dir
+
+    def add_images(self, images):
+        """
+        Adds product images to a product.
+        """
+        ProductImage = apps.get_model('product', 'ProductImage')
+        for image in images:
+            if not isinstance(image, InMemoryUploadedFile):
+                continue
+            ProductImage.objects.create(product=self, image=image)
+
+    def delete_all_image_files(self):
+        """
+        Delete all associated image files.
+        """
+        import shutil
+
+        path = self.get_image_path()
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+
+    def delete_images(self):
+        """
+        Deletes all images from db and associated files.
+        """
+        self.images.all().delete() # deletes from db
+        self.delete_all_image_files() # delete associated files
+
+    def update_images(self, images):
+        """
+        Updates the product images.
+        """
+        self.delete_images()
+        self.add_images(images)
+
     def delete(self, *args, **kwargs):
         """
         Delete a Product instance.
         """
-        for image in self.images.all():
-            image.delete()
         super().delete(*args, **kwargs)
+        self.delete_all_image_files()        
 
 
 class ProductImage(models.Model):
@@ -49,6 +91,9 @@ class ProductImage(models.Model):
         return f"<ProductImage: {self.id}> {self.image}"
     
     def process_image(self, image):
+        """
+        Resize image to 800 x 800.
+        """
         if image:
             img = Image.open(image)
             img.thumbnail(IMAGE_SIZE, Image.LANCZOS)

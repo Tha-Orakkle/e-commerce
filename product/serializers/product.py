@@ -4,19 +4,14 @@ from product.models import Product, ProductImage
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    url = serializers.ImageField(source='image')
     class Meta:
         model = ProductImage
-        fields = ['image']
-
-    def to_representation(self, instance):
-        request = self.context.get('request')
-        if request is not None and instance.image:
-            return request.build_absolute_uri(instance.image.url)
-        return instance.image.url if instance.image else None
+        fields = ['id', 'url']
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    image_urls = ProductImageSerializer(many=True, required=False)
+    images = ProductImageSerializer(read_only=True, many=True, required=False)
 
     class Meta:
         model = Product
@@ -28,21 +23,18 @@ class ProductSerializer(serializers.ModelSerializer):
         """
         image_data = self.initial_data.getlist('images', [])
         product = Product.objects.create(**validated_data)
-        for image in image_data:
-            ProductImage.objects.create(product=product, image=image)
+        if image_data:
+            product.add_images(image_data)
         return product
     
     def update(self, instance, validated_data):
         """
         Update a Product instance.
         """
-        image_data = validated_data.pop('images', [])
+        image_data = self.initial_data.getlist('images', [])
         for k, v in validated_data.items():
             setattr(instance, k, v)
+        if image_data:
+            instance.update_images(image_data)
         instance.save()
-        if image_data is not None:
-            for image in instance.images.all():
-                image.delete() # deletes related image file 
-            for image in image_data:
-                Product.objects.create(product=instance, **image)
         return instance

@@ -378,11 +378,8 @@ def test_delete_user(client, user, signed_in_user):
     url  = reverse('user', kwargs={'id': user.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.delete(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['status'] == 'success'
-    assert response.data['code'] == 200
-    assert response.data['message'] == "User deleted successfully." 
-
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    
 
 def test_delete_user_by_another_user(client, signed_in_user):
     """

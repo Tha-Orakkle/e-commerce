@@ -6,10 +6,8 @@ from rest_framework.response import Response
 from rest_framework import status, serializers
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
 
-from common.utils.api_responses import (
-    ErrorAPIResponse,
-    SuccessAPIResponse
-)
+from common.utils.api_responses import SuccessAPIResponse
+from common.exceptions import ErrorException
 from common.swagger import (
     AcceptedSuccessSerializer,
     BaseSuccessSerializer,
@@ -41,19 +39,11 @@ class ForgotPasswordView(APIView):
         # Logic for handling password reset
         email = request.data.get('email')
         if not email:
-            return Response(
-                ErrorAPIResponse(
-                    message="Please provide an email address."
-                ).to_dict(), status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ErrorException("Please provide an email address.")
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response(
-                ErrorAPIResponse(
-                    message="User with this email does not exist."
-                ).to_dict(), status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ErrorException("User with this email does not exist.")
         token_generator = PasswordResetTokenGenerator()
         token = token_generator.make_token(user)
         encoded_email = urlsafe_base64_encode(force_bytes(email))
@@ -110,43 +100,21 @@ class ResetPasswordConfirmView(APIView):
         new_password = request.data.get('new_password')
         confirm_password = request.data.get('confirm_password')
         if not uid or not token:
-            return Response(
-                ErrorAPIResponse(
-                    message="Invalid password reset link."
-                ).to_dict(), status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ErrorException("Invalid password reset link.")
         if not new_password or not confirm_password:
-            return Response(
-                ErrorAPIResponse(
-                    message="Please provide a new password and confirm password."
-                ).to_dict(), status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ErrorException("Please provide a new password and confirm password.")
         if new_password != confirm_password:
-            return Response(
-                ErrorAPIResponse(
-                    message="Passwords do not match."
-                ).to_dict(), status=status.HTTP_400_BAD_REQUEST
-            )
-        
+            raise ErrorException("Passwords do not match.")
         try:
             email = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(email=email)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            return Response(
-                ErrorAPIResponse(
-                    message="Invalid password reset link."
-                ).to_dict(), status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ErrorException("Invalid password reset link.")
         token_generator = PasswordResetTokenGenerator()
         if not token_generator.check_token(user, token):
-            return Response(
-                ErrorAPIResponse(
-                    message="Invalid or expired password reset token."
-                ).to_dict(), status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ErrorException("Invalid or expired password reset token.")
         user.set_password(new_password)
         user.save()
-        
         return Response(
             SuccessAPIResponse(
                 message="Password reset successfully."

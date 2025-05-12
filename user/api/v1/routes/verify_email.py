@@ -3,7 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from common.swagger import BadRequestSerializer, BaseSuccessSerializer
-from common.utils.api_responses import SuccessAPIResponse, ErrorAPIResponse
+from common.utils.api_responses import SuccessAPIResponse
+from common.exceptions import ErrorException
 from user.utils.email_verification import verify_email_verification_token
 
 
@@ -24,18 +25,10 @@ class VerifyEmailView(APIView):
         """
         token = request.GET.get('token', None)
         if not token:
-            return Response(
-                ErrorAPIResponse(
-                    message='Token not provided.'
-                ).to_dict(), status=400
-            )
+            raise ErrorException("Token not provided.")
         user = verify_email_verification_token(token)
         if not user:
-            return Response(
-                ErrorAPIResponse(
-                    message='Invalid or expired token.'
-                ).to_dict(), status=400
-            )
+            raise ErrorException("Invalid or expired token.")
         user.is_verified = True
         user.save()
         return Response(

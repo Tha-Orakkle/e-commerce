@@ -3,10 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from common.utils.api_responses import (
-    SuccessAPIResponse,
-    ErrorAPIResponse
-)
+from common.utils.api_responses import SuccessAPIResponse
+from common.exceptions import ErrorException
 from user.models import User
 from user.serializers.profile import UserProfileSerializer
 
@@ -21,18 +19,12 @@ class UserProfileView(APIView):
         try:
             user.profile
         except User.profile.RelatedObjectDoesNotExist:
-            return Response(
-                ErrorAPIResponse(
-                    message="User has no profile.",
-                ).to_dict(), status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ErrorException("User has no profile.")
         serializer = UserProfileSerializer(user.profile, data=request.data, partial=True)
         if not serializer.is_valid():
-            return Response(
-                ErrorAPIResponse(
-                    message="Error updating user profile.",
-                    errors=serializer.errors,
-                ).to_dict(), status=status.HTTP_400_BAD_REQUEST
+            raise ErrorException(
+                detail="Error updating user profile.",
+                errors=serializer.errors    
             )
         serializer.save()
         return Response(
