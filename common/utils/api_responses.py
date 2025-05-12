@@ -29,19 +29,8 @@ class SuccessAPIResponse(BaseAPIResponse):
         self.status = 'success'
         super().__init__(self.status, code, **kwargs)
 
-    
-class DeleteAPIResponse(SuccessAPIResponse):
-    def __init__(self, obj_name):
-        super().__init__()
-        self.message = f"{obj_name} deleted successfully."
 
 class ErrorAPIResponse(BaseAPIResponse):
     def __init__(self, code=400, **kwargs):
         self.status = 'error'
         super().__init__(self.status, code, **kwargs)
-
-
-class InvalidIdAPIResponse(ErrorAPIResponse):
-    def __init__(self, obj_name):
-        super().__init__()
-        self.message = f"Invalid {obj_name} id."
