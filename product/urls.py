@@ -1,7 +1,15 @@
 from django.urls import path
 
-from .api.v1.routes.product import ProductView
+from .api.v1.routes.product import (
+    ProductView,
+    ProductDetailView
+)
+from .api.v1.routes.product_image import ProductImageView
 
 urlpatterns = [
     path('products/', ProductView.as_view(), name="products"),
+    path('products/<str:id>/', ProductDetailView.as_view(), name="product"),
+    path('product-image/<str:product_id>/', ProductImageView.as_view(), name="product-image"),
+    path('product-image/<str:product_id>/<str:image_id>/', ProductImageView.as_view(), name="delete-product-image"),
+
 ]
