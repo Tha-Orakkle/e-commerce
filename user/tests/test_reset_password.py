@@ -17,18 +17,20 @@ def test_forgot_password(client, user, mock_password_reset_email_task):
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert response.data['status'] == "success"
     assert response.data['code'] == 202
-    assert response.data['message'] == "Password reset link will be sent to your email address."
+    assert response.data['message'] == "Password reset link sent."
 
 
 def test_forgot_password_with_invalid_email(client, db_access):
     """
-    Test the forgot password functionality with an invalid email.
+    Test the forgot password functionality with an email 
+    address not associated with a user.
     """
     url = reverse('forgot-password')
     response = client.post(url, data={'email': 'invalid_email'}, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "User with this email does not exist."
+    assert response.status_code == status.HTTP_202_ACCEPTED
+    assert response.data['status'] == "success"
+    assert response.data['code'] == 202
+    assert response.data['message'] == "Password reset link sent."
 
 def test_forgot_password_without_email(client):
     """
@@ -38,7 +40,7 @@ def test_forgot_password_without_email(client):
     response = client.post(url, data={}, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Please provide an email address."
+    assert response.data['message'] == "Email address required."
 
 
 def test_reset_password(client, user):
@@ -75,8 +77,8 @@ def test_reset_password_with_invalid_token(client, user):
     }, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Invalid or expired password reset token."
-
+    assert response.data['message'] == "Password reset failed."
+    assert response.data['errors']['link'][0] == "Invalid or expired password reset link."
 
 def test_reset_password_with_invalid_uid(client, user):
     """
@@ -93,8 +95,8 @@ def test_reset_password_with_invalid_uid(client, user):
     }, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Invalid password reset link."
-
+    assert response.data['message'] == "Password reset failed."
+    assert response.data['errors']['link'][0] == "Invalid or expired password reset link."
 
 def test_reset_password_without_uid_and_token(client, user):
     """
@@ -107,7 +109,8 @@ def test_reset_password_without_uid_and_token(client, user):
     }, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Invalid password reset link."
+    assert response.data['message'] == "Password reset failed."
+    assert response.data['errors']['link'][0] == "Invalid or expired password reset link."
 
 
 def test_reset_password_with_mismatched_passwords(client, user):
@@ -125,8 +128,8 @@ def test_reset_password_with_mismatched_passwords(client, user):
     }, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Passwords do not match."
-
+    assert response.data['message'] == "Password reset failed."
+    assert response.data['errors']['password'][0] == "Password and confirm password fields do not match."
 
 def test_reset_password_without_new_password(client, user):
     """
@@ -142,7 +145,8 @@ def test_reset_password_without_new_password(client, user):
     }, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Please provide a new password and confirm password."
+    assert response.data['message'] == "Password reset failed."
+    assert response.data['errors']['password'][0] == "Password and confirm password fields are required."
 
 
 def test_reset_password_without_confirm_password(client, user):
@@ -159,4 +163,5 @@ def test_reset_password_without_confirm_password(client, user):
     }, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Please provide a new password and confirm password."
+    assert response.data['message'] == "Password reset failed."
+    assert response.data['errors']['password'][0] == "Password and confirm password fields are required."

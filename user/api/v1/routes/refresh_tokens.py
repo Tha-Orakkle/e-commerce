@@ -4,24 +4,14 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from common.swagger import BaseSuccessSerializer, BadRequestSerializer
+from user.serializers.swagger import token_refresh_schema
 from common.utils.api_responses import SuccessAPIResponse
 
 class SecureTokenRefreshView(TokenRefreshView):
     """
     Custom TokenRefreshView for refreshing access token.
     """
-    @extend_schema(
-        summary='Refresh access token',
-        description='Refresh access token using refresh token from cookies.',
-        tags=['Auth'],
-        request=None,
-        responses={
-            200: BaseSuccessSerializer,
-            400: BadRequestSerializer
-        }
-
-    )
+    @extend_schema(**token_refresh_schema)
     def post(self, request, *args, **kwargs):
         """ 
         Gets refresh token from cookies before generating new acccess token.

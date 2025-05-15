@@ -15,7 +15,7 @@ def test_user_login(client, user):
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['status'] == "success"
-    assert response.data['message'] == f"User login successful."
+    assert response.data['message'] == f"User logged in successfully."
     assert response.data['data']['id'] == str(user.id)
     assert response.data['data']['email'] == user.email
     assert response.cookies['refresh_token']['httponly'] is True
@@ -124,7 +124,7 @@ def test_user_login_no_remember_me(client, user):
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['status'] == "success"
-    assert response.data['message'] == f"User login successful."
+    assert response.data['message'] == f"User logged in successfully."
     assert response.cookies['refresh_token']
     assert response.cookies['refresh_token']['max-age'] is not None
     assert response.cookies['refresh_token']['max-age'] == 86400
@@ -143,6 +143,6 @@ def test_user_login_remember_me(client, user):
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['status'] == "success"
-    assert response.data['message'] == f"User login successful."
+    assert response.data['message'] == f"User logged in successfully."
     assert response.cookies['refresh_token']['max-age'] is not None
     assert response.cookies['refresh_token']['max-age'] == 604800

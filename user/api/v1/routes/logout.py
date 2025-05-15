@@ -4,25 +4,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from common.utils.api_responses import SuccessAPIResponse
-from common.swagger import (
-    BadRequestSerializer,
-    BaseSuccessSerializer
-)
-
+from user.serializers.swagger import logout_schema
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(
-        summary="Logout User",
-        description="Logs out the user by deleting the session cookie.",
-        tags=["Auth"],
-        request=None,
-        responses={
-            200: BaseSuccessSerializer,
-            400: BadRequestSerializer,
-        }
-    )
+    @extend_schema(**logout_schema)
     def post(self, request):
         """
         Logs out the user by deleting the session cookie.
