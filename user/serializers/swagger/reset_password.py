@@ -31,9 +31,7 @@ forgot_password_schema = {
     'operation_id': 'forgot_password',
     'request': ForgotPasswordDataRequest,
     'responses': {
-        202: get_success_response(
-            'If an account with this email exists, a password reset \
-            link has been sent to your email address.', 202),
+        202: get_success_response('Password reset link sent.', 202),
         400: get_error_response('Email address required.', 400),
     }
 }

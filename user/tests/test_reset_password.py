@@ -17,7 +17,7 @@ def test_forgot_password(client, user, mock_password_reset_email_task):
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert response.data['status'] == "success"
     assert response.data['code'] == 202
-    assert response.data['message'] == "If an account with this email exists, a password reset link has been sent to your email address."
+    assert response.data['message'] == "Password reset link sent."
 
 
 def test_forgot_password_with_invalid_email(client, db_access):
@@ -30,7 +30,7 @@ def test_forgot_password_with_invalid_email(client, db_access):
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert response.data['status'] == "success"
     assert response.data['code'] == 202
-    assert response.data['message'] == "If an account with this email exists, a password reset link has been sent to your email address."
+    assert response.data['message'] == "Password reset link sent."
 
 def test_forgot_password_without_email(client):
     """

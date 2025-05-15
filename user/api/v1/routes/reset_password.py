@@ -39,7 +39,7 @@ class ForgotPasswordView(APIView):
             send_password_reset_mail_task.delay(email, link)
         return Response(
             SuccessAPIResponse(
-                message="If an account with this email exists, a password reset link has been sent to your email address.",
+                message="Password reset link sent.",
                 code=202,
             ).to_dict(), status=status.HTTP_202_ACCEPTED
         )
