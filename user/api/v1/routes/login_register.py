@@ -7,16 +7,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from common.swagger import BadRequestSerializer
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from user.models import User
 from user.serializers.user import UserSerializer
 from user.serializers.swagger import (
-    UserRegistrationRequestSerializer,
-    UserLoginRequestSerializer,
-    RegistrationSuccessSerializer,
-    UserResponseSerializer
+    user_login_schema,
+    user_registration_schema
 )
 from user.tasks import send_verification_mail_task
 from user.utils.password_validation import password_check
@@ -25,16 +22,7 @@ from user.utils.password_validation import password_check
 class RegisterView(APIView):
     authentication_classes = []
 
-    @extend_schema(
-        summary='Register a new user',
-        description='Register a new user by providing email and password.',
-        request=UserRegistrationRequestSerializer,
-        tags=['Auth'],
-        responses={
-            201: RegistrationSuccessSerializer,
-            400: BadRequestSerializer,
-        }
-    )
+    @extend_schema(**user_registration_schema)
     def post(self, request):
         """
         Handle the user registration process.
@@ -62,17 +50,7 @@ class RegisterView(APIView):
 class LoginView(APIView):
     authentication_classes = []
 
-    @extend_schema(
-        summary='Login a user',
-        description='Login a user by providing email and password.',
-        tags=['Auth'],
-        request=UserLoginRequestSerializer,
-        responses={
-            200: UserResponseSerializer,
-            400: BadRequestSerializer,
-        },
-        
-    )
+    @extend_schema(**user_login_schema)
     def post(self, request):
         """
         Takes user email and password for authentication. 
@@ -92,7 +70,7 @@ class LoginView(APIView):
         serializer = UserSerializer(user)
         response = Response(
             SuccessAPIResponse(
-                message='User login successful.',
+                message=f'User logged in successfully.',
                 data=serializer.data,
             ).to_dict(), status=status.HTTP_200_OK)
         refresh = RefreshToken.for_user(user)

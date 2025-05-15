@@ -38,7 +38,7 @@ def test_get_admin_user_by_same_admin_user(client, admin_user, signed_in_admin):
     """
     Test get a specific admin user by same admin user.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     client.cookies['access_token'] == signed_in_admin['access_token']
     response = client.get(url)
     assert response.status_code == status.HTTP_200_OK
@@ -52,7 +52,7 @@ def test_get_admin_user_by_superuser(client, admin_user, signed_in_superuser):
     """
     Test get a specific admin user by super user.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     client.cookies['access_token'] == signed_in_superuser['access_token']
     response = client.get(url)
     assert response.status_code == status.HTTP_200_OK
@@ -66,7 +66,7 @@ def test_get_admin_user_with_invalid_id(client, signed_in_superuser):
     """
     Test get admin user with invalid id.  
     """
-    url = reverse('admin-user', kwargs={'id': "123-Invalid-id"})
+    url = reverse('admin-user', kwargs={'user_id': "123-Invalid-id"})
     client.cookies['access_token'] = signed_in_superuser['access_token']
     response = client.get(url)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -78,7 +78,7 @@ def test_get_admin_user_by_non_superuser(client, admin_user, signed_in_user):
     """
     Test get a specific admin user by non super user.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     client.cookies['access_token'] == signed_in_user['access_token']
     response = client.get(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -93,7 +93,7 @@ def test_put_admin_user_by_superuser(client, admin_user, signed_in_superuser):
     Test update a specific admin user by super user.
     Only super user can update staff_id (staff username).
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
         'staff_id': 'admin-user-updated',
         'old_password': 'Password123#',
@@ -113,7 +113,7 @@ def test_put_admin_user_password_by_same_admin_user(client, admin_user, signed_i
     """
     Test update admin user password by admin user.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
         'old_password': 'Password123#',
         'password': "New-password123#",
@@ -134,7 +134,7 @@ def test_put_admin_user_by_another_user(client, signed_in_admin):
         staff_id='new-admin-user',
         password='Example123#'
     )
-    url = reverse('admin-user', kwargs={'id': admin.id})
+    url = reverse('admin-user', kwargs={'user_id': admin.id})
     data = {
         'old_password': 'Password123#',
         'password': 'Password123#',
@@ -152,7 +152,7 @@ def test_put_admin_user_staff_id_by_non_superuser(client, admin_user, signed_in_
     """
     Test update a specific admin user staff_id by non super user.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {'staff_id': 'new-admin-user'}
     client.cookies['access_token'] = signed_in_admin['access_token']
     response = client.put(url, data=data, format='json')
@@ -166,7 +166,7 @@ def test_put_admin_user_by_non_admin(client, admin_user, signed_in_user):
     """
     Test update admin user by non admin.  
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {'staff_id': 'new-admin-user'}
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.put(url, data=data, format='json')
@@ -180,7 +180,7 @@ def test_put_admin_user_with_invalid_id(client, signed_in_superuser):
     """
     Test update admin user with invalid id.  
     """
-    url = reverse('admin-user', kwargs={'id': "123-Invalid-id"})
+    url = reverse('admin-user', kwargs={'user_id': "123-Invalid-id"})
     data = {'staff_id': 'new-admin-user'}
     client.cookies['access_token'] = signed_in_superuser['access_token']
     response = client.put(url, data=data, format='json')
@@ -194,7 +194,7 @@ def test_put_admin_user_password_without_old_password(client, admin_user, signed
     """
     Test update admin user password without old password.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
         'password': 'Password123#',
         'confirm_password': 'Password123#'
@@ -211,7 +211,7 @@ def test_put_admin_user_password_with_incorrect_old_password(client, admin_user,
     """
     Test update admin user password without old password.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
         'old_password': 'IncorrectOldPassword123#',
         'password': 'Password123#',
@@ -228,7 +228,7 @@ def test_put_admin_user_password_mismatch(client, admin_user, signed_in_admin):
     """
     Test update admin user password with mismatching password.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
         'old_password': 'Password123#',
         'password': 'Example123#',
@@ -246,7 +246,7 @@ def test_admin_put_user_password_length(client, admin_user, signed_in_admin):
     """
     Test update user password with a short password.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
         'old_password': 'Password123#',
         'password': 'Exa12#',
@@ -267,7 +267,7 @@ def test_put_admin_user_password_without_digit(client, admin_user, signed_in_adm
     """
     Test update admin user with a password without digits.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
         'old_password': 'Password123#',
         'password': 'Example#$',
@@ -287,7 +287,7 @@ def test_put_admin_user_password_without_special_char(client, admin_user, signed
     """
     Test update admin user with a password without special character.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
         'old_password': 'Password123#',
         'password': 'Example123',
@@ -307,7 +307,7 @@ def test_put_admin_user_password_without_letters(client, admin_user, signed_in_a
     """
     Test update admin user with a password without letters.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
         'old_password': 'Password123#',
         'password': '12345678#',
@@ -333,7 +333,7 @@ def test_delete_admin_user(client, signed_in_superuser):
         staff_id='new-admin',
         password='Password123#'
     )
-    url = reverse('admin-user', kwargs={'id': admin.id})
+    url = reverse('admin-user', kwargs={'user_id': admin.id})
     client.cookies['access_token'] == signed_in_superuser['access_token']
     response = client.delete(url)
     assert response.status_code == status.HTTP_204_NO_CONTENT
@@ -343,7 +343,7 @@ def test_delete_admin_user_by_non_superuser(client, admin_user, signed_in_admin)
     """
     Test delete admin user by non super user.
     """
-    url = reverse('admin-user', kwargs={'id': admin_user.id})
+    url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     client.cookies['access_token'] == signed_in_admin['access_token']
     response = client.delete(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -356,7 +356,7 @@ def test_delete_admin_user_with_invalid_id(client, signed_in_superuser):
     """
     Test delete admin user with invalid user id.
     """
-    url = reverse('admin-user', kwargs={'id': "123-Invalid-id"})
+    url = reverse('admin-user', kwargs={'user_id': "123-Invalid-id"})
     client.cookies['access_token'] == signed_in_superuser['access_token']
     response = client.delete(url)
     assert response.status_code == status.HTTP_400_BAD_REQUEST

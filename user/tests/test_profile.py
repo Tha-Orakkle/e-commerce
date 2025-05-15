@@ -72,7 +72,7 @@ def test_put_user_profile_invalid_data(client, updated_user, signed_in_user):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['code'] == 400
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Error updating user profile."
+    assert response.data['message'] == "User profile update failed."
     assert 'first_name' in response.data['errors']
     assert response.data['errors']['first_name'] == ["Ensure this field has at least 2 characters."]
     assert 'last_name' in response.data['errors']
@@ -95,7 +95,7 @@ def test_put_user_profile_invalid_data_more(client, updated_user, signed_in_user
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['code'] == 400
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Error updating user profile."
+    assert response.data['message'] == "User profile update failed."
     assert 'first_name' in response.data['errors']
     logger.info(response.data['errors'])
     assert response.data['errors']['first_name'] == ["This field may not be blank."]
@@ -118,7 +118,7 @@ def test_put_user_profile_long_first_and_last_name(client, updated_user, signed_
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['code'] == 400
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Error updating user profile."
+    assert response.data['message'] == "User profile update failed."
     assert 'first_name' in response.data['errors']
     assert response.data['errors']['first_name'] == ["Ensure this field has no more than 30 characters."]
     assert 'last_name' in response.data['errors']

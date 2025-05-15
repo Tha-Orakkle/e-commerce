@@ -1,16 +1,13 @@
 from rest_framework import serializers
 
-from product.models import Product, ProductImage
-
-
-class ProductImageSerializer(serializers.ModelSerializer):
-    url = serializers.ImageField(source='image')
-    class Meta:
-        model = ProductImage
-        fields = ['id', 'url']
+from product.models import Product
+from .product_image import ProductImageSerializer
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Product model.
+    """
     images = ProductImageSerializer(read_only=True, many=True, required=False)
 
     class Meta:

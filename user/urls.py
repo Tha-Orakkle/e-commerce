@@ -38,7 +38,7 @@ urlpatterns = [
     
     # admin users
     path('admin/users/', AdminsView.as_view(), name='admin-users'),
-    path('admin/users/<str:id>/', AdminView.as_view(), name='admin-user'),
+    path('admin/users/<str:user_id>/', AdminView.as_view(), name='admin-user'),
 
     # sign in with google
     # path('auth/google/login/', google_login),
@@ -47,7 +47,7 @@ urlpatterns = [
 
     # users
     path('users/', UsersView.as_view(), name='users'),
-    path('users/<str:id>/', UserView.as_view(), name='user'),
+    path('users/<str:user_id>/', UserView.as_view(), name='user'),
 
     # user profile
     path('users/me/profile/', UserProfileView.as_view(), name='user-profile'),

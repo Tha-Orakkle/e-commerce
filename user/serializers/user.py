@@ -6,6 +6,9 @@ from .profile import UserProfileSerializer
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """
+    Serializer for User model.
+    """
     profile = UserProfileSerializer(read_only=True)
     class Meta:
         model = User

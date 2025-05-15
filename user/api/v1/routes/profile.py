@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -7,10 +8,12 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from user.models import User
 from user.serializers.profile import UserProfileSerializer
+from user.serializers.swagger import update_user_profile_schema
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
     
+    @extend_schema(**update_user_profile_schema)
     def put(self, request):
         """
         Update the user profile.
@@ -23,7 +26,7 @@ class UserProfileView(APIView):
         serializer = UserProfileSerializer(user.profile, data=request.data, partial=True)
         if not serializer.is_valid():
             raise ErrorException(
-                detail="Error updating user profile.",
+                detail="User profile update failed.",
                 errors=serializer.errors    
             )
         serializer.save()

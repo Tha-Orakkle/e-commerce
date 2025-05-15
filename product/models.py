@@ -20,7 +20,7 @@ class Product(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, null=False)
     name = models.CharField(max_length=50, null=False, blank=False, unique=True)
     description = models.TextField(null=False, blank=False, default='')
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0), blank=False)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0.00), blank=False)
 
     def __str__(self):
         """

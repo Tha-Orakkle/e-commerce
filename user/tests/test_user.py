@@ -28,7 +28,7 @@ def test_get_user_with_id(client, user, signed_in_user):
     """
     Test get user with the user's id.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     tokens = signed_in_user
     client.cookies['access_token'] = tokens['access_token']
     response = client.get(url)
@@ -44,7 +44,7 @@ def test_get_user_with_invalid_id(client, signed_in_user):
     """
     Test get user with invalid id.
     """
-    url = reverse('user', kwargs={'id': "45678909876543"})
+    url = reverse('user', kwargs={'user_id': "45678909876543"})
     tokens = signed_in_user
     client.cookies['access_token'] = tokens['access_token']
     response = client.get(url)
@@ -58,7 +58,7 @@ def test_put_user_email(mock_verification_email_task, client, user, signed_in_us
     """
     Test update user email address to a new one.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     tokens = signed_in_user
     data = {'email': 'new_email@email.com'}
     client.cookies['access_token'] = tokens['access_token']
@@ -81,7 +81,7 @@ def test_put_user_email_with_same_verified_email(mock_verification_email_task, c
     """
     user.is_verified = True
     user.save()
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     data = {
         'email': user.email,
         'passord': 'Password1234#',
@@ -102,7 +102,7 @@ def test_put_user_with_invalid_id(client, signed_in_user):
     """
     Test update user with invalid id.  
     """
-    url = reverse('user', kwargs={'id': "123-Invalid-id"})
+    url = reverse('user', kwargs={'user_id': "123-Invalid-id"})
     data = {
         'passord': 'Password1234#',
         'confirm_passord': 'Password1234#'
@@ -120,7 +120,7 @@ def test_put_user_email_invalid_email(mock_verification_email_task, client, user
     """
     Test update user email address with an invalid email address.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     tokens = signed_in_user
     data = {
         'email': 'invalid_email'
@@ -140,7 +140,7 @@ def test_put_user_email_existing_email(mock_verification_email_task, client, use
     """
     Test update user email address with an existing emaill address.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     User.objects.create_user(
         email="user2@email.com",
         password="Password123#"
@@ -164,7 +164,7 @@ def test_put_user_password(mock_verification_email_task, client, user, signed_in
     """
     Test update user password.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     tokens = signed_in_user
     data = {
         'old_password': 'Password123#',
@@ -186,7 +186,7 @@ def test_put_user_password_without_old_password(mock_verification_email_task, cl
     """
     Test update user password without old password.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     tokens = signed_in_user
     data = {
         'password': 'Example123#',
@@ -205,7 +205,7 @@ def test_put_user_password_with_incorecrt_old_password(mock_verification_email_t
     """
     Test update user password without old password.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     tokens = signed_in_user
     data = {
         'old_password': 'IncorrectOldPassword123#',
@@ -225,7 +225,7 @@ def test_put_user_password_mismatch(mock_verification_email_task, client, user, 
     """
     Test update user password with mismatching password.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     data = {
         'old_password': 'Password123#',
         'password': 'Example123#',
@@ -245,7 +245,7 @@ def test_put_user_password_length(mock_verification_email_task, client, user, si
     """
     Test update user password with a short password.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     data = {
         'old_password': 'Password123#',
         'password': 'Exa12#',
@@ -268,7 +268,7 @@ def test_put_user_password_without_digit(mock_verification_email_task, client, u
     """
     Test update user with a password without digits.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     data = {
         'old_password': 'Password123#',
         'password': 'Example#$',
@@ -290,7 +290,7 @@ def test_put_user_password_without_special_char(mock_verification_email_task, cl
     """
     Test update user with a password without special character.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     data = {
         'old_password': 'Password123#',
         'password': 'Example123',
@@ -312,7 +312,7 @@ def test_put_user_password_without_letters(mock_verification_email_task, client,
     """
     Test update user with a password without letters.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     data = {
         'old_password': 'Password123#',
         'password': '12345678#',
@@ -339,7 +339,7 @@ def test_put_user_by_another_user(client, signed_in_user):
     new_user = User.objects.create_user(
         email="new_user@email.com",
         password="Password123#")
-    url = reverse('user', kwargs={'id': new_user.id})
+    url = reverse('user', kwargs={'user_id': new_user.id})
     data = {
         'email': 'new_email@email.com',
         'password': '12345678#',
@@ -357,7 +357,7 @@ def test_put_user_without_access_token(client, user):
     """
     Test update user without access token.
     """
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     data = {
         'email': 'new_email@email.com',
         'password': '12345678#',
@@ -375,7 +375,7 @@ def test_delete_user(client, user, signed_in_user):
     """
     Test delete user.
     """
-    url  = reverse('user', kwargs={'id': user.id})
+    url  = reverse('user', kwargs={'user_id': user.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.delete(url)
     assert response.status_code == status.HTTP_204_NO_CONTENT
@@ -388,7 +388,7 @@ def test_delete_user_by_another_user(client, signed_in_user):
     user = User.objects.create_user(
         email="test-user@email.com",
         password="Password123#")
-    url = reverse('user', kwargs={'id': user.id})
+    url = reverse('user', kwargs={'user_id': user.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.delete(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -402,7 +402,7 @@ def test_delete_user_with_invalid_id(client, signed_in_user):
     """
     Test delete user with invalid id.
     """
-    url = reverse('user', kwargs={'id': "45678909876543"})
+    url = reverse('user', kwargs={'user_id': "45678909876543"})
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.get(url)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -416,7 +416,7 @@ def test_delete_admin_user(client, admin_user, signed_in_user):
     Test delete admin user by regular user.
     Admin users cannot be accessed from the url for reg user.
     """
-    url = reverse('user', kwargs={'id': admin_user.id})
+    url = reverse('user', kwargs={'user_id': admin_user.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.delete(url)
     assert response.status_code == status.HTTP_400_BAD_REQUEST

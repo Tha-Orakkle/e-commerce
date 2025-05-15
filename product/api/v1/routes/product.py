@@ -1,22 +1,35 @@
-from rest_framework import status
+from decimal import Decimal
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
 
-import uuid
-
+from common.exceptions import ErrorException
+from common.swagger import (
+    BaseSuccessSerializer,
+    BadRequestSerializer,
+    CreatedSuccessSerializer
+)
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination as PNP
-from common.exceptions import ErrorException
 from product.models import Product
 from product.serializers.product import ProductSerializer 
+from product.serializers.swagger import (
+    create_product_schema,
+    delete_product_schema,
+    get_products_schema,
+    get_product_schema,
+    update_product_schema
+)
 
 
 class ProductView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(**get_products_schema)
     def get(self, request):
         """
         Gets all products.
@@ -33,7 +46,7 @@ class ProductView(APIView):
             ).to_dict(), status=status.HTTP_200_OK
         )
 
-
+    @extend_schema(**create_product_schema)
     def post(self, request):
         """
         Create a new product.
@@ -47,7 +60,6 @@ class ProductView(APIView):
                 SuccessAPIResponse(
                     message="Product created successfully.",
                     code=201,
-                    data=serializer.data
                 ).to_dict(), status=status.HTTP_201_CREATED
             )
         raise ErrorException(
@@ -59,6 +71,7 @@ class ProductView(APIView):
 class ProductDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(**get_product_schema)
     def get(self, request, id):
         """
         Get a specific product.
@@ -76,7 +89,7 @@ class ProductDetailView(APIView):
         )
         
 
-    
+    @extend_schema(**update_product_schema)
     def put(self, request, id):
         """
         Update a specific product.
@@ -106,6 +119,7 @@ class ProductDetailView(APIView):
         )
         
 
+    @extend_schema(**delete_product_schema)
     def delete(self, request, id):
         """
         Delete a specific product.

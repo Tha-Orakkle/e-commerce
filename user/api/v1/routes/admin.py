@@ -24,27 +24,19 @@ from user.models import User
 from user.utils.password_validation import password_check
 from user.serializers.user import UserSerializer
 from user.serializers.swagger import (
-    AdminUserLoginRequestSerializer,
-    AdminUserRegistrationRequestSerializer,
-    BaseSuccessSerializer,
-    RegistrationSuccessSerializer,
-    UserResponseSerializer
+    admin_user_login_schema,
+    admin_user_registration_schema,
+    delete_admin_user_schema,
+    get_admin_user_schema,
+    get_admin_users_schema,
+    update_admin_user_schema
 )
 
 
 class AdminUserRegistrationView(APIView):
     permission_classes = [IsSuperUser, IsAuthenticated]
 
-    @extend_schema(
-        summary="Create an Admin user",
-        description="create admin user with staff id and password",
-        tags=['Admin-Auth'],
-        request=AdminUserRegistrationRequestSerializer,
-        responses={
-            201: RegistrationSuccessSerializer,
-            400: BadRequestSerializer
-        }
-    )
+    @extend_schema(**admin_user_registration_schema)
     def post(self, request):
         """
         Create a new user with staff (Admin) access.
@@ -73,16 +65,7 @@ class AdminUserRegistrationView(APIView):
 class AdminUserLoginView(APIView):
     authentication_classes = []
 
-    @extend_schema(
-        summary="Login an admin user",
-        description="Login an admin user with staff id and password",
-        tags=['Admin-Auth'],
-        request=AdminUserLoginRequestSerializer,
-        responses={
-            200: UserResponseSerializer,
-            400: BadRequestSerializer,
-        }
-    )
+    @extend_schema(**admin_user_login_schema)
     def post(self, request):
         """
         Sign in the admin user with staff id and password
@@ -101,7 +84,7 @@ class AdminUserLoginView(APIView):
         serializer = UserSerializer(user)
         response = Response(
             SuccessAPIResponse(
-                message="Admin user login successful.",
+                message="Admin user logged in successfully.",
                 data=serializer.data
             ).to_dict(), status=status.HTTP_200_OK
         )
@@ -123,17 +106,7 @@ class AdminUserLoginView(APIView):
 class AdminsView(APIView):
     permission_classes = [IsSuperUser, IsAuthenticated]
 
-    @extend_schema(
-        description="Get all the admin users",
-        tags=['Admin'],
-        request=None,
-        responses={
-            200: UserResponseSerializer,
-            400: BadRequestSerializer,
-            401: UnauthorizedSerializer, 
-            403: ForbiddenSerializer
-        }
-    )
+    @extend_schema(**get_admin_users_schema)
     def get(self, request):
         """
         Gets all admin users.
@@ -154,25 +127,15 @@ class AdminsView(APIView):
 class AdminView(APIView):
     permission_classes = [IsAdminUser, IsAuthenticated]
 
-    @extend_schema(
-        description="Get a specific admin user",
-        tags=['Admin'],
-        request=None,
-        responses={
-            200: UserResponseSerializer,
-            400: BadRequestSerializer,
-            401: UnauthorizedSerializer, 
-            403: ForbiddenSerializer
-        }
-    )
-    def get(self, request, id):
+    @extend_schema(**get_admin_user_schema)
+    def get(self, request, user_id):
         """
         Get a specific admin user.
         """
-        validate_id(id, "admin user")
-        user = User.objects.exclude(is_staff=False).filter(id=id).first()
+        validate_id(user_id, "admin user")
+        user = User.objects.exclude(is_staff=False).filter(id=user_id).first()
         if not user:
-            raise ErrorException("Invalid user id.")
+            raise ErrorException("Invalid admin user id.")
         if user != request.user and not request.user.is_superuser:
             raise PermissionDenied()
         serializer = UserSerializer(user)
@@ -183,25 +146,14 @@ class AdminView(APIView):
             ).to_dict(), status=status.HTTP_200_OK
         )
     
-    @extend_schema(
-        description="Update a specific admin user",
-        tags=['Admin'],
-        request=AdminUserRegistrationRequestSerializer,
-        responses={
-            200: UserResponseSerializer,
-            400: BadRequestSerializer,
-            401: UnauthorizedSerializer, 
-            403: ForbiddenSerializer
-        }
-    )
-
-    def put(self, request, id):
+    @extend_schema(**update_admin_user_schema)
+    def put(self, request, user_id):
         """
         Update an admin user.
         Admin users can change only their passwords and not their staff_id.
         Only a super user can change staff_id.
         """
-        validate_id(id, "admin user")
+        validate_id(user_id, "admin user")
         data = {
             'staff_id': request.data.get('staff_id', None),
             'password': request.data.get('password', None)
@@ -212,9 +164,9 @@ class AdminView(APIView):
             raise ErrorException("Password and confirm_password fields do not match.")
         data.pop('password') if not data['password'] else None
         data.pop('staff_id') if not data['staff_id'] else None
-        user = User.objects.exclude(is_staff=False).filter(id=id).first()
+        user = User.objects.exclude(is_staff=False).filter(id=user_id).first()
         if not user:
-            raise ErrorException("Invalid user id.")
+            raise ErrorException("Invalid admin user id.")
         if user != request.user and not request.user.is_superuser:
             raise PermissionDenied()
         if data['password']:
@@ -235,32 +187,20 @@ class AdminView(APIView):
         )
     
 
-    @extend_schema(
-        summary="Delete an admin user",
-        description="Only a super user can delete an admin.",
-        request=None,
-        responses={
-            200: BaseSuccessSerializer,
-            400: BadRequestSerializer,
-            401: UnauthorizedSerializer, 
-            403: ForbiddenSerializer
-
-        }
-    )
-
-    def delete(self, request, id):
+    @extend_schema(**delete_admin_user_schema)
+    def delete(self, request, user_id):
         """
         Delete an admin user.
         Only a super user can delete an admin.
         """
         if not request.user.is_superuser:
             raise PermissionDenied()
-        validate_id(id, "admin user")
-        user = User.objects.exclude(is_staff=False).filter(id=id).first()
+        validate_id(user_id, "admin user")
+        user = User.objects.exclude(is_staff=False).filter(id=user_id).first()
         if not user:
-            raise ErrorException("Invalid user id.")
+            raise ErrorException("Invalid admin user id.")
         if user == request.user:
-            raise ErrorException("A super user cannot delete itself.")
+            raise PermissionDenied()
         user.delete()
         return Response({}, status=status.HTTP_204_NO_CONTENT)
         
