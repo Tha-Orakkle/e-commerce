@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from .base import BaseResponseSerializer
 
 # Caching mechanism for success responses
 # This cache will store the dynamically created serializer classes
@@ -29,26 +28,3 @@ def get_success_response(message, code=200, data_serializer=None):
     _cls = type(name, (serializers.Serializer,), fields)
     _success_response_cache[key] = _cls
     return _cls
-
-
-# SUCCESS SERIALIZER FOR SWAGGER UI
-class BaseSuccessSerializer(BaseResponseSerializer):
-    """
-    Base class for success serializers.
-    """
-    status = serializers.CharField(default='success')
-    code = serializers.IntegerField(default=200)
-
-
-class AcceptedSuccessSerializer(BaseSuccessSerializer):
-    """
-    Serializer for accepted success responses.
-    """
-    code = serializers.IntegerField(default=202)
-
-
-class CreatedSuccessSerializer(BaseSuccessSerializer):
-    """
-    Serializer for created success responses.
-    """
-    code = serializers.IntegerField(default=201)

@@ -8,11 +8,6 @@ from drf_spectacular.utils import extend_schema
 
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
-from common.swagger import (
-    AcceptedSuccessSerializer,
-    BaseSuccessSerializer,
-    BadRequestSerializer
-)
 from user.models import User
 from user.serializers.swagger import forgot_password_schema, reset_password_confirm_schema
 from user.tasks import send_password_reset_mail_task
