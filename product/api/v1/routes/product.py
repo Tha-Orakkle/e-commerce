@@ -1,17 +1,11 @@
-from decimal import Decimal
-from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import serializers, status
+from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.exceptions import ErrorException
-from common.swagger import (
-    BaseSuccessSerializer,
-    BadRequestSerializer,
-    CreatedSuccessSerializer
-)
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination as PNP

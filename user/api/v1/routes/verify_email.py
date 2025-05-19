@@ -2,23 +2,14 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from common.swagger import BadRequestSerializer, BaseSuccessSerializer
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from user.utils.email_verification import verify_email_verification_token
+from user.serializers.swagger import verify_email_schema
 
 
 class VerifyEmailView(APIView):
-    @extend_schema(
-            summary="Verify Email",
-            description="Verifies the email address using a token.",
-            tags=["Auth"],
-            request=None,
-            responses={
-                200: BaseSuccessSerializer,
-                400: BadRequestSerializer,
-            }
-    )
+    @extend_schema(**verify_email_schema)
     def get(self, request):
         """
         Verifies the token from the request.

@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from .base import BaseResponseSerializer
-
 # Caching mechanism for error responses
 # This cache will store the dynamically created serializer classes
 # to avoid creating them multiple times for the same parameters.
@@ -32,18 +30,11 @@ def get_error_response(message, code=400, error_serializer=None):
 
 
 # ERROR SERIALIZERS FOR SWAGGER UI
-class BaseErrorSerializer(BaseResponseSerializer):
+class BaseErrorSerializer(serializers.Serializer):
     """
     Base class for error serializers.
     """
     status = serializers.CharField(default='error')
-
-
-class BadRequestSerializer(BaseErrorSerializer):
-    """
-    Serializer for bad request responses.
-    """
-    code = serializers.IntegerField(default=400)
 
 
 class UnauthorizedSerializer(BaseErrorSerializer):

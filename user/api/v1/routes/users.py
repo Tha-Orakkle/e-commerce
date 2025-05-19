@@ -6,11 +6,6 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from common.swagger import (
-    BadRequestSerializer,
-    UnauthorizedSerializer,
-    ForbiddenSerializer,
-)
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from common.utils.check_valid_uuid import validate_id

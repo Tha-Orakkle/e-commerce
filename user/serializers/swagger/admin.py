@@ -4,7 +4,6 @@ from common.swagger import (
     get_success_response,
     get_error_response,
     BasePaginatedResponse,
-    BadRequestSerializer,
     UnauthorizedSerializer,
     ForbiddenSerializer
 )

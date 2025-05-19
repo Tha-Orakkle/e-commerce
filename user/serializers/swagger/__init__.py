@@ -23,6 +23,7 @@ from .user import (
     get_users_schema,
     update_user_schema
 )
+from .verify_email import verify_email_schema
 
 
 __all__ = [
@@ -42,5 +43,6 @@ __all__ = [
     'update_user_profile_schema',
     'update_user_schema',
     'user_login_schema',
-    'user_registration_schema'
+    'user_registration_schema',
+    'verify_email_schema'
 ]

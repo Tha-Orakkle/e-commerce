@@ -13,11 +13,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from common.exceptions import ErrorException
 from common.utils.check_valid_uuid import validate_id
 from common.backends.permissions import IsSuperUser
-from common.swagger import (
-    BadRequestSerializer,
-    UnauthorizedSerializer,
-    ForbiddenSerializer
-)
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.pagination import Pagination
 from user.models import User
