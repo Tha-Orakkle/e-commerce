@@ -363,3 +363,16 @@ def test_delete_admin_user_with_invalid_id(client, signed_in_superuser):
     assert response.data['status'] == "error"
     assert response.data['code'] == 400
     assert response.data['message'] == "Invalid admin user id."
+
+
+def test_delete_super_user_admin_by_self(client, super_user, signed_in_superuser):
+    """
+    Test delete super user admin by self.
+    """
+    url = reverse('admin-user', kwargs={'user_id': super_user.id})
+    client.cookies['access_token'] = signed_in_superuser['access_token']
+    response = client.delete(url)
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.data['status'] == "error"
+    assert response.data['code'] == 403
+    assert response.data['message'] == "You do not have permission to perform this action."
