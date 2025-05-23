@@ -54,6 +54,7 @@ class ProductView(APIView):
                 SuccessAPIResponse(
                     message="Product created successfully.",
                     code=201,
+                    data=serializer.data
                 ).to_dict(), status=status.HTTP_201_CREATED
             )
         raise ErrorException(
