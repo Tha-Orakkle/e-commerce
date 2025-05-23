@@ -4,6 +4,7 @@ from django.apps import apps
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils.text import slugify
 from io import BytesIO
 from PIL import Image
 
@@ -29,13 +30,13 @@ class Product(models.Model):
         return f"<Product: {self.id}> {self.name}"
 
 
-    def get_image_path(self):
+    def get_image_dir(self):
         """
         Return the upload path for product image.
         """
-        from e_core.settings import MEDIA_ROOT
+        from django.conf import settings
         product_image_dir = f'products/pdt_{self.id}'
-        return MEDIA_ROOT / product_image_dir
+        return settings.MEDIA_ROOT / product_image_dir
 
     def add_images(self, images):
         """
@@ -53,16 +54,16 @@ class Product(models.Model):
         """
         import shutil
 
-        path = self.get_image_path()
-        if os.path.isdir(path):
-            shutil.rmtree(path)
+        _dir = self.get_image_dir()
+        if os.path.isdir(_dir):
+            shutil.rmtree(_dir)
 
     def delete_images(self):
         """
         Deletes all images from db and associated files.
         """
-        self.images.all().delete() # deletes from db
         self.delete_all_image_files() # delete associated files
+        self.images.all().delete() # deletes from db
 
     def update_images(self, images):
         """
@@ -75,8 +76,8 @@ class Product(models.Model):
         """
         Delete a Product instance.
         """
+        self.delete_all_image_files()       
         super().delete(*args, **kwargs)
-        self.delete_all_image_files()        
 
 
 class ProductImage(models.Model):
@@ -125,7 +126,7 @@ class ProductImage(models.Model):
         """
         Delete the ProductImage instance.
         """
-        if self.image:
+        if self.image and os.path.isfile(self.image.path):
             os.remove(self.image.path)
         super().delete(*args, **kwargs)
 
@@ -153,6 +154,7 @@ def create_inventory(sender, instance, created, **kwargs):
 class Category(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, null=False)
     name = models.CharField(max_length=20)
+    slug = models.SlugField(max_length=30, unique=True)
     products = models.ManyToManyField(Product, related_name='categories')
 
     def __str__(self):
@@ -160,4 +162,11 @@ class Category(models.Model):
         Returns a string representation of the Category object.
         """
         return f"<Category: {self.id}> {self.name}"
+    
+    def save(self, *args, **kwargs):
+        """
+        Save the Category instance.
+        """
+        self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
     
