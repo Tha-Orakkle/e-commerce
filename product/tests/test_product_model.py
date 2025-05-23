@@ -4,6 +4,7 @@ from PIL import Image
 
 import os
 
+from .conftest import create_fake_images
 from product.models import Product, ProductImage, Category
 
 
@@ -34,43 +35,26 @@ def test_get_image_dir(product):
     assert product.get_image_dir() == settings.MEDIA_ROOT / product_image_dir
 
 
-def test_add_images(product, fake_image):
+def test_add_images(product):
     """
     Test that multiple images are added to a product instance.
     """
-    buffer = BytesIO()
-    img = Image.new("RGB", (100, 100), color="white")
-    img.save(buffer, format="jpeg")
-    buffer.seek(0)
-    
-    fake_image_2 = SimpleUploadedFile(
-        name="test_image_2.jpg",
-        content=buffer.read(),
-        content_type="image/jpeg"
-    )
 
     assert product.images.count() == 0
+    assert not product.get_image_dir().exists()
 
-    product.add_images([fake_image, fake_image_2])
+    product.add_images(create_fake_images(2))
 
     assert product.images.count() == 2
+    assert product.get_image_dir().exists()
+    assert any(product.get_image_dir().iterdir()) # check that product images dir is not empty 
 
 
-def test_delete_all_images(product, fake_image):
+def test_delete_all_images(product):
     """
     Test deletion of all images of a product and associated files.
     """
-    buffer = BytesIO()
-    img = Image.new("RGB", (100, 100), color="white")
-    img.save(buffer, format="jpeg")
-    buffer.seek(0)
-    
-    fake_image_2 = SimpleUploadedFile(
-        name="test_image_2.jpg",
-        content=buffer.read(),
-        content_type="image/jpeg"
-    )
-    product.add_images([fake_image, fake_image_2])
+    product.add_images(create_fake_images(2))
     img, img_2 = product.images.all()
 
     assert product.images.count() == 2
@@ -88,25 +72,16 @@ def test_update_images(product, product_image):
     """
     Test update of all images. All images are replaced with new ones.
     """
-    buffer = BytesIO()
-    img = Image.new("RGB", (100, 100), color="white")
-    img.save(buffer, format="jpeg")
-    buffer.seek(0)
-    
-    new_image = SimpleUploadedFile(
-        name="new_image.jpg",
-        content=buffer.read(),
-        content_type="image/jpeg"
-    )
+    new_image = create_fake_images(1)
 
     assert os.path.exists(product_image.image.path)
     assert ProductImage.objects.filter(id=product_image.id).exists()
 
-    product.update_images([new_image])
+    product.update_images(new_image)
     
     assert not os.path.exists(product_image.image.path)
     assert not ProductImage.objects.filter(id=product_image.id).exists()
-    assert product.images.first().image.name == f"products/pdt_{product.id}/{new_image.name}"
+    assert product.images.first().image.name == f"products/pdt_{product.id}/{new_image[0].name}"
 
 
 def test_product_deletion(product):
