@@ -22,6 +22,11 @@ class Product(models.Model):
     name = models.CharField(max_length=50, null=False, blank=False, unique=True)
     description = models.TextField(null=False, blank=False, default='')
     price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0.00), blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         """
