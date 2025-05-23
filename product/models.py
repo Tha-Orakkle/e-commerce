@@ -67,8 +67,8 @@ class Product(models.Model):
         """
         Deletes all images from db and associated files.
         """
-        self.delete_all_image_files() # delete associated files
-        self.images.all().delete() # deletes from db
+        self.images.all().delete()
+        self.delete_all_image_files()
 
     def update_images(self, images):
         """
