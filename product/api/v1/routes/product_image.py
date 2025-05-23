@@ -19,7 +19,7 @@ from product.serializers.swagger import (
 
 
 class ProductImagesView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(**get_product_images_schema)
     def get(self, request, product_id):
@@ -59,7 +59,7 @@ class ProductImagesView(APIView):
 
 
 class ProductImageView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(**get_product_image_schema)
     def get(self, request, product_id, image_id):
