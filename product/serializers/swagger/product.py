@@ -48,7 +48,7 @@ create_product_schema = {
     'operation_id': 'create_product',
     'request': ProductDataRequest,
     'responses': {
-        201: get_success_response('Product created successfully.', 201),
+        201: get_success_response('Product created successfully.', 201, ProductSerializer()),
         400: get_error_response('Product creation failed.', 400, ProductDataError()),
         401: UnauthorizedSerializer,
         403: ForbiddenSerializer
