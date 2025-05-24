@@ -5,8 +5,6 @@ import pytest
 import random
 import string
 
-from e_core import logger
-
 
 long_name = ''.join(random.choices(string.ascii_letters, k=31))
 user_profile_url = reverse('user-profile')
@@ -97,7 +95,6 @@ def test_put_user_profile_invalid_data_more(client, updated_user, signed_in_user
     assert response.data['status'] == "error"
     assert response.data['message'] == "User profile update failed."
     assert 'first_name' in response.data['errors']
-    logger.info(response.data['errors'])
     assert response.data['errors']['first_name'] == ["This field may not be blank."]
     assert 'last_name' in response.data['errors']
     assert response.data['errors']['last_name'] == ["This field may not be blank."]
