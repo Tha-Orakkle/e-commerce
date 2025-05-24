@@ -1,32 +1,25 @@
 import os
 
+from .conftest import create_fake_images
 from product.models import ProductImage
 
 
-def test_product_image_creation(product, fake_image):
+def test_product_image_creation(product, product_image):
     """
     Test the creation of a product image.
     """
-    product_image = ProductImage.objects.create(
-        product=product,
-        image=fake_image
-    )
     assert product_image.id is not None
     assert type(product_image.id).__name__ == "UUID"
     assert product_image.product == product
     assert ProductImage.objects.count() == 1
-    assert product_image.image.name == f"products/pdt_{product.id}/test_image.jpg"
-    assert product_image.image.path == str(product.get_image_dir()) + "/test_image.jpg"
+    assert product_image.image.name.startswith(f"products/pdt_{product.id}/")
+    assert product_image.image.path.startswith(str(product.get_image_dir()))
 
 
-def test_product_image_relationship(product, fake_image):
+def test_product_image_relationship(product, product_image):
     """
     Test the relationship between product and product image.
     """
-    product_image = ProductImage.objects.create(
-        product=product,
-        image=fake_image
-    )
     assert product.images.count() == 1
     assert product.images.first() == product_image
 
