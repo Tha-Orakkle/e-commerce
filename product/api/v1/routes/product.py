@@ -67,12 +67,12 @@ class ProductDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(**get_product_schema)
-    def get(self, request, id):
+    def get(self, request, product_id):
         """
         Get a specific product.
         """
-        validate_id(id, "product")
-        product = Product.objects.filter(id=id).first()
+        validate_id(product_id, "product")
+        product = Product.objects.filter(id=product_id).first()
         if not product:
             raise ErrorException("Invalid product id.")
         serializer = ProductSerializer(product, context={'request': request})
@@ -85,14 +85,14 @@ class ProductDetailView(APIView):
         
 
     @extend_schema(**update_product_schema)
-    def put(self, request, id):
+    def put(self, request, product_id):
         """
         Update a specific product.
         """
         if not request.user.is_staff:
             raise PermissionDenied()
-        validate_id(id, "product")
-        product = Product.objects.filter(id=id).first()
+        validate_id(product_id, "product")
+        product = Product.objects.filter(id=product_id).first()
         if not product:
             raise ErrorException("Invalid product id.")
         serializer = ProductSerializer(
@@ -115,14 +115,14 @@ class ProductDetailView(APIView):
         
 
     @extend_schema(**delete_product_schema)
-    def delete(self, request, id):
+    def delete(self, request, product_id):
         """
         Delete a specific product.
         """
         if not request.user.is_staff:
             raise PermissionDenied()
-        validate_id(id, "product")
-        product = Product.objects.filter(id=id).first()
+        validate_id(product_id, "product")
+        product = Product.objects.filter(id=product_id).first()
         if not product:
           raise ErrorException("Invalid product id.")
         product.delete()

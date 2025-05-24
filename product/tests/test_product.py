@@ -4,10 +4,10 @@ from rest_framework import status
 from product.models import Product
 from .conftest import create_fake_images
 
-from e_core import logger
+# =============================================================================
+# TEST GET PRODUCTS
+# =============================================================================
 
-
-# GET products requests tests
 products_url = reverse('products')
 
 def test_get_products(client, signed_in_user, product):
@@ -44,13 +44,16 @@ def test_get_products_unauthenticated(client):
     assert response.data['message'] == "Token is invalid or expired"
 
 
-# GET product requests tests
+
+# =============================================================================
+# TEST GET PRODUCT WITH ID
+# =============================================================================
 
 def test_get_product_with_id(client, product, signed_in_user):
     """
     Test get specific product with associated id.
     """
-    url = reverse('product', kwargs={'id': product.id})
+    url = reverse('product', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.get(url)
 
@@ -65,7 +68,7 @@ def test_get_product_with_invalid_id(client, signed_in_user):
     """
     Test get specific product with invalid product id.
     """
-    url = reverse('product', kwargs={'id': 'InvalidID123'})
+    url = reverse('product', kwargs={'product_id': 'InvalidID123'})
     client.cookies['access_token'] = signed_in_user['access_token']
     
     response = client.get(url)
@@ -81,7 +84,7 @@ def test_get_product_unaunthenticated(client, product):
     Test get specific product while unauthenticated.
     (without access token or with invalid token).
     """
-    url = reverse('product', kwargs={'id': product.id})   
+    url = reverse('product', kwargs={'product_id': product.id})   
     response = client.get(url)
     
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -97,13 +100,15 @@ def test_get_product_unaunthenticated(client, product):
 
 
 
-# DELETE product requests tests
+# =============================================================================
+# TEST DELETE PRODUCT WITH ID
+# =============================================================================
 
 def test_delete_product_with_id(client, signed_in_admin, product):
     """
     Test delete a specific product with id by admin user.
     """
-    url = reverse('product', kwargs={'id': product.id})
+    url = reverse('product', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     assert Product.objects.count() == 1
@@ -118,7 +123,7 @@ def test_delete_product_with_invalid_id(client, signed_in_admin, product):
     """
     Test delete a specific product with an invalid id.
     """
-    url = reverse('product', kwargs={'id': 'InvalidID123'})
+    url = reverse('product', kwargs={'product_id': 'InvalidID123'})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     response = client.delete(url)
@@ -132,7 +137,7 @@ def test_delete_product_by_non_admin_user(client, signed_in_user, product):
     """
     Test delete specific product by non-admin user.
     """
-    url = reverse('product', kwargs={'id': product.id})
+    url = reverse('product', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     
     response = client.delete(url)
@@ -147,7 +152,7 @@ def test_delete_product_unauthenticated(client, product):
     Test delete a specific product while unauthenticated.
     (without access token or with invalid token)
     """
-    url = reverse('product', kwargs={'id': product.id})
+    url = reverse('product', kwargs={'product_id': product.id})
     response = client.delete(url)
     
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -162,7 +167,11 @@ def test_delete_product_unauthenticated(client, product):
     assert response.data['message'] == "Token is invalid or expired"
 
 
-# POST product requests tests
+
+# =============================================================================
+# TEST POST NEW PRODUCTS
+# =============================================================================
+
 def test_post_products(client, temp_media_root, signed_in_admin):
     """
     Test create a new product.
@@ -271,7 +280,11 @@ def test_post_product_by_non_admin(client, temp_media_root, signed_in_user):
     assert response.data['message'] == "You do not have permission to perform this action."
     
 
-#  PUT product requests tests
+
+# =============================================================================
+# TEST PUT UPDATE PRODUCT
+# =============================================================================
+
 def test_put_product(client, product, product_image, signed_in_admin):
     """
     Test update a product instance.
@@ -282,7 +295,7 @@ def test_put_product(client, product, product_image, signed_in_admin):
         'price': 20.00,
         'images': create_fake_images(2)
     }
-    url = reverse('product', kwargs={'id': product.id})
+    url = reverse('product', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_admin['access_token']
 
     response = client.put(url, data, format='multipart')
@@ -308,7 +321,7 @@ def test_put_product_by_non_admin(client, product, signed_in_user):
         'description:': 'An OX standing fan',
         'price': 20.00
     }
-    url = reverse('product', kwargs={'id': product.id})
+    url = reverse('product', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_user['access_token']
 
     response = client.put(url, data, format='multipart')
@@ -322,7 +335,7 @@ def test_put_product_unaunthenticted(client, product):
     Test delete a specific product while unauthenticated.
     (without access token or with invalid token)
     """
-    url = reverse('product', kwargs={'id': product.id})
+    url = reverse('product', kwargs={'product_id': product.id})
     response = client.put(url)
     
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

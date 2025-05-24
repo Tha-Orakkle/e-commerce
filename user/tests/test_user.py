@@ -64,7 +64,6 @@ def test_put_user_email(mock_verification_email_task, client, user, signed_in_us
     client.cookies['access_token'] = tokens['access_token']
     response = client.put(url, data, format='json')
     mock_verification_email_task.assert_called_once()
-    print(response.data['message'])
     assert response.status_code == status.HTTP_200_OK
     assert response.data['code'] == 200
     assert response.data['status'] == "success"
