@@ -1,5 +1,5 @@
 from decimal import Decimal
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from django.apps import apps
 from django.db import models
 from django.db.models.signals import post_save
@@ -48,8 +48,11 @@ class Product(models.Model):
         Adds product images to a product.
         """
         ProductImage = apps.get_model('product', 'ProductImage')
-        for image in images:
-            if not isinstance(image, InMemoryUploadedFile):
+        count = self.images.count()
+        if (8 - count) <= 0: # a product can only have 8 images
+            return
+        for image in images[:8 - count]:
+            if not isinstance(image, InMemoryUploadedFile) and not isinstance(image, TemporaryUploadedFile):
                 continue
             ProductImage.objects.create(product=self, image=image)
 
@@ -83,6 +86,14 @@ class Product(models.Model):
         """
         self.delete_all_image_files()       
         super().delete(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        """
+        Save a Product instance.
+        """
+        if self.price < 0:
+            self.price = Decimal(0.00)
+        super().save(*args, **kwargs)
 
 
 class ProductImage(models.Model):
