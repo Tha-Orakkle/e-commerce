@@ -202,6 +202,25 @@ def test_post_products(client, temp_media_root, signed_in_admin):
     assert product.price == data['price']
     assert product.images.count() == 4 # we created just 4 fake images
 
+def test_post_product_with_more_than_8_images(client, temp_media_root, signed_in_admin):
+    """
+    Test create a new product with more than 8 images.
+    NB: products can not have more than 8 images.
+    """
+    client.cookies['access_token'] == signed_in_admin['access_token']
+    data = {
+        'name': 'New Product',
+        'description': 'New Product Description',
+        'price': 120000.00,
+        'images': create_fake_images(12) 
+    }
+    response = client.post(products_url, data, format='multipart')
+    assert response.status_code == status.HTTP_201_CREATED
+    product = Product.objects.first()
+    
+    assert product.images.count() == 8 # only 8 images will be saved
+
+
 
 def test_post_products_with_only_name(client, temp_media_root, signed_in_admin):
     """
@@ -309,7 +328,24 @@ def test_put_product(client, product, product_image, signed_in_admin):
 
     # check old image is no longer associated with product
     assert product_image.id not in new_product_inst.images.values_list('id', flat=True) 
-    assert new_product_inst.images.count() == 2 
+    assert new_product_inst.images.count() == 2
+
+
+def test_put_product_with_more_than_8_images(client, product, signed_in_admin):
+    """
+    Test update product with more than 8 images.
+    NB: products can not have more than 8 images.
+    """
+    url = reverse('product', kwargs={'product_id': product.id})
+    data = {'images': create_fake_images(12)}
+    client.cookies['access_token'] == signed_in_admin['access_token']
+    response = client.put(url, data, format='multipart')
+
+    assert response.status_code == status.HTTP_200_OK
+    product = Product.objects.filter(id=product.id).first()
+    
+    assert product.images.count() == 8 # only 8 images will be saved
+
 
 
 def test_put_product_by_non_admin(client, product, signed_in_user):

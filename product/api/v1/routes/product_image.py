@@ -47,6 +47,8 @@ class ProductImagesView(APIView):
         product = Product.objects.filter(id=product_id).first()
         if not product:
             raise ErrorException("Invalid product id.")
+        if product.images.count() == 8:
+            raise ErrorException("Product images cannot exceed 8.")
         images = request.data.getlist('images', [])
         if images:
             product.add_images(images)

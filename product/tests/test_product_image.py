@@ -7,6 +7,11 @@ import os
 from .conftest import create_fake_images
 from product.models import ProductImage
 
+
+# =============================================================================
+# TEST GET PRODUCT IMAGES
+# =============================================================================
+
 def test_get_product_images(client, signed_in_user, product, product_image):
     """
     Test get all product images.
@@ -20,7 +25,6 @@ def test_get_product_images(client, signed_in_user, product, product_image):
     assert parsed_url.path == product_image.image.url
     assert parsed_url.scheme in ('https', 'http')
     assert parsed_url.netloc
-
 
 
 def test_get_product_images_unauthenticted(client, product):
@@ -42,6 +46,10 @@ def test_get_product_images_unauthenticted(client, product):
     assert response.data['status'] == "error"
     assert response.data['message'] == "Token is invalid or expired"
 
+
+# =============================================================================
+# TEST GET PRODUCT IMAGE WITH ID
+# =============================================================================
 
 def test_get_product_image(client, product, signed_in_user, product_image):
     """
@@ -259,3 +267,16 @@ def test_post_product_image_by_non_admin(client, signed_in_user, product):
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.data['status'] == "error"
     assert response.data['message'] == "You do not have permission to perform this action."
+
+
+def test_post_product_image_with_images_exceeding_8(client, product, signed_in_admin):
+    """
+    Tets post product images where images already exceed 8.
+    """
+    product.add_images(create_fake_images(8))
+    url = reverse('product-images', kwargs={'product_id': product.id})
+    client.cookies['access_token'] == signed_in_admin['access_token']
+    
+    response = client.post(url, {'images': create_fake_images(2)}, format='multipart')
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data['message'] == "Product images cannot exceed 8."
