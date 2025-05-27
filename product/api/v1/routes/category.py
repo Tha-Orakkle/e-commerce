@@ -121,4 +121,4 @@ class CategoryView(APIView):
             raise ErrorException(detail="Category not found.", code=status.HTTP_404_NOT_FOUND)
         
         category.delete()
-        return Response(SuccessAPIResponse({}, status=status.HTTP_204_NO_CONTENT))
+        return Response({}, status=status.HTTP_204_NO_CONTENT)
