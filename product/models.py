@@ -173,11 +173,15 @@ class Category(models.Model):
     slug = models.SlugField(max_length=150, unique=True)
     products = models.ManyToManyField(Product, related_name='categories')
 
+    class Meta:
+        ordering = ['name']
+        verbose_name_plural = 'Categories'
+
     def __str__(self):
         """
         Returns a string representation of the Category object.
         """
-        return f"<Category: {self.id}> {self.name}"
+        return f"<Category: {self.id}> {self.slug}"
     
     def save(self, *args, **kwargs):
         """
