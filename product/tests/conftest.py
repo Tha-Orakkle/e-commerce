@@ -78,3 +78,11 @@ def product_image(db, product):
         image=create_fake_images(1)[0],
         product=product
     )
+
+
+@pytest.fixture
+def category(db):
+    """
+    Create a category instance for testing.
+    """
+    return Category.objects.create(name="Test Category")
