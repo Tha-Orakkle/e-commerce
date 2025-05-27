@@ -169,8 +169,8 @@ def create_inventory(sender, instance, created, **kwargs):
 
 class Category(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, null=False)
-    name = models.CharField(max_length=20)
-    slug = models.SlugField(max_length=30, unique=True)
+    name = models.CharField(max_length=120, null=False, blank=False)
+    slug = models.SlugField(max_length=150, unique=True)
     products = models.ManyToManyField(Product, related_name='categories')
 
     def __str__(self):
