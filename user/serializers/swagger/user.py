@@ -51,6 +51,7 @@ get_user_schema = {
         200: get_success_response('User retrieved successfully.', 200, UserListResponse()),
         400: get_error_response('Invalid user id.', 400),
         401: UnauthorizedSerializer,
+        404: get_error_response('User not found.', 404),
     }
 }
 
@@ -65,7 +66,8 @@ update_user_schema = {
         200: get_success_response('User updated successfully.', 200, UserSerializer()),
         400: get_error_response('User update failed.', 400, UserDataError()),
         401: UnauthorizedSerializer,
-        403: ForbiddenSerializer
+        403: ForbiddenSerializer,
+        404: get_error_response('User not found.', 404)
     }
 }
 
@@ -80,6 +82,7 @@ delete_user_schema = {
         204: {},
         400: get_error_response('Invalid user id.', 400),
         401: UnauthorizedSerializer,
-        403: ForbiddenSerializer
+        403: ForbiddenSerializer,
+        404: get_error_response('User not found.', 404)
     }
 }

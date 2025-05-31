@@ -130,7 +130,7 @@ class AdminView(APIView):
         validate_id(user_id, "admin user")
         user = User.objects.exclude(is_staff=False).filter(id=user_id).first()
         if not user:
-            raise ErrorException("Invalid admin user id.")
+            raise ErrorException("Admin user not found.", code=status.HTTP_404_NOT_FOUND)
         if user != request.user and not request.user.is_superuser:
             raise PermissionDenied()
         serializer = UserSerializer(user)
@@ -161,7 +161,7 @@ class AdminView(APIView):
         data.pop('staff_id') if not data['staff_id'] else None
         user = User.objects.exclude(is_staff=False).filter(id=user_id).first()
         if not user:
-            raise ErrorException("Invalid admin user id.")
+            raise ErrorException("Admin user not found.", code=status.HTTP_404_NOT_FOUND)
         if user != request.user and not request.user.is_superuser:
             raise PermissionDenied()
         if data['password']:
@@ -193,7 +193,7 @@ class AdminView(APIView):
         validate_id(user_id, "admin user")
         user = User.objects.exclude(is_staff=False).filter(id=user_id).first()
         if not user:
-            raise ErrorException("Invalid admin user id.")
+            raise ErrorException("Admin user not found.", code=status.HTTP_404_NOT_FOUND)
         if user == request.user:
             raise PermissionDenied()
         user.delete()

@@ -28,7 +28,8 @@ get_product_images_schema = {
     'responses': {
         200: get_success_response("Product <product.name> images retrieved.", 200, ProductImageSerializer(many=True)),
         400: get_error_response("Invalid product id.", 400),
-        401: UnauthorizedSerializer
+        401: UnauthorizedSerializer,
+        404: get_error_response("Product not found.", 404)
     }
 }
 
@@ -42,7 +43,8 @@ get_product_image_schema = {
     'responses': {
         200: get_success_response("Product <product.name> image retrieved.", 200, ProductImageSerializer()),
         400: get_error_response("Invalid product image id.", 400),
-        401: UnauthorizedSerializer
+        401: UnauthorizedSerializer,
+        404: get_error_response("Product image not found.", 404)
     }
 }
 
@@ -57,7 +59,8 @@ create_product_image_schema = {
         201: get_success_response("Product images added successfully.", 201),
         400: get_error_response("Invalid product id.", 400),
         401: UnauthorizedSerializer,
-        403: ForbiddenSerializer
+        403: ForbiddenSerializer,
+        404: get_error_response("Product not found.", 404)
     }   
 }
 
@@ -72,6 +75,7 @@ delete_product_image_schema = {
         204: {},
         400: get_error_response("Invalid product image id.", 400),
         401: UnauthorizedSerializer,
-        403: ForbiddenSerializer
+        403: ForbiddenSerializer,
+        404: get_error_response("Product image not found.", 404)
     }
 }

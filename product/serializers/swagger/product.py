@@ -86,6 +86,7 @@ get_product_schema = {
         200: get_success_response('Product retrieved successfully.', 200, ProductSerializer()),
         400: get_error_response('Invalid product id.', 400),
         401: UnauthorizedSerializer,
+        404: get_error_response('Product not found.', 404)
     }
 }
 
@@ -99,7 +100,8 @@ update_product_schema = {
         200: get_success_response('Product updated successfully.', 200, ProductSerializer()),
         400: get_error_response('Product update failed.', 400, ProductDataError()),
         401: UnauthorizedSerializer,
-        403: ForbiddenSerializer
+        403: ForbiddenSerializer,
+        404: get_error_response('Product not found.', 404)
     }
 }
 
@@ -113,7 +115,8 @@ delete_product_schema = {
         204: {},
         400: get_error_response('Invalid product id.', 400),
         401: UnauthorizedSerializer,
-        403: ForbiddenSerializer
+        403: ForbiddenSerializer,
+        404: get_error_response('Product not found.', 404)
     }
 }
 

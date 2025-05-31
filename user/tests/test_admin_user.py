@@ -2,8 +2,15 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 
+import uuid
+
+
 User = get_user_model()
 
+
+# =============================================================================
+# TEST GET ADMIN USERS
+# =============================================================================
 def test_get_admin_users(client, admin_user, signed_in_superuser):
     """
     Test get all admin users.
@@ -33,6 +40,10 @@ def test_get_admin_users_by_non_superuser(client, signed_in_admin):
     assert response.data['code'] == 403
     assert response.data['message'] == "You do not have permission to perform this action."
 
+
+# =============================================================================
+# TEST GET ADMIN USER WITH ID
+# =============================================================================
 
 def test_get_admin_user_by_same_admin_user(client, admin_user, signed_in_admin):
     """
@@ -74,6 +85,20 @@ def test_get_admin_user_with_invalid_id(client, signed_in_superuser):
     assert response.data['code'] == 400
     assert response.data['message'] == "Invalid admin user id."
 
+
+def test_get_admin_user_with_non_existent_id(client, signed_in_superuser):
+    """
+    Test get admin user with non-existent user id.
+    """
+    url = reverse('admin-user', kwargs={'user_id': uuid.uuid4()})
+    client.cookies['access_token'] = signed_in_superuser['access_token']
+    response = client.get(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['status'] == "error"
+    assert response.data['code'] == 404
+    assert response.data['message'] == "Admin user not found."
+
+
 def test_get_admin_user_by_non_superuser(client, admin_user, signed_in_user):
     """
     Test get a specific admin user by non super user.
@@ -87,7 +112,9 @@ def test_get_admin_user_by_non_superuser(client, admin_user, signed_in_user):
     assert response.data['message'] == "You do not have permission to perform this action."
 
 
-# test put admin user
+# =============================================================================
+# TEST PUT ADMIN USER
+# =============================================================================
 def test_put_admin_user_by_superuser(client, admin_user, signed_in_superuser):
     """
     Test update a specific admin user by super user.
@@ -190,6 +217,19 @@ def test_put_admin_user_with_invalid_id(client, signed_in_superuser):
     assert response.data['message'] == "Invalid admin user id."
 
 
+def test_put_admin_with_non_existent_id(client, signed_in_superuser):
+    """
+    Test update admin user with non-existent user id.
+    """
+    url = reverse('admin-user', kwargs={'user_id': uuid.uuid4()})
+    client.cookies['access_token'] = signed_in_superuser['access_token']
+    response = client.delete(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['status'] == "error"
+    assert response.data['code'] == 404
+    assert response.data['message'] == "Admin user not found."
+
+
 def test_put_admin_user_password_without_old_password(client, admin_user, signed_in_admin):
     """
     Test update admin user password without old password.
@@ -223,6 +263,7 @@ def test_put_admin_user_password_with_incorrect_old_password(client, admin_user,
     assert response.data['code'] == 400
     assert response.data['status'] == "error"
     assert response.data['message'] == "Old password is incorrect."
+
 
 def test_put_admin_user_password_mismatch(client, admin_user, signed_in_admin):
     """
@@ -260,7 +301,6 @@ def test_admin_put_user_password_length(client, admin_user, signed_in_admin):
     assert response.data['message'] == "Admin user update failed."
     assert response.data['errors']['password']
     assert response.data['errors']['password'][0] == "Password must be at least 8 characters long."
-
 
 
 def test_put_admin_user_password_without_digit(client, admin_user, signed_in_admin):
@@ -323,7 +363,9 @@ def test_put_admin_user_password_without_letters(client, admin_user, signed_in_a
     assert response.data['errors']['password'][0] == "Password must contain at least one letter."
 
 
-# Test delete admin user
+# =============================================================================
+# TEST DELETE ADMIN USER
+# =============================================================================
 
 def test_delete_admin_user(client, signed_in_superuser):
     """
@@ -363,6 +405,19 @@ def test_delete_admin_user_with_invalid_id(client, signed_in_superuser):
     assert response.data['status'] == "error"
     assert response.data['code'] == 400
     assert response.data['message'] == "Invalid admin user id."
+
+
+def test_delete_admin_with_non_existent_id(client, signed_in_superuser):
+    """
+    Test delete admin user with non-existent user id.
+    """
+    url = reverse('admin-user', kwargs={'user_id': uuid.uuid4()})
+    client.cookies['access_token'] = signed_in_superuser['access_token']
+    response = client.delete(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['status'] == "error"
+    assert response.data['code'] == 404
+    assert response.data['message'] == "Admin user not found."
 
 
 def test_delete_super_user_admin_by_self(client, super_user, signed_in_superuser):

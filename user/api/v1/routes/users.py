@@ -53,7 +53,7 @@ class UserView(APIView):
         validate_id(user_id, "user")
         user = User.objects.exclude(is_staff=True).filter(id=user_id).first() # admin endpoint should be used to get admin data
         if not user:
-            raise ("Invalid user id.")
+            raise ErrorException("User not found.", code=status.HTTP_404_NOT_FOUND)
         serializer = UserSerializer(user)
         return Response(
             SuccessAPIResponse(
@@ -78,7 +78,7 @@ class UserView(APIView):
             raise ErrorException("Password and confirm_password fields do not match.")
         user = User.objects.exclude(is_staff=True).filter(id=user_id).first()
         if not user:
-            raise ErrorException("Invalid user id.")
+            raise ErrorException("User not found.", code=status.HTTP_404_NOT_FOUND)
         if user != request.user:
             raise PermissionDenied()
         if data['email'] and data['email'] != user.email:
@@ -112,7 +112,7 @@ class UserView(APIView):
         validate_id(user_id, "user")
         user = User.objects.exclude(is_staff=True).filter(id=user_id).first()
         if not user:
-            raise ErrorException("Invalid user id.")
+            raise ErrorException("User not found.", code=status.HTTP_404_NOT_FOUND)
         if user != request.user:
             raise PermissionDenied()
         user.delete()

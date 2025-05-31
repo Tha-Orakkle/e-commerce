@@ -26,7 +26,7 @@ class ProductImagesView(APIView):
         validate_id(product_id, "product")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Invalid product id.")
+            raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
         queryset = product.images.all()
         serializers = ProductImageSerializer(queryset, many=True, context={'request': request})
         return Response(
@@ -46,7 +46,7 @@ class ProductImagesView(APIView):
         validate_id(product_id, "product")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Invalid product id.")
+            raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
         if product.images.count() == 8:
             raise ErrorException("Product images cannot exceed 8.")
         images = request.data.getlist('images', [])
@@ -69,10 +69,10 @@ class ProductImageView(APIView):
         validate_id(image_id, "product image")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Invalid product id.")
+            raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
         product_image = product.images.filter(id=image_id).first()
         if not product_image:
-            raise ErrorException("Invalid product image id.")
+            raise ErrorException("Product image not found.", code=status.HTTP_404_NOT_FOUND)
         serializer = ProductImageSerializer(product_image, context={'request': request})
         return Response(
             SuccessAPIResponse(
@@ -92,9 +92,9 @@ class ProductImageView(APIView):
         validate_id(image_id, "product image")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Invalid product id.")
+            raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
         image = product.images.filter(id=image_id).first()
         if not image:
-            raise ErrorException("Invalid product image id.")
+            raise ErrorException("Product image not found.", code=status.HTTP_404_NOT_FOUND)
         image.delete()
         return Response({}, status=status.HTTP_204_NO_CONTENT)

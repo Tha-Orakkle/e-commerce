@@ -99,7 +99,8 @@ get_admin_user_schema = {
         200: get_success_response('Admin user retrieved successfully.', 200, UserSerializer()),
         400: get_error_response('Invalid admin user id.', 400),
         401: UnauthorizedSerializer, 
-        403: ForbiddenSerializer
+        403: ForbiddenSerializer,
+        404: get_error_response('Admin user not found.', 404)
     }
 }
 
@@ -115,7 +116,8 @@ update_admin_user_schema = {
         200: get_success_response('Admin user updated successfully.', 200, UserSerializer()),
         400: get_error_response('Admin user update failed.', 400, AdminUserDataError()),
         401: UnauthorizedSerializer, 
-        403: ForbiddenSerializer
+        403: ForbiddenSerializer,
+        404: get_error_response('Admin user not found.', 404)
     }
 }
 
@@ -132,6 +134,7 @@ delete_admin_user_schema = {
         204: {},
         400: get_error_response('Invalid admin user id.', 400),
         401: UnauthorizedSerializer, 
-        403: ForbiddenSerializer
+        403: ForbiddenSerializer,
+        404: get_error_response('Admin user not found.', 404)
     }
 }
