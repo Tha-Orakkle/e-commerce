@@ -1,7 +1,8 @@
+from django.utils.text import slugify
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,7 +10,7 @@ from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination as PNP
-from product.models import Product
+from product.models import Product, Category
 from product.serializers.product import ProductSerializer 
 from product.serializers.swagger import (
     create_product_schema,
@@ -127,3 +128,31 @@ class ProductDetailView(APIView):
           raise ErrorException("Invalid product id.")
         product.delete()
         return Response({}, status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductCategoryView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, product_id):
+        """
+        Add/Remove Category from a product.
+        """
+        validate_id(product_id, 'product')
+        action = request.data.get('action')
+        product = Product.objects.filter(id=product_id).first()
+        if not product:
+            raise ErrorException(detail="Product not found.", code=status.HTTP_404_NOT_FOUND)
+        category = Category.objects.filter(slug__iexact=slugify(
+            request.data.get('category', None))).first()
+        if not category:
+            raise ErrorException(detail="Category not found.", code=status.HTTP_404_NOT_FOUND)
+        if action == 'add':
+            product.categories.add(category)
+        elif action == 'remove':
+            product.categories.remove(category)
+        else:
+            raise ErrorException(detail="Invalid action.", code=status.HTTP_400_BAD_REQUEST)
+        return Response(SuccessAPIResponse(
+            message='Product categories updated successfully.',
+        ).to_dict(), status=status.HTTP_200_OK)
+    
