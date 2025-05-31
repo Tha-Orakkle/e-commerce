@@ -34,6 +34,35 @@ class Product(models.Model):
         """
         return f"<Product: {self.id}> {self.name}"
 
+    def add_categories(self, categories):
+        """
+        Add categories to the prorduct.
+        """
+        Category = apps.get_model('product', 'Category')
+        for category_name in categories:
+            category = Category.objects.filter(slug__iexact=slugify(category_name)).first()
+            if category:
+                self.categories.add(category)
+
+    def update_categories(self, categories):
+        Category = apps.get_model('product', 'Category')
+        category_list = []
+        for category_name in categories:
+            category = Category.objects.filter(slug__iexact=slugify(category_name)).first()
+            if category:
+                category_list.append(category)
+
+        self.categories.set(category_list)
+
+
+    def remove_category(self, category_name):
+        """
+        Remove product from a specific category.
+        """
+        if category_name:
+            category = self.categories.filter(slug__iexact=slugify(category)).first()
+            if category:
+                self.categories.remove(category)
 
     def get_image_dir(self):
         """
