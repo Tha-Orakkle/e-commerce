@@ -31,4 +31,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
         categories = self.initial_data.getlist('categories', [])
         if categories:
             instance.add_categories(categories)
-        super().update(instance, validated_data)
+        return super().update(instance, validated_data)
