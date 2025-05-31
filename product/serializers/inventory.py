@@ -7,5 +7,5 @@ class InventorySerializer(serializers.ModelSerializer):
     product = serializers.CharField(source='product.name', read_only=True)
     class Meta:
         model = Inventory
-        fields = ['product', 'quantity']
+        fields = ['product', 'stock']
           

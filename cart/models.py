@@ -1,11 +1,14 @@
 from django.db import models
+from django.apps import apps
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 
 import uuid
 
+from common.exceptions import ErrorException
 from user.models import User
 from product.models import Product
+
 
 class Cart(models.Model):
     """
@@ -20,6 +23,32 @@ class Cart(models.Model):
         """
         return f"<Cart: {self.id}>"
     
+    def add_item(self, product, quantity):
+        """
+        Add an item to the cart.
+        """
+        # confirm whats left of the stock
+        stock = product.inventory.stock
+        if stock == 0:
+            raise ErrorException("Product out of stock.")
+        quantity = stock if quantity > stock else quantity
+
+        # check if product does not already exist in the cart
+        item = self.items.filter(product__id=product.id).first()
+        if item:
+            item.quantity += quantity
+            if item.quantity > stock:
+                raise ErrorException("Product out of stock.")
+            item.save()
+        else:
+            CartItem = apps.get_model('cart', 'CartItem')
+            CartItem.objects.create(
+                quantity=quantity,
+                product=product,
+                cart=self
+            )
+        return self
+
 
 
 @receiver(sender=User, signal=post_save)

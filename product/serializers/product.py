@@ -12,7 +12,7 @@ class ProductSerializer(serializers.ModelSerializer):
     """
     images = ProductImageSerializer(read_only=True, many=True, required=False)
     categories = CategorySerializer(read_only=True, many=True, required=False)
-    quantity = serializers.IntegerField(source='inventory.quantity', read_only=True)
+    stock = serializers.IntegerField(source='inventory.stock', read_only=True)
 
     class Meta:
         model = Product
