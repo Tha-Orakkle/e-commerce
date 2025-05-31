@@ -180,6 +180,7 @@ class ProductImage(models.Model):
 class Inventory(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, null=False)
     quantity = models.PositiveIntegerField(default=0)
+    last_updated_by = models.CharField(max_length=20)
     product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='inventory')
 
     def __str__(self):
@@ -187,6 +188,24 @@ class Inventory(models.Model):
         Returns a string representation of the Inventory object.
         """
         return f"<Inventory: {self.id}> {self.product.name} - {self.quantity} items"
+    
+    def add(self, value, staff_id):
+        if value <= 0:
+            raise ErrorException("Provide a valid quantity that is greater than 0.")
+        self.quantity += value
+        self.last_updated_by = staff_id
+        self.save()
+        return self
+    
+    def substract(self, value, staff_id):
+        if value <= 0:
+            raise ErrorException("Provide a valid quantity that is greater than 0.")
+        self.quantity -= value
+        if self.quantity < 0:
+            raise ErrorException("Insufficient inventory.")
+        self.last_updated_by = staff_id
+        self.save()
+        return self
 
 
 

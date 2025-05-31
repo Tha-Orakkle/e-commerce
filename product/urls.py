@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .api.v1.routes.category import CategoriesView, CategoryView
+from .api.v1.routes.inventory import InventoryView
 from .api.v1.routes.product import ProductView, ProductDetailView, ProductCategoryView
 from .api.v1.routes.product_image import ProductImagesView, ProductImageView
 
@@ -17,5 +18,6 @@ urlpatterns = [
 
     # product categories
     path('product/<str:product_id>/categories/', ProductCategoryView.as_view(), name="product-categories"),
+    path('product/<str:product_id>/inventory/', InventoryView.as_view(), name='inventory'),
 
 ]
