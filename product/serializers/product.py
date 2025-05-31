@@ -41,9 +41,9 @@ class ProductSerializer(serializers.ModelSerializer):
 
         for k, v in validated_data.items():
             setattr(instance, k, v)
+        if category_list:
+            instance.add_categories(category_list)
         if image_data:
             instance.update_images(image_data)
-        if category_list:
-            instance.update_categories(category_list)
         instance.save()
         return instance
