@@ -1,7 +1,7 @@
 from django.urls import path
 
 from .api.v1.routes.category import CategoriesView, CategoryView
-from .api.v1.routes.product import ProductView, ProductDetailView
+from .api.v1.routes.product import ProductView, ProductDetailView, ProductCategoryView
 from .api.v1.routes.product_image import ProductImagesView, ProductImageView
 
 
@@ -14,4 +14,8 @@ urlpatterns = [
     # category urls
     path('categories/', CategoriesView.as_view(), name="categories"),
     path('categories/<str:category_id>/', CategoryView.as_view(), name="category"),
+
+    # product categories
+    path('product/<str:product_id>/categories/', ProductCategoryView.as_view(), name="product-categories"),
+
 ]
