@@ -36,3 +36,25 @@ class UserProfileView(APIView):
                 data=serializer.data,
             ).to_dict(), status=status.HTTP_200_OK
         )
+
+
+class UserProfileCategoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        Add category to your preferences. This will be used for
+        product recommendation.
+        """
+        profile = request.user.profile
+        action = request.data.get('action')
+        categories = request.data.getlist('categories', [])
+        if action == 'add':
+            profile.add_categories(categories)
+        elif action == 'remove':
+            profile.remove_categories(categories)
+        else:
+            raise ErrorException(detail="Invalid action.", code=status.HTTP_400_BAD_REQUEST)
+        return Response(SuccessAPIResponse(
+            message='User preferred categories updated.'
+        ).to_dict(), status=status.HTTP_200_OK)
