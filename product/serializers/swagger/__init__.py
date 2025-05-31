@@ -10,7 +10,8 @@ from .product import (
     delete_product_schema,
     get_product_schema,
     get_products_schema,
-    update_product_schema
+    update_product_schema,
+    product_category_add_or_remove_schema
 )
 from .product_image import (
     create_product_image_schema,
@@ -38,5 +39,9 @@ __all__ = [
     'delete_category_schema',
     'get_category_schema',
     'get_categories_schema',
-    'update_category_schema'
+    'update_category_schema',
+
+    # product-category schema
+    'product_category_add_or_remove_schema',
+
 ]

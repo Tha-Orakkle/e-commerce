@@ -38,6 +38,15 @@ class ProductDataError(serializers.Serializer):
     """
     name = serializers.ListField(child=serializers.CharField(), required=False)
     price = serializers.ListField(child=serializers.CharField(), required=False)
+
+
+class ProductCategoryRequestData(serializers.Serializer):
+    """
+    Serializer for the request data to add or remove categories from a product.
+    """
+    action = serializers.CharField(default="add")
+    categories = serializers.ListField(child=serializers.CharField(default="category"))
+
     
 
 # schemas
@@ -105,5 +114,21 @@ delete_product_schema = {
         400: get_error_response('Invalid product id.', 400),
         401: UnauthorizedSerializer,
         403: ForbiddenSerializer
+    }
+}
+
+product_category_add_or_remove_schema = {
+    'summary': 'Add or remove category from a product',
+    'description': 'Collects a list of categories and adds or removes them from a product. Maximum number of categories for a product is 5.',
+    'tags': ['Product-Category'],
+    'operation_id': 'add_or_remove_product_category',
+    'request': ProductCategoryRequestData,
+    'responses': {
+        200: get_success_response("Product categories updated successfully.", 200),
+        400: get_error_response("Invalid action.", 400),
+        401: UnauthorizedSerializer,
+        403: ForbiddenSerializer,
+        404: get_error_response("Product not found.", 404),
+
     }
 }
