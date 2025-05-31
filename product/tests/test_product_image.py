@@ -3,6 +3,7 @@ from rest_framework import status
 from urllib.parse import urlparse
 
 import os
+import uuid
 
 from .conftest import create_fake_images
 from product.models import ProductImage
@@ -93,6 +94,27 @@ def test_get_product_image_with_invalid_ids(client, signed_in_user,  product, pr
     assert response.data['message'] == f"Invalid product image id."
 
 
+def test_get_product_image_with_non_existent_ids(client, signed_in_admin,  product, product_image):
+    """
+    Test get specific product image with non-existent product or image id.
+    """
+    url = reverse('product-image', kwargs={
+        'product_id': uuid.uuid4(),
+        'image_id': product_image.id
+    })
+    client.cookies['access_token'] = signed_in_admin['access_token']
+    response = client.get(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['message'] == f"Product not found."
+
+    url = reverse('product-image', kwargs={
+        'product_id': product.id,
+        'image_id': uuid.uuid4()
+    })
+    response = client.get(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['message'] == f"Product image not found."
+
 def test_get_product_image_unauthenticted(client, product, product_image):
     """
     Test delete a specific product while unauthenticated.
@@ -161,6 +183,29 @@ def test_delete_product_image_with_invalid_ids(client, signed_in_admin,  product
     assert response.data['message'] == f"Invalid product image id."
 
 
+def test_delete_product_image_by_non_existent_ids(client, signed_in_admin, product, product_image):
+    """
+    Test delete specific product image with non-existent product or image id.
+    """
+    url = reverse('product-image', kwargs={
+        'product_id': uuid.uuid4(),
+        'image_id': product_image.id
+    })
+    client.cookies['access_token'] = signed_in_admin['access_token']
+    response = client.delete(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['message'] == f"Product not found."
+
+    url = reverse('product-image', kwargs={
+        'product_id': product.id,
+        'image_id': uuid.uuid4()
+    })
+    client.cookies['access_token'] = signed_in_admin['access_token']
+    response = client.delete(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['message'] == f"Product image not found."
+
+
 def test_delete_product_image_unauthenticted(client, product, product_image):
     """
     Test delete a specific product while unauthenticated.
@@ -198,7 +243,6 @@ def test_delete_product_image_by_non_admin(client, signed_in_user, product, prod
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.data['status'] == "error"
     assert response.data['message'] == "You do not have permission to perform this action."
-
 
 
 # =============================================================================

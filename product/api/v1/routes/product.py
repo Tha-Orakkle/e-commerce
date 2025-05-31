@@ -76,7 +76,7 @@ class ProductDetailView(APIView):
         validate_id(product_id, "product")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Invalid product id.")
+            raise ErrorException("Product not found.")
         serializer = ProductSerializer(product, context={'request': request})
         return Response(
             SuccessAPIResponse(
@@ -96,7 +96,7 @@ class ProductDetailView(APIView):
         validate_id(product_id, "product")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Invalid product id.")
+            raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
         serializer = ProductSerializer(
             instance=product,
             data=request.data,
@@ -126,7 +126,7 @@ class ProductDetailView(APIView):
         validate_id(product_id, "product")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-          raise ErrorException("Invalid product id.")
+          raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
         product.delete()
         return Response({}, status=status.HTTP_204_NO_CONTENT)
 

@@ -5,10 +5,14 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 
+import uuid
 
 User = get_user_model()
 
 
+# =============================================================================
+# TEST GET USERS
+# =============================================================================
 def test_get_users(client, user, signed_in_user):
     """
     Test get all users by admin.
@@ -23,6 +27,11 @@ def test_get_users(client, user, signed_in_user):
     assert response.data['message'] == "Users retrieved successfully."
     assert response.data['data']['count'] == 1
 
+
+
+# =============================================================================
+# TEST GET USERS WITH ID
+# =============================================================================
 
 def test_get_user_with_id(client, user, signed_in_user):
     """
@@ -53,6 +62,23 @@ def test_get_user_with_invalid_id(client, signed_in_user):
     assert response.data['code'] == 400
     assert response.data['message'] == "Invalid user id."
 
+
+def test_get_user_with_non_existent_id(client, signed_in_user):
+    """
+    Test get user with non-existent id.
+    """
+    url = reverse('user', kwargs={'user_id': uuid.uuid4()})
+    client.cookies['access_token'] = signed_in_user['access_token']
+    response = client.get(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['status'] == "error"
+    assert response.data['code'] == 404
+    assert response.data['message'] == "User not found."
+
+
+# =============================================================================
+# TEST PUT USER
+# =============================================================================
 
 def test_put_user_email(mock_verification_email_task, client, user, signed_in_user):
     """
@@ -112,6 +138,23 @@ def test_put_user_with_invalid_id(client, signed_in_user):
     assert response.data['status'] == "error"
     assert response.data['code'] == 400
     assert response.data['message'] == "Invalid user id."
+
+
+def test_put_user_with_non_existent_id(client, signed_in_user):
+    """
+    Test update user with non-existent id.
+    """
+    url = reverse('user', kwargs={'user_id': uuid.uuid4()})
+    data = {
+        'passord': 'Password1234#',
+        'confirm_passord': 'Password1234#'
+    }
+    client.cookies['access_token'] = signed_in_user['access_token']
+    response = client.put(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['status'] == "error"
+    assert response.data['code'] == 404
+    assert response.data['message'] == "User not found."
 
 
 
@@ -262,7 +305,6 @@ def test_put_user_password_length(mock_verification_email_task, client, user, si
     assert response.data['errors']['password'][0] == "Password must be at least 8 characters long."
 
 
-
 def test_put_user_password_without_digit(mock_verification_email_task, client, user, signed_in_user):
     """
     Test update user with a password without digits.
@@ -329,8 +371,6 @@ def test_put_user_password_without_letters(mock_verification_email_task, client,
     assert response.data['errors']['password'][0] == "Password must contain at least one letter."
 
 
-# test put user with another user
-
 def test_put_user_by_another_user(client, signed_in_user):
     """
     Test update user by another user.
@@ -369,7 +409,9 @@ def test_put_user_without_access_token(client, user):
     assert response.data['message'] == "Authentication credentials were not provided."
 
 
-# test delete user
+# =============================================================================
+# TEST DELETE USER
+# =============================================================================
 def test_delete_user(client, user, signed_in_user):
     """
     Test delete user.
@@ -396,7 +438,6 @@ def test_delete_user_by_another_user(client, signed_in_user):
     assert response.data['message'] == "You do not have permission to perform this action."
 
 
-
 def test_delete_user_with_invalid_id(client, signed_in_user):
     """
     Test delete user with invalid id.
@@ -410,6 +451,19 @@ def test_delete_user_with_invalid_id(client, signed_in_user):
     assert response.data['message'] == "Invalid user id."
 
 
+def test_delete_user_with_non_existent_id(client, signed_in_user):
+    """
+    Test delete user with non-existent id.
+    """
+    url = reverse('user', kwargs={'user_id': uuid.uuid4()})
+    client.cookies['access_token'] = signed_in_user['access_token']
+    response = client.delete(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['status'] == "error"
+    assert response.data['code'] == 404
+    assert response.data['message'] == "User not found."
+
+
 def test_delete_admin_user(client, admin_user, signed_in_user):
     """
     Test delete admin user by regular user.
@@ -418,7 +472,7 @@ def test_delete_admin_user(client, admin_user, signed_in_user):
     url = reverse('user', kwargs={'user_id': admin_user.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.delete(url)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.data['status'] == "error"
-    assert response.data['code'] == 400
-    assert response.data['message'] == "Invalid user id."
+    assert response.data['code'] == 404
+    assert response.data['message'] == "User not found."

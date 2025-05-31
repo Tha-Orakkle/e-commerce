@@ -1,6 +1,8 @@
 from django.urls import reverse
 from rest_framework import status 
 
+import uuid
+
 from product.models import Product
 from .conftest import create_fake_images
 
@@ -78,6 +80,17 @@ def test_get_product_with_invalid_id(client, signed_in_user):
     assert response.data['message'] == "Invalid product id."
 
 
+def test_put_product_with_non_existent_id(client, signed_in_user):
+    """
+    Test update specific product with non-existent product id.
+    """
+    url = reverse('product', kwargs={'product_id': uuid.uuid4()})
+    client.cookies['access_token'] = signed_in_user['access_token']
+    response = client.get(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['message'] == f"Product not found."
+
+
 
 def test_get_product_unaunthenticated(client, product):
     """
@@ -131,6 +144,18 @@ def test_delete_product_with_invalid_id(client, signed_in_admin, product):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
     assert response.data['message'] == "Invalid product id."
+
+    
+def test_delete_product_with_non_existent_id(client, signed_in_admin, product):
+    """
+    Test delete specific product with non-existent product id.
+    """
+    url = reverse('product', kwargs={'product_id': uuid.uuid4()})
+    client.cookies['access_token'] = signed_in_admin['access_token']
+    response = client.delete(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['message'] == f"Product not found."
+
 
 
 def test_delete_product_by_non_admin_user(client, signed_in_user, product):
@@ -363,7 +388,7 @@ def test_put_products_with_negative_price(client, product, signed_in_admin):
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == "Product updated successfully."
     assert response.data['data']['price'] == "0.00"
-    
+
 
 def test_put_product_with_more_than_8_images(client, product, signed_in_admin):
     """
@@ -379,7 +404,6 @@ def test_put_product_with_more_than_8_images(client, product, signed_in_admin):
     product = Product.objects.filter(id=product.id).first()
     
     assert product.images.count() == 8 # only 8 images will be saved
-
 
 
 def test_put_product_by_non_admin(client, product, signed_in_user):
@@ -398,6 +422,29 @@ def test_put_product_by_non_admin(client, product, signed_in_user):
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.data['status'] == "error"
     assert response.data['message'] == "You do not have permission to perform this action."
+
+
+def test_put_product_with_invalid_id(client, signed_in_admin,  product):
+    """
+    Test update specific product with invalid product id.
+    """
+    url = reverse('product', kwargs={'product_id': "Invalid_product_id"})
+
+    client.cookies['access_token'] = signed_in_admin['access_token']
+    response = client.put(url)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data['message'] == f"Invalid product id."
+
+
+def test_put_product_with_non_existent_id(client, signed_in_admin, product):
+    """
+    Test update specific product with non-existent product id.
+    """
+    url = reverse('product', kwargs={'product_id': uuid.uuid4()})
+    client.cookies['access_token'] = signed_in_admin['access_token']
+    response = client.put(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['message'] == f"Product not found."
 
 
 def test_put_product_unaunthenticted(client, product):
