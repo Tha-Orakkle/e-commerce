@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from phonenumber_field.modelfields import PhoneNumberField
+from rest_framework import status
 
 import uuid
 
@@ -12,6 +13,9 @@ from common.exceptions import ErrorException
 from product.models import Category
 
 # Create your models here. 
+
+MAX_PREFERRED_USER_CATEGORIES = 10
+
     
 class User(AbstractBaseUser, PermissionsMixin):
     """
@@ -76,17 +80,19 @@ class UserProfile(models.Model):
         slugs = [slugify(c) for c in categories]
         found_categories = list(Category.objects.filter(slug__in=slugs))
 
-        # check missing slugs
         found_slugs = {c.slug for c in found_categories}
         missing_slugs = set(slugs) - found_slugs
 
         if missing_slugs:
-            raise ErrorException(f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.")
+            raise ErrorException(
+                detail=f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
+                code=status.HTTP_404_NOT_FOUND
+            )
 
         existing_ids = set(self.preferred_categories.values_list('id', flat=True))
         new_categories = [c for c in found_categories if c.id not in existing_ids]
 
-        remaining_slot = 10 - len(existing_ids)
+        remaining_slot = MAX_PREFERRED_USER_CATEGORIES - len(existing_ids)
         if remaining_slot > 0:
             self.preferred_categories.add(*new_categories[:remaining_slot])
    
@@ -95,9 +101,9 @@ class UserProfile(models.Model):
         """
         Removes categories from user's preferred categories.
         """
-        for category_name in categories:
-            category = Category.objects.filter(slug=slugify(category_name)).first()
-            self.preferred_categories.remove(category)
+        slugs = [slugify(c) for c in categories]
+        found_categories = Category.objects.filter(slug__in=slugs)
+        self.preferred_categories.remove(*found_categories)
 
 
 

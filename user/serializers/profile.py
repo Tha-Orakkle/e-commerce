@@ -24,3 +24,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Ensure this field has at least 2 characters.")
         return value.title().strip()
    
+    def update(self, instance, validated_data):
+        """
+        Updates a user profile.
+        """
+        categories = self.initial_data.getlist('categories', [])
+        if categories:
+            instance.add_categories(categories)
+        return super().update(instance, validated_data)

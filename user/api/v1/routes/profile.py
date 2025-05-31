@@ -8,7 +8,7 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from user.models import User
 from user.serializers.profile import UserProfileSerializer
-from user.serializers.swagger import update_user_profile_schema
+from user.serializers.swagger import update_user_profile_schema, user_profile_category_add_or_remove_schema
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
@@ -41,6 +41,8 @@ class UserProfileView(APIView):
 class UserProfileCategoryView(APIView):
     permission_classes = [IsAuthenticated]
 
+
+    @extend_schema(**user_profile_category_add_or_remove_schema)
     def post(self, request):
         """
         Add category to your preferences. This will be used for

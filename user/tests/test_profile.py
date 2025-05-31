@@ -28,7 +28,7 @@ def test_put_user_profile(client, signed_in_user):
         'telephone': '08120002323'
     }
     client.cookies['access_token'] = signed_in_user['access_token']
-    response = client.put(user_profile_url, data=data, format='json')
+    response = client.put(user_profile_url, data=data, format='multipart')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['code'] == 200
     assert response.data['status'] == "success"

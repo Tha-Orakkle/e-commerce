@@ -1,3 +1,4 @@
+from django.utils.text import slugify
 from decimal import Decimal
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from django.apps import apps
@@ -12,9 +13,11 @@ import os
 import uuid
 
 from .utils.uploads import product_upload_image_path
+from common.exceptions import ErrorException
+
 
 IMAGE_SIZE = (800, 800)
-
+MAX_PRODUCT_CATEGORIES = 5
 
 
 class Product(models.Model):
@@ -34,36 +37,33 @@ class Product(models.Model):
         """
         return f"<Product: {self.id}> {self.name}"
 
+
     def add_categories(self, categories):
-        """
-        Add categories to the prorduct.
-        """
-        Category = apps.get_model('product', 'Category')
-        for category_name in categories:
-            category = Category.objects.filter(slug__iexact=slugify(category_name)).first()
-            if category:
-                self.categories.add(category)
+        slugs = [slugify(c) for c in categories]
+        found_categories =  Category.objects.filter(slug__in=slugs)
 
-    def update_categories(self, categories):
-        Category = apps.get_model('product', 'Category')
-        category_list = []
-        for category_name in categories:
-            category = Category.objects.filter(slug__iexact=slugify(category_name)).first()
-            if category:
-                category_list.append(category)
+        # missing categories
+        found_slugs = {c.slug for c in found_categories}
+        missing_slugs = set(slugs) - found_slugs
 
-        self.categories.set(category_list)
+        if missing_slugs:
+            raise ErrorException(f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.")
+        
+        existing_ids = self.categories.values_list('id', flat=True)
+        remaining_slot = MAX_PRODUCT_CATEGORIES - len(existing_ids)
 
+        new_categories = [c for c in found_categories if c.id not in existing_ids]
+        if remaining_slot > 0:
+            self.categories.add(*new_categories[:remaining_slot])
 
-    def remove_category(self, category_name):
+    def remove_categories(self, categories):
         """
         Remove product from a specific category.
         """
-        if category_name:
-            category = self.categories.filter(slug__iexact=slugify(category)).first()
-            if category:
-                self.categories.remove(category)
-
+        slugs = [slugify(c) for c in categories]
+        found_categories = Category.objects.filter(slug__in=slugs)
+        self.categories.remove(*found_categories)
+        
     def get_image_dir(self):
         """
         Return the upload path for product image.
