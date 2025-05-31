@@ -60,8 +60,9 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.google',
     
     # local_apps
-    'user',
+    'cart',
     'product',
+    'user',
 ]
 
 USE_JWT = True
