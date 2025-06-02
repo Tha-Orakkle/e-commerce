@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -8,8 +9,10 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.utils.check_valid_uuid import validate_id
 from product.models import Product
 from cart.serializers.cart import CartSerializer
+from cart.utils.validation import validate_cart
 
 
+User = get_user_model()
 
 class CartView(APIView):
     permission_classes = [IsAuthenticated]
@@ -37,4 +40,48 @@ class CartView(APIView):
             message="Item added to cart successfully.",
             data=serializer.data
         ).to_dict(), status=status.HTTP_200_OK)
+    
+
+    def get(self, request):
+        """
+        Get the cart and all items.
+        """
+        validated_response = None
+        try:
+            cart = request.user.cart
+            validated_response = validate_cart(cart)
+        except User.cart.RelatedObjectDoesNotExist:
+            raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
+        return Response(SuccessAPIResponse(
+            message='Cart retrieved successfully.',
+            data= validated_response
+        ).to_dict(), status=status.HTTP_200_OK)
+
+
+class UpdateCartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, product_id):
+        """
+        Updates quantity of an item already on the Cart.
+        """
+        validate_id(product_id, "product")
+        cart = request.user.cart
+        item = cart.items.select_related('product').filter(product__id=product_id).first()
+        if not item:
+            raise ErrorException("Product not found in cart.", code=status.HTTP_404_NOT_FOUND)
+
+        action = request.GET.get('action')
+
+        if action == 'add':
+            cart = cart.add_items(item.product, 1)
+        elif action == 'remove':
+            cart = cart.remove_item(item, 1)
+        else:
+            raise ErrorException("Invalid action.")
+        return Response(SuccessAPIResponse(
+            message="Cart item updated successfully.",
+            data=CartSerializer(cart).data
+        ).to_dict(), status=status.HTTP_200_OK)
+
     
