@@ -48,7 +48,18 @@ class Cart(models.Model):
                 cart=self
             )
         return self
+    
 
+    def remove_item(self, item, quantity):
+        if item.quantity == 0:
+            raise ErrorException("Cannot remove item with zero quantity.")
+        if quantity > item.quantity:
+            raise ErrorException("Cannot remove more than the available quantity.")
+        item.quantity -= quantity
+        if item.quantity == 0:
+            item.delete()
+        else:
+            item.save()
 
 
 @receiver(sender=User, signal=post_save)
@@ -65,6 +76,13 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(null=False)
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('cart', 'product')
+        ordering = ['-updated_at']
+
 
     def __str__(self):
         """
