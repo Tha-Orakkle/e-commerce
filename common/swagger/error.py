@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 from rest_framework import serializers
 
 # Caching mechanism for error responses
@@ -27,6 +28,20 @@ def get_error_response(message, code=400, error_serializer=None):
     _cls = type(name, (serializers.Serializer,), fields)
     _error_response_cache[key] = _cls
     return _cls
+
+
+get_error_response_with_examples = lambda examples_dict, code=400: OpenApiResponse(
+    response={'type': 'object'},
+    examples=[OpenApiExample(
+        name,
+        value={
+            'status': 'error',
+            'code': code,
+            'message': message
+        }
+    ) for name, message in examples_dict.items()]
+)
+
 
 
 # ERROR SERIALIZERS FOR SWAGGER UI

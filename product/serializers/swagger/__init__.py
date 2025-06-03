@@ -5,6 +5,7 @@ from .category import (
     get_categories_schema,
     update_category_schema
 )
+from .inventory import update_inventory_schema
 from .product import (
     create_product_schema,
     delete_product_schema,
@@ -43,5 +44,8 @@ __all__ = [
 
     # product-category schema
     'product_category_add_or_remove_schema',
+
+    # inventory schema
+    'update_inventory_schema',
 
 ]

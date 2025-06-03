@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
@@ -8,10 +9,12 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.utils.check_valid_uuid import validate_id
 from product.models import Product
 from product.serializers.inventory import InventorySerializer
+from product.serializers.swagger import update_inventory_schema
 
 class InventoryView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
+    @extend_schema(**update_inventory_schema)
     def post(self, request, product_id):
         """
         Updates the quantity of a product in the inventory
