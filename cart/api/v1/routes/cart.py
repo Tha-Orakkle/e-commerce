@@ -60,7 +60,7 @@ class CartView(APIView):
         validated_response = None
         try:
             cart = request.user.cart
-            validated_response = validate_cart(cart)
+            _, validated_response = validate_cart(cart)
         except User.cart.RelatedObjectDoesNotExist:
             raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
         return Response(SuccessAPIResponse(

@@ -10,6 +10,9 @@ def validate_cart(cart):
     Validates that the cart conatins available items.
     Args:
         cart (Cart): The cart to validate.
+    Return:
+        items (CartItem(many=True)): To prevent being called again by the caller function
+        response (Dict): contains a valid key (boolean value) and items key (associated issues as value)
     """
     response = {
         'valid': True,
@@ -41,4 +44,4 @@ def validate_cart(cart):
             _item['issue'] = f"Only {item.product.inventory.stock} left in stock"
             response['valid'] = False
         response['items'].append(_item)
-    return response
+    return [cart_items, response]
