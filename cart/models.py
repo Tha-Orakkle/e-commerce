@@ -52,7 +52,7 @@ class Cart(models.Model):
 
     def remove_item(self, item, quantity):
         if item.quantity == 0:
-            raise ErrorException("Cannot remove item with zero quantity.")
+            raise ErrorException("Cannot remove from item with zero quantity.")
         if quantity > item.quantity:
             raise ErrorException("Cannot remove more than the available quantity.")
         item.quantity -= quantity

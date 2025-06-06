@@ -2,6 +2,8 @@ from rest_framework import status
 
 from common.exceptions import ErrorException
 
+from product.serializers.product import ProductSerializer
+
 
 def validate_cart(cart):
     """
@@ -23,14 +25,12 @@ def validate_cart(cart):
     for item in cart_items:
         _item = {
             'id': item.id,
-            'product': {
-                'id': item.product.id,
-                'name': item.product.name
-            },
             'quantity': item.quantity,
             'stock': item.product.inventory.stock,
             'status': 'available',
-            'issue': None
+            'issue': None,
+            'product': ProductSerializer(
+                item.product, exclude=['categories', 'stock']).data
         }
         if item.product.inventory.stock == 0:
             _item['status'] = 'out_of_stock'

@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -9,7 +10,12 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.utils.check_valid_uuid import validate_id
 from product.models import Product
 from cart.serializers.cart import CartSerializer
-from cart.utils.validation import validate_cart
+from cart.serializers.swagger import (
+    add_to_cart_schema,
+    get_cart_schema,
+    update_cart_schema,
+)
+from cart.utils.validate_cart import validate_cart
 
 
 User = get_user_model()
@@ -17,11 +23,15 @@ User = get_user_model()
 class CartView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(**add_to_cart_schema)
     def post(self, request):
         """
         Adds an item to the cart.
         """
-        cart = request.user.cart
+        try:
+            cart = request.user.cart
+        except User.cart.RelatedObjectDoesNotExist:
+            raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
         product_id = request.data.get('product_id')
         quantity = request.data.get('quantity')
         try:
@@ -42,6 +52,7 @@ class CartView(APIView):
         ).to_dict(), status=status.HTTP_200_OK)
     
 
+    @extend_schema(**get_cart_schema)
     def get(self, request):
         """
         Get the cart and all items.
@@ -61,27 +72,32 @@ class CartView(APIView):
 class UpdateCartView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(**update_cart_schema)
     def post(self, request, product_id):
         """
         Updates quantity of an item already on the Cart.
         """
         validate_id(product_id, "product")
-        cart = request.user.cart
+        try:
+            cart = request.user.cart
+        except User.cart.RelatedObjectDoesNotExist:
+            raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
+
+
         item = cart.items.select_related('product').filter(product__id=product_id).first()
         if not item:
             raise ErrorException("Product not found in cart.", code=status.HTTP_404_NOT_FOUND)
 
-        action = request.GET.get('action')
+        action = request.query_params.get('action')
+        quantity = request.data.get('quantity', 1)
 
         if action == 'add':
-            cart = cart.add_items(item.product, 1)
+            cart = cart.add_items(item.product, quantity)
         elif action == 'remove':
-            cart = cart.remove_item(item, 1)
+            cart = cart.remove_item(item, quantity)
         else:
             raise ErrorException("Invalid action.")
         return Response(SuccessAPIResponse(
             message="Cart item updated successfully.",
             data=CartSerializer(cart).data
         ).to_dict(), status=status.HTTP_200_OK)
-
-    
