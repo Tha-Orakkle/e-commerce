@@ -25,7 +25,7 @@ class InventoryView(APIView):
         if not product:
             raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
         
-        action = request.GET.get('action')
+        action = request.query_params.get('action')
         quantity = request.data.get('quantity')
         try:
             quantity = int(quantity)

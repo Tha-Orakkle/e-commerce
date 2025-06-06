@@ -3,8 +3,8 @@ from rest_framework import serializers
 from common.swagger import (
     get_success_response,
     get_error_response,
+    get_error_response_with_examples,
     BasePaginatedResponse,
-    UnauthorizedSerializer,
     ForbiddenSerializer
 )
 from .login_register import UserDataRequest
@@ -36,7 +36,7 @@ get_users_schema = {
     'request': None,
     'responses': {
         200: get_success_response('Users retrieved successfully.', 200, UserListResponse()),
-        401: UnauthorizedSerializer,
+        401: get_error_response_with_examples(code=401),
     }
 }
 
@@ -50,7 +50,7 @@ get_user_schema = {
     'responses': {
         200: get_success_response('User retrieved successfully.', 200, UserListResponse()),
         400: get_error_response('Invalid user id.', 400),
-        401: UnauthorizedSerializer,
+        401: get_error_response_with_examples(code=401),
         404: get_error_response('User not found.', 404),
     }
 }
@@ -65,7 +65,7 @@ update_user_schema = {
     'responses': {
         200: get_success_response('User updated successfully.', 200, UserSerializer()),
         400: get_error_response('User update failed.', 400, UserDataError()),
-        401: UnauthorizedSerializer,
+        401: get_error_response_with_examples(code=401),
         403: ForbiddenSerializer,
         404: get_error_response('User not found.', 404)
     }
@@ -81,7 +81,7 @@ delete_user_schema = {
     'responses': {
         204: {},
         400: get_error_response('Invalid user id.', 400),
-        401: UnauthorizedSerializer,
+        401: get_error_response_with_examples(code=401),
         403: ForbiddenSerializer,
         404: get_error_response('User not found.', 404)
     }

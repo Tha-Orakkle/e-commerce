@@ -68,7 +68,7 @@ def test_admin_user_creation_missing_staff_id(client, signed_in_superuser):
     response = client.post(create_admin_url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == 'error'
-    assert response.data['message'] == "Please, provide staff_id (username) and password for the staff."
+    assert response.data['message'] == "Please provide staff_id (username) and password for the staff."
 
 
 def test_admin_user_creation_missing_password(client, signed_in_superuser):
@@ -85,7 +85,7 @@ def test_admin_user_creation_missing_password(client, signed_in_superuser):
     response = client.post(create_admin_url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == 'error'
-    assert response.data['message'] == "Please, provide staff_id (username) and password for the staff."
+    assert response.data['message'] == "Please provide staff_id (username) and password for the staff."
 
 
 

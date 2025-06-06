@@ -18,6 +18,16 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        exclude = kwargs.pop('exclude', None)
+        super().__init__(*args, **kwargs)
+
+        if exclude is not None:
+            for field_name in exclude:
+                self.fields.pop(field_name, None)
+
+
+
     def create(self, validated_data):
         """
         Create a Product instance.

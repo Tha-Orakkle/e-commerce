@@ -1,10 +1,11 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 from rest_framework import serializers
 
 from common.swagger import (
     get_success_response,
     get_error_response,
+    get_error_response_with_examples,
     BasePaginatedResponse,
-    UnauthorizedSerializer,
     ForbiddenSerializer
 )
 from user.serializers.user import UserSerializer
@@ -42,6 +43,19 @@ class AdminUserDataError(serializers.Serializer):
     staff_id = serializers.ListField(child=serializers.CharField(), required=False)
     password = serializers.ListField(child=serializers.CharField(), required=False)
 
+admin_registration_error_examples = {
+    'Incomplete credentials': 'Please provide staff_id (username) and password for the staff.',
+    'Mismatching passwords': 'Password and confirm_password fields do not match.',
+    'Existing admin user': 'Admin user with staff id already exists.',
+    'Missing password': 'Password field is required.',
+    'Short password': 'Password must be at least 8 characters long.',
+    'Password without a digit': 'Password must contain at least one digit.',
+    'Password without a letter': 'Password must contain at least one letter.',
+    'Password without uppercase letter': 'Password must contain at least one uppercase letter.',
+    'Password without lowercase letter': 'Password must contain at least one lowercase letter.',
+    'Password without special character': 'Password must contain at least one special character.'
+
+}
 
 admin_user_registration_schema = {
     'summary': 'Admin user registration',
@@ -52,10 +66,15 @@ admin_user_registration_schema = {
     'request': AdminUserDataRequest,
     'responses' :{
         201: get_success_response('Admin user <staff_id> created successfully.', 201),
-        400: get_error_response('string', 400),
-        401: UnauthorizedSerializer,
+        400: get_error_response_with_examples(examples=admin_registration_error_examples),
+        401: get_error_response_with_examples(code=401),
         403: ForbiddenSerializer
     }
+}
+
+admin_login_error_examples = {
+    'Incomplete credentials': 'Please provide staff id and password.',
+    'Invalid credentials': 'Invalid login credentials.'
 }
 
 admin_user_login_schema = {
@@ -68,7 +87,7 @@ admin_user_login_schema = {
     'request': AdminUserLoginDataRequest,
     'responses': {
         200: get_success_response('Admin user logged in successfully.', 200, UserSerializer()),
-        400: get_error_response('Invalid login credentials.', 400)
+        400: get_error_response_with_examples(examples=admin_login_error_examples)
     }
 }
 
@@ -81,7 +100,7 @@ get_admin_users_schema = {
     'request': None,
     'responses': {
         200: get_success_response('Admin users retrieved successfully.', 200, AdminListResponse()),
-        401: UnauthorizedSerializer, 
+        401: get_error_response_with_examples(code=401),
         403: ForbiddenSerializer
     }
 }
@@ -98,7 +117,7 @@ get_admin_user_schema = {
     'responses': {
         200: get_success_response('Admin user retrieved successfully.', 200, UserSerializer()),
         400: get_error_response('Invalid admin user id.', 400),
-        401: UnauthorizedSerializer, 
+        401: get_error_response_with_examples(code=401), 
         403: ForbiddenSerializer,
         404: get_error_response('Admin user not found.', 404)
     }
@@ -115,7 +134,7 @@ update_admin_user_schema = {
     'responses': {
         200: get_success_response('Admin user updated successfully.', 200, UserSerializer()),
         400: get_error_response('Admin user update failed.', 400, AdminUserDataError()),
-        401: UnauthorizedSerializer, 
+        401: get_error_response_with_examples(code=401), 
         403: ForbiddenSerializer,
         404: get_error_response('Admin user not found.', 404)
     }
@@ -133,7 +152,7 @@ delete_admin_user_schema = {
     'responses': {
         204: {},
         400: get_error_response('Invalid admin user id.', 400),
-        401: UnauthorizedSerializer, 
+        401: get_error_response_with_examples(code=401), 
         403: ForbiddenSerializer,
         404: get_error_response('Admin user not found.', 404)
     }

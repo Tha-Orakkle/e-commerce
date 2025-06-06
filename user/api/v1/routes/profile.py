@@ -22,7 +22,7 @@ class UserProfileView(APIView):
         try:
             user.profile
         except User.profile.RelatedObjectDoesNotExist:
-            raise ErrorException("User has no profile.")
+            raise ErrorException("User has no profile.", code=status.HTTP_404_NOT_FOUND)
         serializer = UserProfileSerializer(user.profile, data=request.data, partial=True)
         if not serializer.is_valid():
             raise ErrorException(
@@ -41,15 +41,17 @@ class UserProfileView(APIView):
 class UserProfileCategoryView(APIView):
     permission_classes = [IsAuthenticated]
 
-
     @extend_schema(**user_profile_category_add_or_remove_schema)
     def post(self, request):
         """
         Add category to your preferences. This will be used for
         product recommendation.
         """
-        profile = request.user.profile
-        action = request.data.get('action')
+        try:
+            profile = request.user.profile
+        except User.profile.RelatedObjectDoesNotExist:
+            raise ErrorException("User has no profile.", code=status.HTTP_404_NOT_FOUND)
+        action = request.query_params.get('action')
         categories = request.data.getlist('categories', [])
         if action == 'add':
             profile.add_categories(categories)

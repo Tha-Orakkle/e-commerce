@@ -1,7 +1,6 @@
 from .base import BasePaginatedResponse
 from .error import (
     BaseErrorSerializer,
-    UnauthorizedSerializer,
     ForbiddenSerializer,
     get_error_response,
     get_error_response_with_examples
@@ -13,7 +12,6 @@ __all__ = [
     'get_success_response',
     'BasePaginatedResponse',
     'BaseErrorSerializer',
-    'UnauthorizedSerializer',
     'ForbiddenSerializer',
     'get_error_response_with_examples',
 ]

@@ -48,8 +48,8 @@ class ResetPasswordConfirmView(APIView):
 
     @extend_schema(**reset_password_confirm_schema)
     def post(self, request):
-        uid = request.GET.get('uid')
-        token = request.GET.get('token')
+        uid = request.query_params.get('uid')
+        token = request.query_params.get('token')
         new_password = request.data.get('new_password')
         confirm_password = request.data.get('confirm_password')
         exc = ErrorException(

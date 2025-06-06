@@ -1,4 +1,4 @@
-from drf_spectacular.utils import OpenApiParameter
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 from rest_framework import serializers
 
 from common.swagger import (
@@ -44,14 +44,16 @@ reset_password_confirm_schema = {
     'parameters' :[
         OpenApiParameter(
             name='uid',
-            type=str,
+            type=OpenApiTypes.STR,
             description="Base64 encoded unique email",
+            location=OpenApiParameter.QUERY,
             required=True
         ),
         OpenApiParameter(
             name='token',
-            type=str,
+            type=OpenApiTypes.STR,
             description="Password reset token",
+            location=OpenApiParameter.QUERY,
             required=True
         )
     ],

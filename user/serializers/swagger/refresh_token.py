@@ -1,10 +1,16 @@
 from common.swagger import (
     get_success_response,
-    get_error_response
+    get_error_response_with_examples
 )
 
 
 # SWAGGER SCHEMA FOR TOKEN REFRESH
+token_refresh_error_examples = {
+    'Missing refresh token': 'Refresh token was not provided.',
+    'Invalid refresh token': 'Invalid refresh token.'
+
+}
+
 token_refresh_schema = {
     'summary': 'Refresh access token',
     'description':'Refresh access token using refresh token. \
@@ -15,6 +21,6 @@ token_refresh_schema = {
     'request': None,
     'responses': {
         200: get_success_response('Token refreshed successfully', 200),
-        400: get_error_response('Refresh token was not provided. \nOR\n Invalid refresh token.')
+        400: get_error_response_with_examples(examples=token_refresh_error_examples)
     }
 }

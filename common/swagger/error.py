@@ -30,17 +30,32 @@ def get_error_response(message, code=400, error_serializer=None):
     return _cls
 
 
-get_error_response_with_examples = lambda examples_dict, code=400: OpenApiResponse(
-    response={'type': 'object'},
-    examples=[OpenApiExample(
-        name,
-        value={
-            'status': 'error',
-            'code': code,
-            'message': message
-        }
-    ) for name, message in examples_dict.items()]
-)
+unauthorized_examples ={
+    'No token': 'Authentication credentials were not provided.',
+    'Invalid token': 'Token is invalid or expired.' 
+}
+
+def get_error_response_with_examples(examples=unauthorized_examples, code=400):
+    return OpenApiResponse(
+        response={
+            'type': 'object',
+            'properties': {
+                'status': {'type': 'string', 'example': 'error'},
+                'code': {'type': 'integer', 'example': '400'},
+                'message': {'type': 'string'}
+            },
+            'required': ['status', 'code', 'message']
+        },
+        description='Error',
+        examples=[OpenApiExample(
+            name,
+            value={
+                'status': 'error',
+                'code': code,
+                'message': message
+            }
+        ) for name, message in examples.items()]
+    )
 
 
 
@@ -51,20 +66,6 @@ class BaseErrorSerializer(serializers.Serializer):
     """
     status = serializers.CharField(default='error')
 
-
-class UnauthorizedSerializer(BaseErrorSerializer):
-    """
-    Serializer for unauthorized responses.
-    """
-    code = serializers.IntegerField(default=401)
-    message = serializers.ChoiceField(
-        choices=[
-            "Authentication credentials were not provided.",
-            "Token is invalid or expired."
-        ],
-        help_text="One of the predefined authentication error messages."
-    )
-    
 
 class ForbiddenSerializer(BaseErrorSerializer):
     """

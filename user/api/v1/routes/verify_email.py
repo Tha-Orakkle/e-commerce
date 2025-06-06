@@ -14,7 +14,7 @@ class VerifyEmailView(APIView):
         """
         Verifies the token from the request.
         """
-        token = request.GET.get('token', None)
+        token = request.query_params.get('token', None)
         if not token:
             raise ErrorException("Token not provided.")
         user = verify_email_verification_token(token)

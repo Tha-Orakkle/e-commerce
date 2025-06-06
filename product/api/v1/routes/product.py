@@ -140,7 +140,7 @@ class ProductCategoryView(APIView):
         Add/Remove Category from a product.
         """
         validate_id(product_id, 'product')
-        action = request.data.get('action')
+        action = request.query_params.get('action')
         product = Product.objects.filter(id=product_id).first()
         if not product:
             raise ErrorException(detail="Product not found.", code=status.HTTP_404_NOT_FOUND)

@@ -3,8 +3,8 @@ from rest_framework import serializers
 from common.swagger import (
     get_success_response,
     get_error_response,
+    get_error_response_with_examples,
     BasePaginatedResponse,
-    UnauthorizedSerializer,
     ForbiddenSerializer
 )
 from product.serializers.category import CategorySerializer
@@ -37,7 +37,7 @@ get_categories_schema = {
     'request': None,
     'responses': {
         200: get_success_response("Categories retrieved successfully.", 200, CategoryListResponse()),
-        401: UnauthorizedSerializer
+        401: get_error_response_with_examples(code=401)
     }
 }
 
@@ -50,7 +50,7 @@ get_category_schema = {
     'responses': {
         200: get_success_response("Category retrieved successfully.", 200, CategorySerializer()),
         400: get_error_response("Invalid category id.", 400),
-        401: UnauthorizedSerializer,
+        401: get_error_response_with_examples(code=401),
         404: get_error_response("Category not found.", 404)
     }
 }
@@ -64,7 +64,7 @@ create_category_schema = {
     'responses': {
         201: get_success_response("Category created successfully.", 201, CategorySerializer()),
         400: get_error_response("Category creation failed.", 400, CategoryDataError()),
-        401: UnauthorizedSerializer,
+        401: get_error_response_with_examples(code=401),
         403: ForbiddenSerializer
     }
 }
@@ -78,7 +78,7 @@ update_category_schema = {
     'responses': {
         200: get_success_response("Category updated successfully.", 200, CategorySerializer()),
         400: get_error_response("Category update failed.", 400, CategoryDataError()),
-        401: UnauthorizedSerializer,
+        401: get_error_response_with_examples(code=401),
         403: ForbiddenSerializer,
         404: get_error_response("Category not found.", 404)
     }
@@ -93,7 +93,7 @@ delete_category_schema = {
     'responses': {
         204: {},
         400: get_error_response("Invalid category id.", 400),
-        401: UnauthorizedSerializer,
+        401: get_error_response_with_examples(code=401),
         403: ForbiddenSerializer,
         404: get_error_response("Category not found.", 404)
     }

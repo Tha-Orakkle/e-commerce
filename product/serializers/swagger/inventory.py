@@ -4,11 +4,9 @@ from common.swagger import (
     get_success_response,
     get_error_response_with_examples,
     get_error_response,
-    UnauthorizedSerializer,
     ForbiddenSerializer
 )
-from drf_spectacular.utils import OpenApiResponse, OpenApiExample
-
+from drf_spectacular.utils import OpenApiTypes
 
 
 examples =  {
@@ -25,15 +23,16 @@ update_inventory_schema = {
     'tags': ['Inventory'],
     'parameters': [OpenApiParameter(
         name='action',
-        type=str,
+        type=OpenApiTypes.STR,
         description="Could be 'add' or 'subtract'",
+        location=OpenApiParameter.QUERY,
         required=True
     )],
     'request': None,
     'responses': {
         200: get_success_response("Inventory updated successfully."),
         400: get_error_response_with_examples(examples),
-        401: UnauthorizedSerializer,
+        401: get_error_response_with_examples(code=401),
         403: ForbiddenSerializer,
         404: get_error_response("Product not found.", 404)
     }

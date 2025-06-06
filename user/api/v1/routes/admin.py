@@ -40,7 +40,7 @@ class AdminUserRegistrationView(APIView):
         staff_id = request.data.get('staff_id', None)
         pwd = request.data.get('password', None)
         if not staff_id or not pwd:
-            raise ErrorException("Please, provide staff_id (username) and password for the staff.")
+            raise ErrorException("Please provide staff_id (username) and password for the staff.")
         if pwd and pwd != request.data.get('confirm_password'):
             raise ErrorException("Password and confirm_password fields do not match.")
         try:

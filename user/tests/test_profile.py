@@ -50,8 +50,8 @@ def test_put_user_profile_not_found(client, user, signed_in_user):
     }
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.put(user_profile_url, data=data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['code'] == 400
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['code'] == 404
     assert response.data['status'] == "error"
     assert response.data['message'] == "User has no profile."
 

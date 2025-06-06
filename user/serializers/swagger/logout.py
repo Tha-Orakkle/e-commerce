@@ -1,6 +1,6 @@
 from common.swagger import (
     get_success_response,
-    UnauthorizedSerializer
+    get_error_response_with_examples
 )
 
 logout_schema = {
@@ -11,6 +11,6 @@ logout_schema = {
     'request': None,
     'responses': {
         200: get_success_response('User logged out successfully.', 200),
-        401: UnauthorizedSerializer
+        401: get_error_response_with_examples(code=401)
     }
 }
