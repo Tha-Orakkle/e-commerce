@@ -23,6 +23,7 @@ User = get_user_model()
 class CartView(APIView):
     permission_classes = [IsAuthenticated]
 
+
     @extend_schema(**add_to_cart_schema)
     def post(self, request):
         """
@@ -33,7 +34,7 @@ class CartView(APIView):
         except User.cart.RelatedObjectDoesNotExist:
             raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
         product_id = request.data.get('product_id')
-        quantity = request.data.get('quantity')
+        quantity = request.data.get('quantity', 1)
         try:
             quantity = int(quantity)
         except:
@@ -41,10 +42,10 @@ class CartView(APIView):
         if quantity < 1:
             raise ErrorException("Provide a valid quantity that is greater than 0.")
         validate_id(product_id, "product")
-        product = Product.objects.filter(id=product_id).first()
+        product = Product.objects.select_related('inventory').filter(id=product_id).first()
         if not product:
             raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
-        cart = cart.add_item(product, quantity)
+        cart = cart.add_to_cart(product, quantity)
         serializer = CartSerializer(cart)
         return Response(SuccessAPIResponse(
             message="Item added to cart successfully.",
@@ -73,30 +74,29 @@ class UpdateCartView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(**update_cart_schema)
-    def post(self, request, product_id):
+    def post(self, request, cart_item_id):
         """
         Updates quantity of an item already on the Cart.
         """
-        validate_id(product_id, "product")
         try:
             cart = request.user.cart
         except User.cart.RelatedObjectDoesNotExist:
             raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
 
-
-        item = cart.items.select_related('product').filter(product__id=product_id).first()
+        validate_id(cart_item_id, "cart item")
+        item = cart.items.select_related('product__inventory').filter(id=cart_item_id).first()
         if not item:
-            raise ErrorException("Product not found in cart.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException("Item not found in cart.", code=status.HTTP_404_NOT_FOUND)
 
-        action = request.query_params.get('action')
-        quantity = request.data.get('quantity', 1)
 
-        if action == 'add':
-            cart = cart.add_items(item.product, quantity)
-        elif action == 'remove':
-            cart = cart.remove_item(item, quantity)
+        operation = request.data.get('operation')
+        if operation == 'increment':
+            cart = cart.increment_item_quantity(item)
+        elif operation == 'decrement':
+            cart = cart.decrement_item_quantity(item)
         else:
-            raise ErrorException("Invalid action.")
+            raise ErrorException("Invalid operation.")
+        
         return Response(SuccessAPIResponse(
             message="Cart item updated successfully.",
             data=CartSerializer(cart).data

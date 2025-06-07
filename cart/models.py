@@ -23,7 +23,7 @@ class Cart(models.Model):
         """
         return f"<Cart: {self.id}>"
     
-    def add_item(self, product, quantity):
+    def add_to_cart(self, product, quantity):
         """
         Add an item to the cart.
         """
@@ -31,35 +31,36 @@ class Cart(models.Model):
         stock = product.inventory.stock
         if stock == 0:
             raise ErrorException("Product out of stock.")
-        quantity = stock if quantity > stock else quantity
+        quantity = stock if int(quantity) > stock else int(quantity)
 
         # check if product does not already exist in the cart
-        item = self.items.filter(product__id=product.id).first()
-        if item:
-            item.quantity += quantity
-            if item.quantity > stock:
-                raise ErrorException("Product out of stock.")
-            item.save()
-        else:
-            CartItem = apps.get_model('cart', 'CartItem')
-            CartItem.objects.create(
-                quantity=quantity,
-                product=product,
-                cart=self
-            )
+        cart_item, created = self.items.get_or_create(
+            cart=self,
+            product=product,
+            defaults={'quantity': quantity}
+        )
+        if not created:
+            cart_item.quantity = quantity
+            cart_item.save()
+
+        return self
+
+    def increment_item_quantity(self, item):
+        item.quantity += 1
+        if item.quantity > item.product.inventory.stock:
+            raise ErrorException(f"Insufficient stock. Only {item.product.inventory.stock} left.")
+        item.save()
         return self
     
-
-    def remove_item(self, item, quantity):
+    def decrement_item_quantity(self, item):
         if item.quantity == 0:
             raise ErrorException("Cannot remove from item with zero quantity.")
-        if quantity > item.quantity:
-            raise ErrorException("Cannot remove more than the available quantity.")
-        item.quantity -= quantity
+        item.quantity -= 1
         if item.quantity == 0:
             item.delete()
         else:
             item.save()
+        return self
 
 
 @receiver(sender=User, signal=post_save)
