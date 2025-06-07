@@ -15,7 +15,14 @@ class AddToCartRequest(serializers.Serializer):
     """
     Serializer for the request data to add an item to the cart.
     """
+    product_id = serializers.UUIDField(required=True)
     quantity = serializers.IntegerField(required=True, min_value=1, help_text="The quantity of the product to add to the cart.")
+
+class UpdateCartItemRequest(serializers.Serializer):
+    """
+    Serializer for the request to update the quantity of an item in a cart.
+    """
+    operation = serializers.CharField(default='increment')
 
 class CartValidationItemSerializer(serializers.Serializer):
     """
@@ -85,11 +92,10 @@ get_cart_schema = {
 
 # update cart schema
 update_cart_error_examples = {
-    'Product not found': 'Product not found in cart.',
-    'Invalid action': 'Invalid action.',
+    'Cart item not found': 'Item not found in cart.',
+    'Invalid operation': 'Invalid operation.',
     'Out of stock': 'Product out of stock.',
-    'Invalid quantity': 'Cannot remove more than the available quantity.',
-    'zero quantity': 'Cannot remove from item with zero quantity.'
+    'Zero quantity': 'Cannot remove from item with zero quantity.'
 }
 
 update_cart_schema = {
@@ -98,16 +104,7 @@ update_cart_schema = {
         as part of the path and quantity in the request body. If no quantity is provided, it defaults to 1.',
     'operation_id': 'update_cart',
     'tags': ['Cart'],
-    'request': AddToCartRequest,
-    'parameters': [
-        OpenApiParameter(
-            name='product_id',
-            description='The ID of the product to update in the cart.',
-            required=True,
-            type=OpenApiTypes.UUID,
-            location=OpenApiParameter.PATH
-        ),
-    ],
+    'request': UpdateCartItemRequest,
     'responses': {
         200: get_success_response('Cart updated successfully.', 200, CartSerializer(many=True)),
         400: get_error_response_with_examples(update_cart_error_examples),
