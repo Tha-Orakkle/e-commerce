@@ -21,7 +21,7 @@ def validate_cart(cart):
     if not cart:
         raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
     if not cart.items.exists():
-        return response
+        return [[], response]
     
     # gets all the products and inventory with SQL join
     cart_items = cart.items.select_related('product__inventory')
