@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'cart',
     'product',
     'user',
+    'order',
 ]
 
 USE_JWT = True
