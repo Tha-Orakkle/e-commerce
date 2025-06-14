@@ -47,7 +47,10 @@ class Product(models.Model):
         missing_slugs = set(slugs) - found_slugs
 
         if missing_slugs:
-            raise ErrorException(f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.")
+            raise ErrorException(
+                f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
+                code=404
+            )
         
         existing_ids = self.categories.values_list('id', flat=True)
         remaining_slot = MAX_PRODUCT_CATEGORIES - len(existing_ids)
