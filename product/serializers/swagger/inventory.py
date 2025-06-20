@@ -1,4 +1,5 @@
 from drf_spectacular.utils import OpenApiParameter
+from rest_framework import serializers
 
 from common.swagger import (
     get_success_response,
@@ -8,6 +9,11 @@ from common.swagger import (
 )
 from drf_spectacular.utils import OpenApiTypes
 
+class InventoryRequestData(serializers.Serializer):
+    """
+    Serializer for the request data to update inventory.
+    """
+    quantity = serializers.IntegerField(default=36)
 
 examples =  {
     'Invalid action': 'Invalid action.',
@@ -28,7 +34,7 @@ update_inventory_schema = {
         location=OpenApiParameter.QUERY,
         required=True
     )],
-    'request': None,
+    'request': InventoryRequestData,
     'responses': {
         200: get_success_response("Inventory updated successfully."),
         400: get_error_response_with_examples(examples),
