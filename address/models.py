@@ -70,10 +70,10 @@ class City(models.Model):
 class ShippingAddress(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
     full_name = models.CharField(max_length=32, null=False)
-    telephone = PhoneNumberField()
+    telephone = PhoneNumberField(null=False)
     street_address = models.CharField(max_length=256, null=False)
     city = models.ForeignKey(City, on_delete=models.PROTECT, null=False)
-    postal_code = models.CharField(max_length=20)
+    postal_code = models.CharField(max_length=20, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='addresses')
