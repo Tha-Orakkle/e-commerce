@@ -6,8 +6,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
+from address.models import ShippingAddress
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
+from common.utils.check_valid_uuid import validate_id
 from cart.utils.validate_cart import validate_cart
 from order.models import Order, OrderItem
 from order.serializers.order import OrderSerializer
@@ -37,10 +39,16 @@ class CheckoutView(APIView):
                 "Cart contains invalid items.",
                 code=status.HTTP_400_BAD_REQUEST,
             )
-
-        # get shipping/billing address from request body
-        # or retrieve the shipping/billing objs with their ids
+        
+        shipping_address_id = request.data.get('shipping_address', None)
+        validate_id(shipping_address_id, "shipping address")
+        shipping_address = ShippingAddress.objects.filter(
+            user=request.user, id=shipping_address_id).first()
+        if not shipping_address:
+            raise ErrorException("Shipping address not found.", code=status.HTTP_404_NOT_FOUND)
+        # get billing address from request body
         # raise appropriate errors for the circumstances
+
         
 
         # handle concurrency with atomic transaction
@@ -58,6 +66,7 @@ class CheckoutView(APIView):
             # to be updated later to accommodate the shipping / address address
             order = Order.objects.create(
                 total_amount=total_amount,
+                shipping_address=shipping_address,
                 user=request.user
             )
 
