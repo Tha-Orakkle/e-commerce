@@ -45,12 +45,6 @@ class Product(models.Model):
         # missing categories
         found_slugs = {c.slug for c in found_categories}
         missing_slugs = set(slugs) - found_slugs
-
-        if missing_slugs:
-            raise ErrorException(
-                f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
-                code=404
-            )
         
         existing_ids = self.categories.values_list('id', flat=True)
         remaining_slot = MAX_PRODUCT_CATEGORIES - len(existing_ids)
@@ -58,6 +52,12 @@ class Product(models.Model):
         new_categories = [c for c in found_categories if c.id not in existing_ids]
         if remaining_slot > 0:
             self.categories.add(*new_categories[:remaining_slot])
+        
+        if missing_slugs:
+            raise ErrorException(
+                f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
+                code=404
+            )
 
     def remove_categories(self, categories):
         """
