@@ -1,6 +1,7 @@
 from django.utils.text import slugify
 from rest_framework import serializers
 
+from common.exceptions import ErrorException
 from product.models import Product, Category
 from .product_image import ProductImageSerializer
 from .category import CategorySerializer
@@ -38,7 +39,10 @@ class ProductSerializer(serializers.ModelSerializer):
         product = Product.objects.create(**validated_data)
 
         if category_list:
-            product.add_categories(category_list)
+            try:
+                product.add_categories(category_list)
+            except ErrorException:
+                pass
         if image_data:
             product.add_images(image_data)
         return product
