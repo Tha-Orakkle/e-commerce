@@ -8,6 +8,10 @@ __pycache__/
 
 app-emails/
 
+# data file
+geodata.json
+geodata.meta.json
+
 # temp
 user/api/v1/routes/google_oauth.py
 todo.txt
