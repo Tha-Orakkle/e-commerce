@@ -33,7 +33,7 @@ class CartView(APIView):
             cart = request.user.cart
         except User.cart.RelatedObjectDoesNotExist:
             raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
-        product_id = request.data.get('product_id')
+        product_id = request.data.get('product')
         quantity = request.data.get('quantity', 1)
         try:
             quantity = int(quantity)
