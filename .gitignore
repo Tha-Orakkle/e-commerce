@@ -14,6 +14,7 @@ geodata.meta.json
 
 # temp
 user/api/v1/routes/google_oauth.py
+test.rest
 todo.txt
 alias.sh
 media/
