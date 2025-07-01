@@ -26,15 +26,13 @@ class Order(models.Model):
     ]
 
     PAYMENT_METHOD_CHOICES = [
-        ('CREDIT_CARD', 'Credit Card'),
-        ('BANK_TRANSFER', 'Bank Transfer'),
-        ('CASH_ON_DELIVERY', 'Cash on Delivery'),
+        ('DIGITAL', 'Digital Payment'),
+        ('CASH', 'Cash'),
     ]
 
     PAYMENT_STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('COMPLETED', 'Completed'),
-        ('FAILED', 'Failed'),
     ]
 
     DELIVERY_STATUS_CHOICES = [
@@ -48,8 +46,7 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     status = models.CharField(choices=ORDER_STATUS_CHOICES, default='PENDING', max_length=12)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    billing_address = models.CharField(max_length=255, blank=True, null=True)
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='CASH_ON_DELIVERY')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='CASH')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
     fulfillment_method = models.CharField(max_length=20, choices=FULFILLMENT_METHOD_CHOICES, default='DELIVERY')
     delivery_status = models.CharField(max_length=20, choices=DELIVERY_STATUS_CHOICES, default='PENDING')

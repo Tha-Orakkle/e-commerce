@@ -14,6 +14,7 @@ from cart.utils.validate_cart import validate_cart
 from order.models import Order, OrderItem
 from order.serializers.order import OrderSerializer
 from order.serializers.swagger import checkout_schema
+from order.utils.delivery_fee import calculate_delivery_fee
 from product.models import Inventory
 from user.models import User
 
@@ -46,10 +47,14 @@ class CheckoutView(APIView):
             user=request.user, id=shipping_address_id).first()
         if not shipping_address:
             raise ErrorException("Shipping address not found.", code=status.HTTP_404_NOT_FOUND)
-        # get billing address from request body
-        # raise appropriate errors for the circumstances
-
         
+        fulfillment_method = request.data.get('fulfillment_method')
+        payment_method = request.data.get('payment_method')
+        if not fulfillment_method or fulfillment_method.strip() not in ['PICKUP', 'DELIVERY']:
+            raise ErrorException("Invalid fulfillment method.", code=status.HTTP_400_BAD_REQUEST)
+        if not payment_method or payment_method.strip() not in ['CASH', 'DIGITAL']:
+            raise ErrorException("Invalid payment method.", code=status.HTTP_400_BAD_REQUEST)
+
 
         # handle concurrency with atomic transaction
         with transaction.atomic():
@@ -59,15 +64,16 @@ class CheckoutView(APIView):
                 for inv in Inventory.objects.select_for_update()
                 .filter(id__in=[item.product.inventory.id for item in cart_items])
             }
-            total_amount = Decimal('0.00')
+            total_amount = Decimal(calculate_delivery_fee()) if fulfillment_method.strip() == 'DELIVERY' else Decimal('0.00')
             order_items = []
 
             # create an order obj
-            # to be updated later to accommodate the shipping / address address
             order = Order.objects.create(
-                total_amount=total_amount,
+                total_amount=Decimal('0.00'),
                 shipping_address=shipping_address,
-                user=request.user
+                user=request.user,
+                fulfillment_method=fulfillment_method.strip(),
+                payment_method=payment_method.strip()
             )
 
             for item in cart_items:
