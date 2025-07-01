@@ -4,7 +4,6 @@ from django.conf.urls.static import static
 from django.conf.urls import handler404, handler500
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
-from rest_framework.permissions import AllowAny
 
 from common.utils.error_handlers import custom_404_handler, custom_500_handler
 
@@ -23,6 +22,7 @@ urlpatterns = [
     path('api/v1/', include('product.urls')),
     path('api/v1/', include('cart.urls')),
     path('api/v1/', include('order.urls')),
+    path('api/v1/', include('payment.urls')),
 ]
 
 if settings.DEBUG:

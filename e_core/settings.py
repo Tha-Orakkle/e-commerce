@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'user',
     'order',
     'address',
+    'payment',
 ]
 
 USE_JWT = True
@@ -241,3 +242,11 @@ PHONENUMBER_DEFAULT_FORMAT = "INTERNATIONAL"
 # media settings
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+BASE_URL = "http://127.0.0.1:8000"
+
+# Paystack keys
+PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY')
+PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY')
+PAYSTACK_INITIALIZE_URL="https://api.paystack.co/transaction/initialize"
+PAYSTACK_VERIFY_URL="https://api.paystack.co/transaction/verify/"
