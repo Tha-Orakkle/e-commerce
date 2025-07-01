@@ -25,7 +25,6 @@ def validate_location(country_code, state_id, city_id):
     
     if not errors.get('country') and state_id:
         state = next((s for s in country.states.all() if str(s.id) == state_id), None)
-        print(f"State: {state}")
         if not state:
             errors['state'] = "Invalid or unsupported state."
     elif not state_id:
