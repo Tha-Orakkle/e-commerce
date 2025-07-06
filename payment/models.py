@@ -27,5 +27,5 @@ class Payment(models.Model):
             'reference': str(self.reference),
             'email': self.email,
             'amount': float(self.amount),
-            'callback_url': f"{settings.BASE_URL}{reverse('verify-payment')}"
+            'callback_url': f"{settings.BASE_URL}{reverse('temporary-callback')}",
         }
