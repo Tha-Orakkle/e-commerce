@@ -6,7 +6,6 @@ from rest_framework.response import Response
 
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
-from order.models import Order
 from payment.models import Payment
 
 

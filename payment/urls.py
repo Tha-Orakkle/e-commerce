@@ -2,7 +2,7 @@ from django.urls import path
 
 from .api.v1.routes.webhook_paystack import PaystackWebhookView
 from .api.v1.services.initialize_paystack import InitializePaymentView
-from .api.v1.services.verify_payment import VerifyPaymentView, TempCallback
+from .api.v1.routes.verify_payment import VerifyPaymentView, TempCallback
 
 
 urlpatterns = [
