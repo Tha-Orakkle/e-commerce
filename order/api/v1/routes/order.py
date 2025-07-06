@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
@@ -10,6 +11,11 @@ from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination
 from order.models import Order
 from order.serializers.order import OrderSerializer
+from order.serializers.swagger import (
+    get_orders_schema,
+    get_user_orders_schema,
+    get_user_order_schema
+)
 from order.utils.ordering_filter import SmartOrderingFilter
 
 
@@ -27,6 +33,7 @@ class OrdersView(APIView):
     def get_queryset(self):
         return Order.objects.all()
 
+    @extend_schema(**get_orders_schema)
     def get(self, request):
         queryset = self.get_queryset()
 
@@ -50,6 +57,7 @@ class OrdersView(APIView):
 class UserOrdersView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(**get_user_orders_schema)
     def get(self, request):
         """
         Get a list of user's order 
@@ -59,7 +67,7 @@ class UserOrdersView(APIView):
         paginated_queryset = paginator.paginate_queryset(queryset, request)
         serializers = OrderSerializer(paginated_queryset, many=True)
         return Response(SuccessAPIResponse(
-            message="User's orders retrieved successfully.",
+            message="User orders retrieved successfully.",
             code=status.HTTP_200_OK,
             data=paginator.get_paginated_response(serializers.data).data
         ).to_dict(), status=status.HTTP_200_OK)
@@ -68,6 +76,7 @@ class UserOrdersView(APIView):
 class UserOrderView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(**get_user_order_schema)
     def get(self, request, order_id):
         """
         Get a specific order.

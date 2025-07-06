@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -7,6 +8,7 @@ from rest_framework.response import Response
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 from payment.models import Payment
+from payment.serializers.swagger import verify_payment_schema
 
 
 class TempCallback(APIView):
@@ -33,6 +35,7 @@ class VerifyPaymentView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(**verify_payment_schema)
     def get(self, request):
         """"
         Verify payment from paystack.

@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -11,6 +12,7 @@ import hmac, hashlib, json
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 from payment.models import Payment
+from payment.serializers.swagger import paystack_webhook_schema
 from payment.tasks import verify_paystack_payment
 
 
@@ -21,6 +23,7 @@ class PaystackWebhookView(APIView):
     """
     permission_classes = [AllowAny]
 
+    @extend_schema(**paystack_webhook_schema)
     def post(self, request):
         # Check if the request is a valid Paystack webhook
         signature = request.headers.get('x-paystack-signature')
@@ -33,7 +36,6 @@ class PaystackWebhookView(APIView):
             raise ErrorException("Invalid signature.", code=status.HTTP_400_BAD_REQUEST)
 
         event = json.loads(request.body)
-        print(event)
         if event.get('event') == 'charge.success':
             data = event.get('data')
             # perform verification of the payment in the background

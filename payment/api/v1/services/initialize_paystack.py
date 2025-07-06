@@ -1,5 +1,5 @@
+from drf_spectacular.utils import extend_schema
 from django.conf import settings
-from django.urls import reverse
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -12,6 +12,7 @@ from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.check_valid_uuid import validate_id
 from payment.models import Payment
+from payment.serializers.swagger import initialize_payment_schema
 
 
 class InitializePaymentView(APIView):
@@ -20,6 +21,7 @@ class InitializePaymentView(APIView):
     """
     permission_classes = [IsAuthenticated]
     
+    @extend_schema(**initialize_payment_schema)
     def post(self, request):
         order_id = request.data.get('order')
         validate_id(order_id, "order")
@@ -62,6 +64,6 @@ class InitializePaymentView(APIView):
             raise ErrorException(res_json['message'])
         
         return Response(SuccessAPIResponse(
-            message="Payment initiated successfully.",
+            message="Payment initialized successfully.",
             data={'authorization_url': res_json['data']['authorization_url']}
         ).to_dict(), status=status.HTTP_200_OK)
