@@ -13,9 +13,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
-    user = serializers.CharField(source='user.email')
 
     class Meta:
         model = Order
-        fields = '__all__'
+        exclude = ['shipping_address', 'user']
         read_only_fields = ['id', 'user', 'created_at', 'updated_at', 'is_paid', 'is_delivered']
