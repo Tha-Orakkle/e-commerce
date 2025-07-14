@@ -16,19 +16,19 @@ from order.serializers.swagger import (
     get_user_orders_schema,
     get_user_order_schema
 )
-from order.utils.ordering_filter import SmartOrderingFilter
+from order.utils.ordering_filter import SmartOrderingFilter, OrderFilter
 
 
 class OrdersView(APIView):
     """
-    Gets all orders sorted by the ordering parameters passed and
-    filtered by the stat
+    Gets all orders sorted by the ordering parameters and
+    filtered by the status parameter. All passed as query strings.
     """
     permission_classes = [IsAdminUser]
 
     filter_backends = [DjangoFilterBackend, SmartOrderingFilter]
-    ordering_fields = ['created_at', 'status'] # will add amount later
-    filterset_fields = ['status']
+    ordering_fields = ['created_at', 'status']
+    filterset_class = OrderFilter
 
     def get_queryset(self):
         return Order.objects.all()
