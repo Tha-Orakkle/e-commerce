@@ -17,7 +17,7 @@ from payment.serializers.swagger import initialize_payment_schema
 
 class InitializePaymentView(APIView):
     """
-    Initiate Payment (Paystack).
+    Initialize Payment (Paystack).
     """
     permission_classes = [IsAuthenticated]
     
@@ -52,16 +52,22 @@ class InitializePaymentView(APIView):
             "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
             "Content-Type": "application/json"
         }
-        response = requests.post(
-            settings.PAYSTACK_INITIALIZE_URL,
-            json=data,
-            headers=headers,
-            timeout=5
-        )
-        res_json = response.json()
+        try:
+            response = requests.post(
+                settings.PAYSTACK_INITIALIZE_URL,
+                json=data,
+                headers=headers,
+                timeout=5
+            )
+            response.raise_for_status()
+            res_json = response.json()
+        except requests.RequestException as e:
+            raise ErrorException(f"Paystack request failed: {str(e)}.")
+        except ValueError:
+            raise ErrorException("Invalid response from Paystack.")
 
-        if response.status_code != 200 or res_json['status'] == False:
-            raise ErrorException(res_json['message'])
+        if response.status_code != 200 or not res_json.get('status', False):
+            raise ErrorException(res_json.get('message', 'Paystack error.'))
         
         return Response(SuccessAPIResponse(
             message="Payment initialized successfully.",
