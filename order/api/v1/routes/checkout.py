@@ -14,7 +14,7 @@ from cart.utils.validate_cart import validate_cart
 from order.models import Order, OrderItem
 from order.serializers.order import OrderSerializer
 from order.serializers.swagger import checkout_schema
-from order.utils.delivery_fee import calculate_delivery_fee
+from order.utils.delivery import calculate_delivery_fee
 from product.models import Inventory
 from user.models import User
 
