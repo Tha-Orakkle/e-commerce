@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_spectacular',
     'django_filters',
+    'django_celery_beat',
     # 'drf_spectacular_sidecar',
 
 
@@ -216,6 +217,14 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
 CELERY_TIMEZONE = 'UTC'
+
+# Celery Beat settings
+CELERY_BEAT_SCHEDULE = {
+    'cancel_unpaid_orders_older_than_4_hours': {
+        'task': 'order.tasks.cancel_unpaid_orders_older_than_4_hours',
+        'schedule': timedelta(hours=4)
+    },
+}
 
 
 
