@@ -19,6 +19,11 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment')
 
+    # to handle cancelled orders
+    refund_requested = models.BooleanField(default=False)
+    refunded = models.BooleanField(default=False)
+    refund_timestamp = models.DateTimeField(null=True)
+
     def __str__(self):
         return f"<Payment: {self.reference}> {self.verified}"
     
