@@ -1,5 +1,6 @@
 from celery import shared_task
 from django.conf import settings
+from django.db import transaction
 
 import requests
 
@@ -32,11 +33,11 @@ def verify_paystack_payment(self, data):
         res_json = res.json()
         
         if res.status_code == 200 and res_json['data']['status'] == 'success':
-            payment.verified = True
-            payment.save()
-            payment.order.payment_status = 'COMPLETED'
-            payment.order.is_paid = True
-            payment.order.save()
+            with transaction.atomic():
+                payment.verified = True
+                payment.order.is_paid = True
+                payment.save(update_fields=['verified'])
+                payment.order.save(update_fields=['is_paid'])
             logger.info(f"Payment with reference {reference} verified successfully.")
         else:
             logger.error(f"Payment verification failed for reference {reference}: {res_json.get('message', 'Unknown error')}")
