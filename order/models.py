@@ -15,6 +15,7 @@ class Order(models.Model):
     ORDER_STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('PROCESSING', 'Processing'),
+        ('SHIPPED', 'Shipped'),
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
         ('FAILED', 'Failed'),
@@ -35,27 +36,18 @@ class Order(models.Model):
         ('COMPLETED', 'Completed'),
     ]
 
-    DELIVERY_STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('SHIPPED', 'Shipped'),
-        ('DELIVERED', 'Delivered'),
-        ('RETURNED', 'Returned'),
-    ]
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     status = models.CharField(choices=ORDER_STATUS_CHOICES, default='PENDING', max_length=12)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='CASH')
-    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
     fulfillment_method = models.CharField(max_length=20, choices=FULFILLMENT_METHOD_CHOICES, default='DELIVERY')
-    delivery_status = models.CharField(max_length=20, choices=DELIVERY_STATUS_CHOICES, default='PENDING')
-    notes = models.TextField(blank=True, null=True)
     is_paid = models.BooleanField(default=False)
     is_delivered = models.BooleanField(default=False)
+    is_picked_up = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    delivery_date = models.DateTimeField(blank=True, null=True)
+    delivery_date = models.DateField(blank=True, null=True)
     processing_at = models.DateTimeField(blank=True, null=True)
     completed_at = models.DateTimeField(blank=True, null=True)
     cancelled_at = models.DateTimeField(blank=True, null=True)
