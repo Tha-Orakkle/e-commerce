@@ -16,6 +16,7 @@ class Payment(models.Model):
     email = models.EmailField()
     amount = models.PositiveBigIntegerField()
     verified = models.BooleanField(default=False)
+    paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment')
 
