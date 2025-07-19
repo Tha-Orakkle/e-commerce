@@ -11,10 +11,10 @@ from order.api.v1.routes.order import (
 
 urlpatterns = [
     path('checkout/', CheckoutView.as_view(), name='checkout'),
-    path('orders/', OrdersView.as_view(), name='orders'),
-    path('orders/user/', UserOrdersView.as_view(), name='user-orders'),
-    path('orders/user/<str:order_id>/', UserOrderView.as_view(), name='user-order'),
-    path('orders/user/<str:order_id>/cancel/', CancelOrderView.as_view(), name='cancel-order'),
+    path('orders/all/', OrdersView.as_view(), name='orders'), # Admin view for all orders
+    path('orders/', UserOrdersView.as_view(), name='user-orders'), 
+    path('orders/<str:order_id>/', UserOrderView.as_view(), name='user-order'),
+    path('orders/<str:order_id>/cancel/', CancelOrderView.as_view(), name='cancel-order'),
 
     path('orders/<str:order_id>/update-status/', AdminUpdateOrderStatus.as_view(), name='update-order-status')
 ]
