@@ -1,6 +1,7 @@
 from celery import shared_task
 from django.conf import settings
 from django.db import transaction
+from django.utils.timezone import now
 
 import requests
 
@@ -34,9 +35,14 @@ def verify_paystack_payment(self, data):
         
         if res.status_code == 200 and res_json['data']['status'] == 'success':
             with transaction.atomic():
+                paid_at = res_json.get('paid_at', None)
+                if paid_at:
+                    payment.paid_at = now().fromisoformat(paid_at)
+                else:
+                    payment.paid_at = now()
                 payment.verified = True
                 payment.order.is_paid = True
-                payment.save(update_fields=['verified'])
+                payment.save(update_fields=['paid_at', 'verified'])
                 payment.order.save(update_fields=['is_paid'])
             logger.info(f"Payment with reference {reference} verified successfully.")
         else:
