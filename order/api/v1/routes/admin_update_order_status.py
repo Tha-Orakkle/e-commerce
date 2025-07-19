@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime
+from drf_spectacular.utils import extend_schema
 from django.db import transaction
 from django.utils.timezone import now
 from rest_framework import status
@@ -10,6 +10,7 @@ from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.bools import parse_bool
 from common.utils.check_valid_uuid import validate_id
+from order.serializers.swagger import admin_update_order_status_schema
 from order.utils.delivery import validate_delivery_date
 from order.utils.validate_order import validate_order
 from order.models import Order
@@ -21,6 +22,7 @@ class AdminUpdateOrderStatus(APIView):
     """
     permission_classes = [IsAdminUser]
 
+    @extend_schema(**admin_update_order_status_schema)
     def post(self, request, order_id):
         """
         Update the status of an order.

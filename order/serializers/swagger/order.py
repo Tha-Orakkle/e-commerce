@@ -22,7 +22,7 @@ class OrderListResponse(BasePaginatedResponse):
 
 # schemas
 get_orders_schema = {
-    'summary': 'Get all orders',
+    'summary': 'Get all orders by admin',
     'description': 'Orders retrieved will be sorted by the ordering \
         parameters passed and filtered by the status passed.',
     'tags': ['Order'],
@@ -55,7 +55,7 @@ get_orders_schema = {
 }
 
 get_user_orders_schema = {
-    'summary': "Get a user's orders",
+    'summary': "Get a user's list of orders",
     'description': "Returns a paginated list of the user's orders.",
     'tags': ['Order'],
     'operation_id': 'get_user_orders',
@@ -67,7 +67,7 @@ get_user_orders_schema = {
 }
 
 get_user_order_schema = {
-    'summary': "Get a specific user's order",
+    'summary': "Get a user's specific order by order id",
     'description': "Takes an order id as part of the url and returns the matching order.",
     'tags': ['Order'],
     'operation_id': 'get_user_order',

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from drf_spectacular.utils import extend_schema
 from django.utils.timezone import now
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -8,12 +9,14 @@ from rest_framework.views import APIView
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.check_valid_uuid import validate_id
+from order.serializers.swagger import cancel_order_schema
 from order.tasks import restock_inventory_with_cancelled_order
 
 
 class CancelOrderView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(**cancel_order_schema)
     def post(self, request, order_id):
         """
         Cancel an order by a user as long as it has not been
