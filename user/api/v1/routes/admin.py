@@ -1,23 +1,30 @@
 # module for admin user creation and sign in
 from datetime import timedelta
 from django.contrib.auth import authenticate
+from django.core.exceptions import ValidationError
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-
+from common.utils.bools import parse_bool
 from common.exceptions import ErrorException
 from common.utils.check_valid_uuid import validate_id
-from common.backends.permissions import IsSuperUser
+from common.backends.permissions import IsSuperUser, IsShopOwner
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.pagination import Pagination
+from shop.models import Shop
+from shop.api.v1.serializers import ShopSerializer
+from user.api.v1.serializers import ShopOwnerRegistrationSerializer
 from user.models import User
-from user.utils.password_validation import password_check
-from user.serializers.user import UserSerializer
+from user.utils.password_validation import password_check, password_check_v2
+from user.utils.staff_id_validation import staff_id_check
+from user.tasks import send_verification_mail_task
+from user.serializers.user import UserSerializer, UserProfileSerializer
 from user.serializers.swagger import (
     admin_user_login_schema,
     admin_user_registration_schema,
@@ -27,63 +34,106 @@ from user.serializers.swagger import (
     update_admin_user_schema
 )
 
-
-class AdminUserRegistrationView(APIView):
-    permission_classes = [IsSuperUser, IsAuthenticated]
+class ShopStaffCreationView(APIView):
+    permission_classes = [IsShopOwner]
 
     @extend_schema(**admin_user_registration_schema)
     def post(self, request):
         """
-        Create a new user with staff (Admin) access.
-        The staff id should be in form of a username for the user.
+        Create a new staff member for a shop.
         """
-        staff_id = request.data.get('staff_id', None)
-        pwd = request.data.get('password', None)
-        if not staff_id or not pwd:
-            raise ErrorException("Please provide staff_id (username) and password for the staff.")
-        if pwd and pwd != request.data.get('confirm_password'):
-            raise ErrorException("Password and confirm_password fields do not match.")
-        try:
-            password_check(pwd)
-            user = User.objects.create_staff(
-                staff_id=staff_id, password=pwd)
-        except ValueError as e:
-            raise ErrorException(str(e))
+        errors = {}
+        # staff credentials
+        staff_id = request.data.get('staff_id', '').strip()
+        pwd = request.data.get('password', '').strip()
+        c_pwd = request.data.get('confirm_password', '').strip()
+        
+        # staff profile
+        first_name = request.data.get('first_name', '').strip()
+        last_name = request.data.get('last_name', '').strip()
+        telephone = request.data.get('telephone', '').strip()
+        
+        
+        if not staff_id:
+            errors['staff_id'] = ['This field is required.']
+        errors['password'] = password_check_v2(pwd)
+        if pwd and pwd != c_pwd:
+            errors['password'].append("Password and confirm password fields do not match.")
+            
+        staff_profile_serializer = UserProfileSerializer(data={
+            'first_name': first_name,
+            'last_name': last_name,
+            'telephone': telephone
+        })
+        if not staff_profile_serializer.is_valid():
+            errors.update(staff_profile_serializer.errors)
+        errors = {k: v for k, v in errors.items() if v}
+        if errors:
+            raise ErrorException(
+                detail="Staff member creation failed.",
+                code='validation_error',
+                errors=errors
+            )
+        with transaction.atomic():
+            staff = User.objects.create_staff(
+                shop=request.user.owned_shop,
+                staff_id=staff_id,
+                password=pwd
+            )
+            staff_profile_serializer.save(user=staff)
+            
         return Response(
             SuccessAPIResponse(
-                code=201,
-                message=f"Admin user {user.staff_id} created successfully."
+                message=f"Staff member created successfully.",
+                data=UserSerializer(staff).data
             ).to_dict(), status=status.HTTP_201_CREATED
         )
 
 
-class AdminUserLoginView(APIView):
-    authentication_classes = []
+class AdminLoginView(APIView):
+    permission_classes = [AllowAny]
 
     @extend_schema(**admin_user_login_schema)
     def post(self, request):
         """
-        Sign in the admin user with staff id and password
-        Return access and refresh token as cookies.
+        Sign the admin user (staff and shop owner) in.
+        Take the shop_code, staff_id and the password.
         """
-        staff_id = request.data.get('staff_id', None)
-        pwd = request.data.get('password', None)
-        remember_me = request.data.get('remember_me', False)
+        errors = {}
+        shop_code = request.data.get('shop_code', '').strip().upper()
+        staff_id = request.data.get('staff_id', '').strip()
+        pwd = request.data.get('password', '').strip()
+        remember_me = parse_bool(request.data.get('remember_me', False))
         lifespan = timedelta(days=7) if remember_me else timedelta(days=1)
 
-        if not staff_id or not pwd:
-            raise ErrorException("Please provide staff id and password.")
-        user = authenticate(staff_id=staff_id, password=pwd)
-        if not user:
-            raise ErrorException("Invalid login credentials.")
-        serializer = UserSerializer(user)
+        if not shop_code:
+            errors['shop_code'] = ['This field is required.']
+        if not staff_id:
+            errors['staff_id'] = ['This field is required.']
+        if not pwd:
+            errors['password'] = ['This field is required.']
+        
+        if errors:
+            raise ErrorException(
+                detail="Admin user login failed.",
+                code="validation_error",
+                errors=errors
+            )
+        admin_user = authenticate(shop_code=shop_code, staff_id=staff_id, password=pwd)
+        if not admin_user:
+            raise ErrorException(
+                detail="Admin user login failed.",
+                code="invalid_credentials",
+                errors={'non_field_errors': ['Invalid login credentials were provided.']}
+            )
+        serializer = UserSerializer(admin_user)
         response = Response(
             SuccessAPIResponse(
                 message="Admin user logged in successfully.",
                 data=serializer.data
             ).to_dict(), status=status.HTTP_200_OK
         )
-        refresh = RefreshToken.for_user(user)
+        refresh = RefreshToken.for_user(admin_user)
         refresh.set_exp(lifetime=lifespan)
         response.set_cookie(
             'refresh_token', str(refresh),
