@@ -28,7 +28,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         """
         Updates a user profile.
         """
-        categories = self.initial_data.getlist('categories', [])
-        if categories:
-            instance.add_categories(categories)
+        try:
+            categories = self.initial_data.getlist('categories', [])
+            if categories:
+                instance.add_categories(categories)
+        except Exception:
+            pass
         return super().update(instance, validated_data)

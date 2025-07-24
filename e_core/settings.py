@@ -62,12 +62,13 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.google',
     
     # local_apps
-    'cart',
-    'product',
-    'user',
-    'order',
     'address',
+    'cart',
+    'order',
+    'product',
     'payment',
+    'shop',
+    'user',
 ]
 
 USE_JWT = True

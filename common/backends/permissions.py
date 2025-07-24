@@ -10,3 +10,12 @@ class IsSuperUser(BasePermission):
         Checks if user is super user.
         """
         return bool(request.user and request.user.is_superuser)
+
+
+class IsShopOwner(BasePermission):
+    """
+    Grants permission to only shop owners.
+    """
+    
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_shopowner)

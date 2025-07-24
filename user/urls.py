@@ -1,10 +1,14 @@
-from django.urls import path, include
 from django.urls import path
 
+from .api.v1.routes import (
+    ShopOwnerRegistrationView,
+    CustomerRegistrationView
+)
 from .api.v1.routes.refresh_tokens import SecureTokenRefreshView
+
 from .api.v1.routes.admin import (
-    AdminUserRegistrationView, AdminUserLoginView,
-    AdminsView, AdminView
+    ShopStaffCreationView,
+    AdminLoginView, AdminsView, AdminView
 )
 from .api.v1.routes.users import UsersView, UserView
 from .api.v1.routes.login_register import RegisterView, LoginView
@@ -18,8 +22,14 @@ from .api.v1.routes.profile import UserProfileView, UserProfileCategoryView
 
 urlpatterns = [
     # registration and tokens generation
-    path('register/', RegisterView.as_view(), name='register'),
-    path('login/', LoginView.as_view(), name='login'),
+    path('auth/register/', CustomerRegistrationView.as_view(), name='customer-register'),
+    path('auth/login/', LoginView.as_view(), name='customer-login'),
+    
+    # admin block
+    path('auth/sellers/register/', ShopOwnerRegistrationView.as_view(), name='shopowner-register'),
+    path('auth/sellers/login/', AdminLoginView.as_view(), name='admin-login'),
+    path('staff/create/', ShopStaffCreationView.as_view(), name='staff-create'),
+
     path('logout/', LogoutView.as_view(), name='logout'),
     
     path('token/refresh/', SecureTokenRefreshView.as_view(), name='token-refresh'),
@@ -32,8 +42,8 @@ urlpatterns = [
     path('reset-password-confirm/', ResetPasswordConfirmView.as_view(), name='reset-password-confirm'),
     
     # admin creation and login
-    path('admin/create/', AdminUserRegistrationView.as_view(), name='create-admin'),
-    path('admin/login/', AdminUserLoginView.as_view(), name='admin-login'),
+    # path('admin/create/', AdminUserRegistrationView.as_view(), name='create-admin'),
+    # path('admin/login/', AdminUserLoginView.as_view(), name='admin-login'),
 
     
     # admin users

@@ -63,13 +63,13 @@ class Cart(models.Model):
         return self
 
 
-@receiver(sender=User, signal=post_save)
-def create_cart(sender, instance, created, **kwargs):
-    """
-    Creates a cart as soon as a user instance is created
-    """
-    if created:
-        Cart.objects.create(user=instance)
+# @receiver(sender=User, signal=post_save)
+# def create_cart(sender, instance, created, **kwargs):
+#     """
+#     Creates a cart as soon as a user instance is created
+#     """
+#     if created:
+#         Cart.objects.create(user=instance)
 
 
 class CartItem(models.Model):

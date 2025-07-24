@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q 
 from django.utils.text import slugify
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db.models.signals import post_save
@@ -24,9 +25,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     """
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4, unique=True, null=False)
     email = models.EmailField(unique=True, null=True, blank=True)
-    staff_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    staff_id = models.CharField(max_length=20, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
+    is_customer = models.BooleanField(default=False)
+    is_shopowner = models.BooleanField(default=False)
+    # shop field stores where the user works if he is a staff at a shop
+    shop = models.ForeignKey('shop.Shop', null=True, blank=True, on_delete=models.CASCADE, related_name='staff_members')
     is_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -106,12 +111,10 @@ class UserProfile(models.Model):
         self.preferred_categories.remove(*found_categories)
 
 
-
-
 # signal to create a userprofile for a user immediately a
 # user object is created
-@receiver(sender=User, signal=post_save)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        UserProfile.objects.create(user=instance)
+# @receiver(sender=User, signal=post_save)
+# def create_user_profile(sender, instance, created, **kwargs):
+#     if created:
+#         UserProfile.objects.create(user=instance)
 

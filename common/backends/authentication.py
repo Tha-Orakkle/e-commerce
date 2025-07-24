@@ -53,13 +53,27 @@ class AdminUserBackend(ModelBackend):
     Authention Backend for admin user since admin users will
     use staff id and password to sign in.
     """
-    def authenticate(self, request, staff_id, password, **kwargs):
+    # def authenticate(self, request, staff_id, password, **kwargs):
+    #     User = get_user_model()
+    #     try:
+    #         user = User.objects.get(staff_id=staff_id)
+    #         if not user.is_staff:
+    #             return None
+    #         if user.check_password(password):
+    #             return user
+    #     except User.DoesNotExist:
+    #         return None
+        
+    def authenticate(self, request, shop_code, staff_id, password, **kwargs):
         User = get_user_model()
-        try:
-            user = User.objects.get(staff_id=staff_id)
-            if not user.is_staff:
-                return None
-            if user.check_password(password):
-                return user
-        except User.DoesNotExist:
+        
+        from shop.models import Shop
+        shop = Shop.objects.filter(code=shop_code).first()
+        if not shop:
             return None
+        
+        staff = shop.owner if shop.owner.staff_id == staff_id else shop.get_staff_member(staff_id)
+        if staff and staff.check_password(password):
+            return staff
+        return None
+        
