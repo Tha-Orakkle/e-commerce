@@ -10,7 +10,7 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination
-from user.serializers.user import UserSerializer
+from user.api.v1.serializers import UserSerializer
 from user.serializers.swagger import (
     delete_user_schema,
     get_user_schema,

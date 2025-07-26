@@ -2,16 +2,18 @@ from django.urls import path
 
 from .api.v1.routes import (
     ShopOwnerRegistrationView,
-    CustomerRegistrationView
+    CustomerRegistrationView,
+    ShopStaffCreationView,
+
+    AdminLoginView,
+    CustomerLoginView,
 )
 from .api.v1.routes.refresh_tokens import SecureTokenRefreshView
 
 from .api.v1.routes.admin import (
-    ShopStaffCreationView,
-    AdminLoginView, AdminsView, AdminView
+    AdminsView, AdminView
 )
 from .api.v1.routes.users import UsersView, UserView
-from .api.v1.routes.login_register import RegisterView, LoginView
 from .api.v1.routes.logout import LogoutView
 from .api.v1.routes.verify_email import VerifyEmailView
 from .api.v1.routes.reset_password import (
@@ -23,7 +25,7 @@ from .api.v1.routes.profile import UserProfileView, UserProfileCategoryView
 urlpatterns = [
     # registration and tokens generation
     path('auth/register/', CustomerRegistrationView.as_view(), name='customer-register'),
-    path('auth/login/', LoginView.as_view(), name='customer-login'),
+    path('auth/login/', CustomerLoginView.as_view(), name='customer-login'),
     
     # admin block
     path('auth/sellers/register/', ShopOwnerRegistrationView.as_view(), name='shopowner-register'),

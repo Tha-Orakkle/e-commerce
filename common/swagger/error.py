@@ -30,25 +30,25 @@ def get_error_response(message, code=400, error_serializer=None):
     return _cls
 
 
-unauthorized_examples ={
-    'No token': 'Authentication credentials were not provided.',
-    'Invalid token': 'Token is invalid or expired.' 
+unauthorized_errors ={
+    'no_token': 'Authentication credentials were not provided.',
+    'invalid_token': 'Token is invalid or expired.' 
 }
 
-def get_error_response_with_examples(examples=unauthorized_examples, code=400):
+def get_error_response_with_examples(examples=unauthorized_errors, code='unauthorized_request'):
     return OpenApiResponse(
         response={
             'type': 'object',
             'properties': {
                 'status': {'type': 'string', 'example': 'error'},
-                'code': {'type': 'integer', 'example': '400'},
+                'code': {'type': 'string', 'example': 'unauhorized_request'},
                 'message': {'type': 'string'}
             },
             'required': ['status', 'code', 'message']
         },
         description='Error',
         examples=[OpenApiExample(
-            name,
+            name.lower().replace(".", "").replace(" ", "_"),
             value={
                 'status': 'error',
                 'code': code,
@@ -58,18 +58,40 @@ def get_error_response_with_examples(examples=unauthorized_examples, code=400):
     )
 
 
+def get_error_response_for_post_requests(message, errors={}):
+    
+    return OpenApiResponse(
+        response={
+            'type': 'object',
+            'properties': {
+                'status': {'type': 'string', 'example': 'error'},
+                'code': {'type': 'string', 'example': ''},
+                'message': {'type': 'string'},
+                'errors': {'type': 'dict'}
+            },
+            'required': ['status', 'code', 'message']
+        },
+        description='Error',
+        examples=[OpenApiExample(
+            code,
+            value={
+                'status': 'error',
+                'code': code,
+                'message': message,
+                'errors': {
+                    k: v for k, v in errors[code].items()
+                }
+            }
+        ) for code in errors.keys()]
+    )
+
 
 # ERROR SERIALIZERS FOR SWAGGER UI
-class BaseErrorSerializer(serializers.Serializer):
-    """
-    Base class for error serializers.
-    """
-    status = serializers.CharField(default='error')
 
-
-class ForbiddenSerializer(BaseErrorSerializer):
+class ForbiddenSerializer(serializers.Serializer):
     """
     Serializer for forbidden responses.
     """
-    code = serializers.IntegerField(default=403)
+    status = serializers.CharField(default='error')
+    code = serializers.IntegerField(default='permission_denied')
     message = serializers.CharField(default="You do not have permission to perform this action.")

@@ -5,7 +5,7 @@ from common.swagger import (
     get_error_response,
     get_error_response_with_examples
 )
-from user.serializers.user import UserSerializer
+from user.api.v1.serializers import UserSerializer
 
 
 # SWAGGER SCHEMAS FOR NON-ADMIN USERS LOGIN & LOGOUT

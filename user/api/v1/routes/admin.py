@@ -1,152 +1,26 @@
 # module for admin user creation and sign in
-from datetime import timedelta
-from django.contrib.auth import authenticate
-from django.core.exceptions import ValidationError
-from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
 
-from common.utils.bools import parse_bool
 from common.exceptions import ErrorException
 from common.utils.check_valid_uuid import validate_id
-from common.backends.permissions import IsSuperUser, IsShopOwner
+from common.backends.permissions import IsSuperUser
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.pagination import Pagination
-from shop.models import Shop
-from shop.api.v1.serializers import ShopSerializer
-from user.api.v1.serializers import ShopOwnerRegistrationSerializer
 from user.models import User
-from user.utils.password_validation import password_check, password_check_v2
-from user.utils.staff_id_validation import staff_id_check
-from user.tasks import send_verification_mail_task
-from user.serializers.user import UserSerializer, UserProfileSerializer
+from user.api.v1.serializers import UserSerializer
 from user.serializers.swagger import (
-    admin_user_login_schema,
-    admin_user_registration_schema,
     delete_admin_user_schema,
     get_admin_user_schema,
     get_admin_users_schema,
     update_admin_user_schema
 )
 
-class ShopStaffCreationView(APIView):
-    permission_classes = [IsShopOwner]
-
-    @extend_schema(**admin_user_registration_schema)
-    def post(self, request):
-        """
-        Create a new staff member for a shop.
-        """
-        errors = {}
-        # staff credentials
-        staff_id = request.data.get('staff_id', '').strip()
-        pwd = request.data.get('password', '').strip()
-        c_pwd = request.data.get('confirm_password', '').strip()
-        
-        # staff profile
-        first_name = request.data.get('first_name', '').strip()
-        last_name = request.data.get('last_name', '').strip()
-        telephone = request.data.get('telephone', '').strip()
-        
-        
-        if not staff_id:
-            errors['staff_id'] = ['This field is required.']
-        errors['password'] = password_check_v2(pwd)
-        if pwd and pwd != c_pwd:
-            errors['password'].append("Password and confirm password fields do not match.")
-            
-        staff_profile_serializer = UserProfileSerializer(data={
-            'first_name': first_name,
-            'last_name': last_name,
-            'telephone': telephone
-        })
-        if not staff_profile_serializer.is_valid():
-            errors.update(staff_profile_serializer.errors)
-        errors = {k: v for k, v in errors.items() if v}
-        if errors:
-            raise ErrorException(
-                detail="Staff member creation failed.",
-                code='validation_error',
-                errors=errors
-            )
-        with transaction.atomic():
-            staff = User.objects.create_staff(
-                shop=request.user.owned_shop,
-                staff_id=staff_id,
-                password=pwd
-            )
-            staff_profile_serializer.save(user=staff)
-            
-        return Response(
-            SuccessAPIResponse(
-                message=f"Staff member created successfully.",
-                data=UserSerializer(staff).data
-            ).to_dict(), status=status.HTTP_201_CREATED
-        )
-
-
-class AdminLoginView(APIView):
-    permission_classes = [AllowAny]
-
-    @extend_schema(**admin_user_login_schema)
-    def post(self, request):
-        """
-        Sign the admin user (staff and shop owner) in.
-        Take the shop_code, staff_id and the password.
-        """
-        errors = {}
-        shop_code = request.data.get('shop_code', '').strip().upper()
-        staff_id = request.data.get('staff_id', '').strip()
-        pwd = request.data.get('password', '').strip()
-        remember_me = parse_bool(request.data.get('remember_me', False))
-        lifespan = timedelta(days=7) if remember_me else timedelta(days=1)
-
-        if not shop_code:
-            errors['shop_code'] = ['This field is required.']
-        if not staff_id:
-            errors['staff_id'] = ['This field is required.']
-        if not pwd:
-            errors['password'] = ['This field is required.']
-        
-        if errors:
-            raise ErrorException(
-                detail="Admin user login failed.",
-                code="validation_error",
-                errors=errors
-            )
-        admin_user = authenticate(shop_code=shop_code, staff_id=staff_id, password=pwd)
-        if not admin_user:
-            raise ErrorException(
-                detail="Admin user login failed.",
-                code="invalid_credentials",
-                errors={'non_field_errors': ['Invalid login credentials were provided.']}
-            )
-        serializer = UserSerializer(admin_user)
-        response = Response(
-            SuccessAPIResponse(
-                message="Admin user logged in successfully.",
-                data=serializer.data
-            ).to_dict(), status=status.HTTP_200_OK
-        )
-        refresh = RefreshToken.for_user(admin_user)
-        refresh.set_exp(lifetime=lifespan)
-        response.set_cookie(
-            'refresh_token', str(refresh),
-            httponly=True, secure=False,
-            samesite='Lax', max_age=(604800 if remember_me else 86400)
-        )
-        response.set_cookie(
-            'access_token', str(refresh.access_token),
-            httponly=True, secure=False,
-            samesite='Lax'
-        )
-        return response
-    
+ 
 
 class AdminsView(APIView):
     permission_classes = [IsSuperUser, IsAuthenticated]

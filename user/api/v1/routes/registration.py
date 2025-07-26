@@ -9,8 +9,15 @@ from rest_framework.exceptions import ValidationError
 
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
-from user.api.v1.serializers import ShopOwnerRegistrationSerializer, CustomerRegistrationSerializer
-from user.api.v1.swagger import user_registration_schema
+from user.api.v1.serializers import (
+    CustomerRegistrationSerializer,
+    ShopOwnerRegistrationSerializer,
+    UserSerializer
+)
+from user.api.v1.swagger import (
+    customer_registration_schema,
+    shopowner_registration_schema
+)
 from user.tasks import send_verification_mail_task
 from shop.api.v1.serializers import ShopSerializer
 
@@ -18,6 +25,7 @@ from shop.api.v1.serializers import ShopSerializer
 class ShopOwnerRegistrationView(APIView):
     permission_classes = [AllowAny]
     
+    @extend_schema(**shopowner_registration_schema)
     def post(self, request):
         """
         Create a new shop owner.
@@ -28,9 +36,10 @@ class ShopOwnerRegistrationView(APIView):
             serializer.is_valid(raise_exception=True)
             with transaction.atomic():
                 shop = serializer.save()
-                transaction.on_commit(
-                    lambda: send_verification_mail_task.delay(str(shop.owner.id), shop.owner.email)
-                )
+                if not shop.owner.is_verified:
+                    transaction.on_commit(
+                        lambda: send_verification_mail_task.delay(str(shop.owner.id), shop.owner.email)
+                    )
         except ValidationError as e:
             raise ErrorException(
                 detail="Shop owner registration failed.",
@@ -48,7 +57,7 @@ class ShopOwnerRegistrationView(APIView):
 class CustomerRegistrationView(APIView):
     authentication_classes = []
 
-    @extend_schema(**user_registration_schema)
+    @extend_schema(**customer_registration_schema)
     def post(self, request):
         """
         Create a new customer.
@@ -59,9 +68,10 @@ class CustomerRegistrationView(APIView):
             serializer.is_valid(raise_exception=True)
             with transaction.atomic():
                 user = serializer.save()
-                transaction.on_commit(
-                    lambda: send_verification_mail_task.delay(str(user.id), user.email)
-                )
+                if not user.is_verified:
+                    transaction.on_commit(
+                        lambda: send_verification_mail_task.delay(str(user.id), user.email)
+                    )
         except ValidationError as e:
             raise ErrorException(
                 detail="Customer registration failed.",
@@ -71,7 +81,7 @@ class CustomerRegistrationView(APIView):
         return Response(
             SuccessAPIResponse(
                 message="Customer registration successful.",
-                data=serializer.data
+                data=UserSerializer(user).data
             ).to_dict(),
             status=status.HTTP_201_CREATED
         )

@@ -8,7 +8,7 @@ from common.swagger import (
     ForbiddenSerializer
 )
 from .login_register import UserDataRequest
-from user.serializers.user import UserSerializer
+from user.api.v1.serializers import UserSerializer
 
 
 # SWAGGER SCHEMAS FOR NON-ADMIN USERS

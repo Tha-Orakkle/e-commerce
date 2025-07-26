@@ -8,7 +8,7 @@ from common.swagger import (
     BasePaginatedResponse,
     ForbiddenSerializer
 )
-from user.serializers.user import UserSerializer
+from user.api.v1.serializers import UserSerializer
 
 
 # SWAGGER SCHEMAS FOR ADMIN USERS

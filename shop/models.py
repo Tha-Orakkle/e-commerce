@@ -1,10 +1,13 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
+from rest_framework.exceptions import ValidationError
 
 import os
 import uuid
 
+from common.exceptions import ErrorException
+from user.api.v1.serializers import ShopStaffCreationSerializer
 from .utils.shop_code import generate_shop_code
 from .utils.uploads import shop_logo_upload_path
 
@@ -48,7 +51,9 @@ class Shop(models.Model):
         """
         Check that staff already exists.
         """
-        if staff_id is not None:
+        if staff_id:
+            if staff_id == self.owner.staff_id:
+                return True
             return self.staff_members.filter(staff_id=staff_id).exists()
         return False
     
@@ -59,3 +64,4 @@ class Shop(models.Model):
         if staff_id is not None:
             return self.staff_members.filter(staff_id=staff_id).first()
         return None
+        

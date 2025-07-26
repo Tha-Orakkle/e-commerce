@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 
 
-create_admin_url = reverse('create-admin')
+create_admin_url = reverse('shopowner-register')
 
 def test_admin_user_creation_by_superuser(client, signed_in_superuser):
     """

@@ -1,6 +1,9 @@
+from .login import (
+    admin_login_schema,
+    customer_login_schema
+)
+
 from .admin import (
-    admin_user_login_schema,
-    admin_user_registration_schema,
     delete_admin_user_schema,
     get_admin_user_schema,
     get_admin_users_schema,
@@ -12,6 +15,11 @@ from .login_register import (
 )
 from .logout import logout_schema
 from .profile import update_user_profile_schema, user_profile_category_add_or_remove_schema
+from .registration import (
+    customer_registration_schema,
+    shopowner_registration_schema,
+    staff_creation_schema
+)
 from .refresh_token import token_refresh_schema
 from .reset_password import (
     forgot_password_schema,
@@ -27,6 +35,15 @@ from .verify_email import verify_email_schema
 
 
 __all__ = [
+    # registration
+    'customer_registration_schema',
+    'shopowner_registration_schema',
+    'staff_creation_schema',
+    
+    # login
+    'admin_login_schema',
+    'customer_login_schema',
+    
     # users
     'user_login_schema',
     'user_registration_schema',

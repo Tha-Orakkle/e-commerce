@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from shop.models import Shop
-from user.serializers.user import UserSerializer
+from user.api.v1.serializers import UserSerializer
 
 
 class ShopSerializer(serializers.ModelSerializer):

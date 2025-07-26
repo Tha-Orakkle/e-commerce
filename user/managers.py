@@ -24,96 +24,15 @@ class UserManager(BaseUserManager):
         except Exception:
             raise ValueError("Enter a valid email address.")
         return email
-
-    
-    def old_create_user(self, email, password, already_shopowner=False, **extra_fields):
-        """
-        Create and return a regular user with the given email and pasword
-        """
-        try:
-            email = self.validate_and_normalize_email(email)
-        except ValueError as e:
-            raise ErrorException(
-                detail="User registration failed.",
-                code="validation_error",
-                errors={'email': [str(e)]}
-            )
-        user = authenticate(email=email, password=password)
-        if already_shopowner and not user:
-            raise ErrorException(
-                detail="User registration failed.",
-                code="invalid_credentials",
-                errors={'non_field_errors': ['Invalid email or password.']}
-            )
-            
-        if user and user.is_customer:
-            raise ErrorException(
-                detail="User registration failed.",
-                code="customer_already_exists",
-                errors={'email': ['Customer with email already exists.']})
-                
-        if user and not already_shopowner:
-            raise ErrorException(
-                detail="User registration failed.",
-                code="user_already_exists",
-                errors={'email': ['User with email already exists.']})
-
-            
-        if not user:
-            user = self.model(email=email, **extra_fields)
-            user.set_password(password)
-        user.is_active = True
-        user.is_customer = True
-        user.save(using=self._db)
-        return user
- 
-    def old_create_shopowner(self, email, staff_id, password, already_customer, **extra_fields):
-        """
-        Create a shop owner with the email, staff_id (username), and password.
-        """
-        try:
-            email = self.validate_and_normalize_email(email)
-        except ValueError as e:
-            raise ErrorException(
-                detail="Shop owner registration failed.",
-                code="validation_error",
-                errors={'email': [str(e)]}
-            )
-        # user = self.model.objects.filter(email=email).first()
-        user = authenticate(email=email, password=password)
-        if already_customer and not user:
-            raise ErrorException(
-                detail="Shop owner registration failed.",
-                code="invalid_credentials",
-                errors={'non_field_errors': ['Invalid email or password.']})
-
-        if user and user.is_shopowner:
-            raise ErrorException(
-                detail="Shop owner registration failed.",
-                code="shop_owner_already_exists",
-                errors={'email': ['Shop owner with email already exists.']})
-
-        if user and not already_customer:
-            raise ErrorException(
-                detail="Shop owner registration failed.",
-                code="user_already_exists",
-                errors={'email': ['User with email already exists.']})
-
-        if not user:
-            user = self.model(email=email)
-            user.set_password(password)
-        user.is_active = True
-        user.is_staff = True
-        user.is_shopowner = True
-        user.staff_id = staff_id
-        user.save(using=self._db)
-        return user
-
-           
+        
     def create_user(self, email, password, **extra_fields):
         """
         Create a customer.
         """
+        try:
+            email = self.validate_and_normalize_email(email)
+        except Exception as e:
+            raise ValidationError({'email': [str(e)]})
         user = self.filter(email=email).first()
         if user and user.is_customer:
             raise ValidationError("Customer with email already exists.")
@@ -144,7 +63,7 @@ class UserManager(BaseUserManager):
         Email not required for the staff creation.
         """
         if shop.staff_id_exists(staff_id):
-            raise ValidationError("Staff member with staff id already exists.")
+            raise ValidationError("Staff member with staff ID already exists.")
     
         extra_fields['is_active'] = True
         extra_fields['is_staff'] = True
@@ -161,6 +80,11 @@ class UserManager(BaseUserManager):
         """
         Create a shop owner with the email, staff_id (username), and password.
         """
+        try:
+            email = self.validate_and_normalize_email(email)
+        except Exception as e:
+            raise ValidationError({'email': [str(e)]})
+
         user = self.filter(email=email).first()
         if user and user.is_shopowner:
             raise ValidationError("Shop owner with email already exists")

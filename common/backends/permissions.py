@@ -1,5 +1,4 @@
 from rest_framework.permissions import BasePermission
-from rest_framework.exceptions import PermissionDenied
 
 class IsSuperUser(BasePermission):
     """
@@ -18,4 +17,7 @@ class IsShopOwner(BasePermission):
     """
     
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_shopowner)
+        """
+        Check if the user is a shop owner.
+        """
+        return bool(request.user.is_authenticated and getattr(request.user, 'is_shopowner', False))
