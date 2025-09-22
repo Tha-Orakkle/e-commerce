@@ -63,24 +63,3 @@ class ShopOwnerDetailView(APIView):
             ).to_dict(),
             status=status.HTTP_200_OK
         )
-
-    # remove this method. Let the shop app manage shop deletion.
-    # Associated user to a shop will only be deleted if the user is
-    # not a customer
-    def delete(self, request, shopowner_id):
-        """
-        Delete a shop owner.
-        """
-        validate_id(shopowner_id, 'shop owner')
-        shop_owner = User.objects.filter(
-            id=shopowner_id, is_shopowner=True).first()
-        if not shop_owner:
-            raise ErrorException(
-                detail="No shop owner found with the given ID.",
-                code="not_found",
-                status_code=status.HTTP_404_NOT_FOUND
-            )
-        if not (shop_owner == request.user or request.user.is_superuser):
-            raise PermissionDenied()
-        shop_owner.delete()
-        return Response({}, status=status.HTTP_204_NO_CONTENT)
