@@ -7,8 +7,12 @@ from rest_framework.response import Response
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from user.models import User
-from user.serializers.profile import UserProfileSerializer
-from user.serializers.swagger import update_user_profile_schema, user_profile_category_add_or_remove_schema
+from user.api.v1.serializers import UserProfileSerializer
+from user.api.v1.swagger import (
+    update_user_profile_schema,
+    user_profile_category_add_or_remove_schema
+)
+
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]

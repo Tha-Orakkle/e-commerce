@@ -1,6 +1,5 @@
 from django.db import models
 from django.dispatch import receiver
-from django.db.models.signals import post_save
 
 import uuid
 
@@ -60,15 +59,6 @@ class Cart(models.Model):
         else:
             item.save()
         return self
-
-
-# @receiver(sender=User, signal=post_save)
-# def create_cart(sender, instance, created, **kwargs):
-#     """
-#     Creates a cart as soon as a user instance is created
-#     """
-#     if created:
-#         Cart.objects.create(user=instance)
 
 
 class CartItem(models.Model):

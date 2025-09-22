@@ -17,7 +17,8 @@ from user.api.v1.swagger import (
 from user.api.v1.serializers import UserSerializer
 
 
-class AdminLoginView(APIView):
+class ShopOwnerOrStaffLoginView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     @extend_schema(**admin_login_schema)
@@ -28,15 +29,15 @@ class AdminLoginView(APIView):
         """
         errors = {}
         shop_code = request.data.get('shop_code', '').strip().upper()
-        staff_id = request.data.get('staff_id', '').strip()
+        staff_handle = request.data.get('staff_id', '').strip()
         pwd = request.data.get('password', '').strip()
         remember_me = parse_bool(request.data.get('remember_me', False))
         lifespan = timedelta(days=7) if remember_me else timedelta(days=1)
 
         if not shop_code:
             errors['shop_code'] = ['This field is required.']
-        if not staff_id:
-            errors['staff_id'] = ['This field is required.']
+        if not staff_handle:
+            errors['staff_handle'] = ['This field is required.']
         if not pwd:
             errors['password'] = ['This field is required.']
         
@@ -46,7 +47,7 @@ class AdminLoginView(APIView):
                 code="validation_error",
                 errors=errors
             )
-        admin_user = authenticate(shop_code=shop_code, staff_id=staff_id, password=pwd)
+        admin_user = authenticate(shop_code=shop_code, staff_handle=staff_handle, password=pwd)
         if not admin_user or (admin_user and not admin_user.is_staff):
             raise ErrorException(
                 detail="Admin login failed.",
@@ -76,6 +77,7 @@ class AdminLoginView(APIView):
     
 
 class CustomerLoginView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     @extend_schema(**customer_login_schema)

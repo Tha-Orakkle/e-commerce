@@ -27,6 +27,12 @@ class Shop(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def __str__(self):
+        """
+        String representation of the Shop instance.
+        """
+        return f"<Shop: {self.id}> {self.code} - '{self.name[:20]}'"
+    
     def save(self, *args, **kwargs):
         """
         Save the shop instance.
@@ -57,11 +63,26 @@ class Shop(models.Model):
             return self.staff_members.filter(staff_id=staff_id).exists()
         return False
     
-    def get_staff_member(self, staff_id):
+    def get_staff_member(self, id):
         """
         Get a specfic staff member by staff id.
         """
-        if staff_id is not None:
-            return self.staff_members.filter(staff_id=staff_id).first()
+        if id is not None:
+            return self.staff_members.filter(id=id).first()
         return None
+    
+    def get_staff_member_by_handle(self, handle):
+        """
+        Get a specfic staff member by staff id.
+        """
+        if handle is not None:
+            return self.staff_members.filter(staff_id=handle).first()
+        return None
+    
+    def get_all_staff_members(self):
+        """
+        Get all staff members.
+        This does not include the shop owner
+        """
+        return self.staff_members.all()
         

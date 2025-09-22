@@ -175,7 +175,7 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = 'email'
 # rest_framework configurations
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'common.backends.authentication.CookieJWTAuthentication'
+        'common.authentication.backends.CookieJWTAuthentication',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'common.utils.error_handlers.custom_exception_handler',
@@ -202,7 +202,7 @@ SIMPLE_JWT = {
 
 # Authentication Backends conf
 AUTHENTICATION_BACKENDS = [
-    'common.backends.authentication.AdminUserBackend',
+    'common.authentication.backends.AdminUserBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
@@ -235,7 +235,6 @@ if os.getenv('ENV') == "production":
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     EMAIL_FILE_PATH = BASE_DIR / 'app-emails'
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

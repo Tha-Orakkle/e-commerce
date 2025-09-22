@@ -2,14 +2,20 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework import status
 from drf_spectacular.utils import extend_schema
 
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
+from common.permissions import IsShopOwner
+from common.cores.validators import validate_id
+from shop.models import Shop
 from user.models import User
-from user.serializers.swagger import forgot_password_schema, reset_password_confirm_schema
+from user.api.v1.serializers import PasswordUpdateSerializer
+from user.api.v1.swagger import forgot_password_schema, reset_password_confirm_schema
 from user.tasks import send_password_reset_mail_task
 
 class ForgotPasswordView(APIView):
@@ -79,3 +85,72 @@ class ResetPasswordConfirmView(APIView):
                 message="Password reset successfully."
             ).to_dict(), status=status.HTTP_200_OK
         )
+      
+        
+class UpdatePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def patch(self, request):
+        serializer = PasswordUpdateSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        except ValidationError as e:
+            raise ErrorException(
+                detail="Password change failed",
+                code='validation_error',
+                errors=e.detail
+            )
+        return Response(SuccessAPIResponse(
+            message="Password changed successfully."
+        ).to_dict(), status=status.HTTP_200_OK)
+        
+    
+class UpdateStaffPasswordByShopOwnerView(APIView):
+    permission_classes = [IsShopOwner]
+    
+    def patch(self, request, shop_code, staff_id):
+        validate_id(staff_id, 'staff')
+        shop = Shop.objects.filter(code=shop_code).first()
+        user = request.user
+        if not shop:
+            raise ErrorException(
+                detail="No shop found with the given shop code.",
+                code="not_found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        staff = shop.get_staff_member(staff_id)
+        if not staff:
+            raise ErrorException(
+                detail="No staff member found with the given ID.",
+                code="not_found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        if not (
+            user.is_superuser
+            or (user.is_shopowner and user.owned_shop == shop)
+        ):
+            raise PermissionDenied()
+        serializer = PasswordUpdateSerializer(
+            data=request.data,
+            context={
+                'request': request,
+                'user': staff
+            }
+        )
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        except ValidationError as e:
+            raise ErrorException(
+                detail="Staff password change failed",
+                code='validation_error',
+                errors=e.detail
+            )
+
+        return Response(SuccessAPIResponse(
+            message="Staff password changed successfully."
+        ).to_dict(), status=status.HTTP_200_OK)

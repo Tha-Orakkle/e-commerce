@@ -4,8 +4,9 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from user.serializers.swagger import token_refresh_schema
+from user.api.v1.swagger import token_refresh_schema
 from common.utils.api_responses import SuccessAPIResponse
+
 
 class SecureTokenRefreshView(TokenRefreshView):
     """

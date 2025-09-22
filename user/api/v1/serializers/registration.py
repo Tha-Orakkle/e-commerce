@@ -62,20 +62,15 @@ class ShopOwnerRegistrationSerializer(BaseUserCreationSerializer):
     
     def validate(self, attrs):
         """
-        Final validation
+        Retrieves the profile data.
         """
-        pwd = attrs['password']
-        cpwd = attrs['confirm_password']
-        if pwd != cpwd:
-            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
-        
         self._profile_data = {
             'first_name': attrs.get('first_name'),
             'last_name': attrs.get('last_name'),
             'telephone': attrs.get('telephone')
         }
         return attrs
-    
+
     def create(self, validated_data):
         already_customer = validated_data.pop('already_customer')
         password = validated_data.pop('password')
@@ -156,13 +151,8 @@ class CustomerRegistrationSerializer(BaseUserCreationSerializer):
     
     def validate(self, attrs):
         """
-        Final validation
+        Retrieves the profile data.
         """
-        pwd = attrs['password']
-        cpwd = attrs['confirm_password']
-        if pwd != cpwd:
-            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
-        
         self._profile_data = {
             'first_name': attrs.get('first_name'),
             'last_name': attrs.get('last_name'),

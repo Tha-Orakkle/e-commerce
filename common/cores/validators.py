@@ -11,5 +11,4 @@ def validate_id(id, obj_name):
         uuid.UUID(id)
         return True
     except Exception:
-        raise ErrorException(detail=f"Invalid {obj_name} id.", code='invalid_id')
-    
+        raise ErrorException(detail=f"Invalid {obj_name} id.", code='invalid_uuid')

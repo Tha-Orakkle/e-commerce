@@ -26,11 +26,13 @@ class CreateStaffRequestData(BaseUserCreationSerializer):
 invalid_credentials = {'non_field_errors': ['Invalid credentials matching any customer.']}
 email = [
     'This field is required',
+    'This field may not be blank.',
     'Enter a valid email address.',
     'User with email already exists.',
 ]
 staff_id = [
     'This field is required',
+    'This field may not be blank.',
     'Ensure this field has at least 3 characters.',
     'Ensure this field has no more than 20 characters.',
 ]
@@ -45,8 +47,8 @@ telephone = [
 ]
 
 password = [
-    'This field may not be blank.',
     'This field is required.',
+    'This field may not be blank.',
     'Password must be at least 8 characters long.',
     'Password must contain at least one digit.',
     'Password must contain at least one letter.',
@@ -56,11 +58,17 @@ password = [
 ]
 
 confirm_password = [
+    'This field is required.',
+    'This field may not be blank.',
     'Passwords do not match.'
 ]
 
 shopowner_registration_errors = {
-    'invalid_credentials': invalid_credentials,
+    'invalid_credentials': {
+        'non_field_errors': [
+            'Invalid credentials matching any customer.'
+        ]
+    },
     'validation_error': {
         'email': [
             *email,
@@ -88,7 +96,11 @@ shopowner_registration_errors = {
 
 
 customer_registration_errors = {
-    'invalid_credentials': invalid_credentials,
+    'invalid_credentials': {
+        'non_field_errors': [
+            'Invalid credentials matching any shop owner.'
+        ]
+    },
     'validation_error': {
         'email': [
             *email,
@@ -159,19 +171,19 @@ customer_registration_schema = {
     }
 }
 
-staff_creation_schema = {
+shop_staff_creation_schema = {
     'summary': 'Create a staff for a shop.',
     'description': 'Create a new staff for a shop by the shop owner.',
     'operation_id': 'staff_creation',
-    'tags': ['Auth'],
+    'tags': ['Shop-Staff'],
     'request': CreateStaffRequestData,
     'responses': {
         200: get_success_response(
-            message="Staff member creation successful.",
+            message="Shop staff member creation successful.",
             data_serializer=UserSerializer()
         ),
         400: get_error_response_for_post_requests(
-            message="Staff member creation failed.",
+            message="Shop staff member creation failed.",
             errors=staff_creation_errors
         ),
         401: get_error_response_with_examples(),

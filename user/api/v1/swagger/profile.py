@@ -8,7 +8,7 @@ from common.swagger import (
     get_success_response,
     ForbiddenSerializer
 )    
-from user.serializers.profile import UserProfileSerializer
+from user.api.v1.serializers import UserProfileSerializer
 
 
 # SWAGGER SCHEMAS FOR USER PROFILES

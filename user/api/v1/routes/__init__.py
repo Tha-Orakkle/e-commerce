@@ -1,6 +1,15 @@
+from .customer import CustomerListView, CustomerDetailView
+from .login import ShopOwnerOrStaffLoginView, CustomerLoginView
 from .registration import ShopOwnerRegistrationView, CustomerRegistrationView
-from .create_staff import ShopStaffCreationView
-from .login import AdminLoginView, CustomerLoginView
+from .shopowner import ShopOwnerListView, ShopOwnerDetailView
+from .staff import ShopStaffListCreateView, ShopStaffDetailView
+from .password import (
+    ForgotPasswordView,
+    ResetPasswordConfirmView,
+    UpdatePasswordView,
+    UpdateStaffPasswordByShopOwnerView
+)
+from .update_user import UpdateUserView
 
 
 __all__ = [
@@ -11,7 +20,28 @@ __all__ = [
     # create staff views
     'ShopStaffCreationView',
     
+    # update user
+    'UpdateUserView',
+    
     # login views
-    'AdminLoginView',
+    'ShopOwnerOrStaffLoginView',
     'CustomerLoginView',
+    
+    # shop owners RUD views
+    'ShopOwnerDetailView',
+    'ShopOwnerListView',
+    
+    # shop staff members CRUD views
+    'ShopStaffDetailView',
+    'ShopStaffListCreateView',
+    
+    # customers RUD views
+    'CustomerDetailView',
+    'CustomerListView',
+    
+    # password
+    'ForgotPasswordView',
+    'ResetPasswordConfirmView',
+    'UpdatePasswordView',
+    'UpdateStaffPasswordByShopOwnerView',
 ]

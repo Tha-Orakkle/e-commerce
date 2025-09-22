@@ -50,7 +50,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         Returns:
             str: A string in the format "<User: {self.id}> {self.email}".
         """
-        return f"<User: {self.id}> {self.email or self.staff_id + ' (Admin)'}"
+        role = 'Shop Owner' if self.is_shopowner else 'Customer' if not self.is_staff else 'Admin'
+        return f"<User: {self.id}> {self.email or self.staff_id} ({role})"
         
     
     

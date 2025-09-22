@@ -3,6 +3,11 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 import pytest
 
+from cart.models import Cart
+from shop.models import Shop
+from user.models import UserProfile
+
+
 
 User = get_user_model()
 
@@ -25,12 +30,54 @@ def db_access(db):
 @pytest.fixture
 def user(db):
     """
-    Creates the user
+    Creates a user
     """
     return User.objects.create_user(
         email="user@email.com",
         password="Password123#", 
     )
+
+@pytest.fixture
+def customer(db):
+    """
+    Creates a customer.
+    """
+    user = User.objects.create_user(
+        email="customer@email.com",
+        password="Password123#", 
+    )
+    UserProfile.objects.create(
+        user=user,
+        first_name="John",
+        last_name="Doe",
+        telephone="08121112222"
+    )
+    Cart.objects.create(user=user)
+    return user
+
+
+@pytest.fixture
+def shopowner(db):
+    """
+    Creates a shop owner.
+    """
+    user = User.objects.create_shopowner(
+        email='shopowner@email.com',
+        staff_id='shopowner',
+        password='Password123#'
+    )
+    UserProfile.objects.create(
+        user=user,
+        first_name="Jane",
+        last_name="Doe",
+        telephone="08112221111"
+    )
+    Shop.objects.create(
+        name="Playground",
+        description="Showcase you talents without fear of being judged.",
+        owner=user
+    )
+    return user
 
 
 @pytest.fixture
@@ -39,8 +86,8 @@ def super_user(db):
     Creates an admin user
     """
     return User.objects.create_superuser(
-        email='admin_superuser@email.com',
-        staff_id='admin-superuser',
+        email='superuser@email.com',
+        staff_id='superuser',
         password="Password123#"
     )
 
@@ -51,7 +98,7 @@ def admin_user(db):
     Create an admin user.
     """
     return User.objects.create_staff(
-        staff_id='admin-user',
+        staff_id='staff',
         password='Password123#'
     )
 

@@ -11,14 +11,6 @@ ERROR_CODES = {
     status.value: status.phrase.lower().replace(" ", "_")
     for status in HTTPStatus if 400 <= status.value and status.value <= 600
 }
-ERROR_CODES = {
-    400: 'bad_request',
-    401: 'unathorized_request',
-    403: 'permission_denied',
-    404: 'not_found',
-    500: 'server_error'
-}
-
 
 def custom_404_handler(request, exception):
     """
@@ -76,9 +68,16 @@ def custom_exception_handler(exc, context):
     
     response = exception_handler(exc, context)
     if response is not None:
+        res_code = ERROR_CODES.get(response.status_code, 'unknwown')
+        detail = getattr(exc, 'detail', str(exc))
+        if isinstance(detail, dict):
+            if detail.get('code'):
+                res_code = detail['code']
+            if detail.get('detail'):
+                detail = detail['detail']
         error_response = ErrorAPIResponse(
-            code=ERROR_CODES.get(response.status_code, 'unknwown'),
-            message=str(exc)
+            code=res_code,
+            message=detail
         )
         if hasattr(exc, 'errors') and exc.errors:
             error_response.errors = exc.errors

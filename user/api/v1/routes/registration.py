@@ -23,6 +23,7 @@ from shop.api.v1.serializers import ShopSerializer
 
 
 class ShopOwnerRegistrationView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     
     @extend_schema(**shopowner_registration_schema)
@@ -56,6 +57,7 @@ class ShopOwnerRegistrationView(APIView):
 
 class CustomerRegistrationView(APIView):
     authentication_classes = []
+    permission_classes = [AllowAny]
 
     @extend_schema(**customer_registration_schema)
     def post(self, request):

@@ -45,7 +45,6 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    
     def create_superuser(self, email, password, **extra_fields):
         """
         Create and return a superuser with all permissions
@@ -73,8 +72,6 @@ class UserManager(BaseUserManager):
         user.set_password(password)
         user.save(using=self._db)
         return user
-        
-        
 
     def create_shopowner(self, email, staff_id, password, **extra_fields):
         """
@@ -98,30 +95,27 @@ class UserManager(BaseUserManager):
         user.staff_id = staff_id
         user.save(using=self._db)
         return user
-        
-        
-        
-    def get_active_users(self):
-        """
-        Returns only active active users
-        """
-        return self.filter(is_active=True)
 
-    def get_staff(self):
-        """
-        Returns users with is_staff=True
-        """
-        return self.filter(is_staff=True)
-
-
-    def get_superuser(self):
+    def get_superusers(self):
         """
         Returns all superuser
         """
         return self.filter(is_superuser=True)
+
+    def get_active_users(self):
+        """
+        Returns only active active users
+        """
+        return self.filter(is_active=True, is_superuser=False)
     
     def get_shopowners(self):
         """
         Return all shop owners.
         """
-        return self.filter(is_shopowners=True)
+        return self.filter(is_shopowner=True, is_superuser=False)
+
+    def get_customers(self):
+        """
+        Return all customers.
+        """
+        return self.filter(is_customer=True, is_superuser=False)

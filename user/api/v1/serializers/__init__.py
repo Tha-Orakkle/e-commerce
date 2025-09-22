@@ -1,22 +1,31 @@
 from .base import BaseUserCreationSerializer
-from .create_staff import ShopStaffCreationSerializer
+from .staff import ShopStaffCreationSerializer, StaffUpdateSerializer
 from .profile import UserProfileSerializer
+from .password import PasswordUpdateSerializer
 from .registration import (
     ShopOwnerRegistrationSerializer,
     CustomerRegistrationSerializer
 )
-from .user import UserSerializer
+from .user import UserSerializer, UserUpdateSerializer
+
 
 __all__ = [
-    'BaseUserCreationSerializer',
     # registration serializers
+    'BaseUserCreationSerializer',
     'ShopOwnerRegistrationSerializer',
     'CustomerRegistrationSerializer',
-    
-    # create staff serializer
+
+    # user update serializers
+    'UserUpdateSerializer',
+
+    # staff serializers
     'ShopStaffCreationSerializer',
-    
+    'StaffUpdateSerializer',
+
     # model serializers
     'UserProfileSerializer',
     'UserSerializer',
+
+    # password
+    'PasswordUpdateSerializer',
 ]

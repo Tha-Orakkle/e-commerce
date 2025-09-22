@@ -1,8 +1,11 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from phonenumber_field.serializerfields import PhoneNumberField
 
 from common.utils.bools import parse_bool
 from user.cores.validators import validate_password
+
+User = get_user_model()
 
 
 class BaseUserCreationSerializer(serializers.Serializer):
@@ -25,7 +28,19 @@ class BaseUserCreationSerializer(serializers.Serializer):
         already_user = parse_bool(self.initial_data.get(
             'already_customer', parse_bool(self.initial_data.get('already_shopowner', False))))
         if not already_user:
+            # only validate when user not already a shop owner or a customer.
+            # When already a user, user will be authenticated instead.
             validate_password(value)
+        return value
+
+    def validate_confirm_password(self, value):
+        """
+        Check that confirm password matches the password.
+        """
+        value = value.strip()
+        pwd = self.initial_data.get('password', '').strip()
+        if (pwd and pwd != value) or (value and not pwd):
+            raise serializers.ValidationError("Passwords do not match.")
         return value
 
     def validate_telephone(self, value):

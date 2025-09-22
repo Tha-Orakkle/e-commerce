@@ -16,7 +16,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         if not GEODATA_FILE.exists():
             self.stdout.write(self.style.NOTICE("Geodata file does not exist."))
-            self.stdout.write(self.style.NOTICE("Run\n\n   python manage.py fetch_geodata\nto get the download it.\n"))
+            self.stdout.write(self.style.NOTICE("Run\n\n   python manage.py fetch_geodata\nto download it.\n"))
             return
         
         tqdm_args = {
@@ -76,9 +76,6 @@ class Command(BaseCommand):
                     State.objects.bulk_create(new_states, ignore_conflicts=True)
                     for s in State.objects.filter(country=country):
                         existing_states[s.name] = s
-
-
-
 
                 for st in obj.get('states', []):
                     state = existing_states.get(st['name'])

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from user.utils.email_verification import verify_email_verification_token
-from user.serializers.swagger import verify_email_schema
+from user.api.v1.swagger import verify_email_schema
 
 
 class VerifyEmailView(APIView):
