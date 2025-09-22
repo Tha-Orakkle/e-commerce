@@ -54,7 +54,8 @@ class ShopDetailView(APIView):
         if not shop:
             raise ErrorException(
                 detail="Shop with ID not found.",
-                code='not_found'
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND
             )
         return Response(SuccessAPIResponse(
             message="Shop retrieved successfully.",
@@ -71,7 +72,8 @@ class ShopDetailView(APIView):
         if not shop:
             raise ErrorException(
                 detail="Shop with ID not found.",
-                code='not_found'
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND
             )
         serializer = ShopSerializer(
             instance=shop,
@@ -104,7 +106,8 @@ class ShopDetailView(APIView):
         if not shop:
             raise ErrorException(
                 detail="Shop with ID not found.",
-                code='not_found'
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND
             )
         if not (request.user.is_superuser or shop.owner == request.user):
             raise PermissionDenied()
