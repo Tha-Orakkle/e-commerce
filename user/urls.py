@@ -33,8 +33,8 @@ urlpatterns = [
     path('auth/shops/register/', ShopOwnerRegistrationView.as_view(), name='shopowner-register'),
     path('auth/staff/login/', ShopOwnerOrStaffLoginView.as_view(), name='staff-login'),
 
+    # others
     path('logout/', LogoutView.as_view(), name='logout'),
-    
     path('token/refresh/', SecureTokenRefreshView.as_view(), name='token-refresh'),
 
     # email address verification
@@ -45,6 +45,13 @@ urlpatterns = [
     path('reset-password-confirm/', ResetPasswordConfirmView.as_view(), name='reset-password-confirm'),
     path('users/me/password/', UpdatePasswordView.as_view(), name='user-me-password'),
     path('shops/<str:shop_code>/staff/<str:staff_id>/password/', UpdateStaffPasswordByShopOwnerView.as_view(), name='shop-staff-password'),
+    
+    # update user
+    path('users/me/', UpdateUserView.as_view(), name='user-me-update'),
+
+    # user profile
+    path('users/me/profile/', UserProfileView.as_view(), name='user-profile'),
+    path('users/me/profile/categories/', UserProfileCategoryView.as_view(), name='profile-categories'),
     
     # shop owners
     path('shopowners/', ShopOwnerListView.as_view(), name='shopowner-list'),
@@ -63,12 +70,6 @@ urlpatterns = [
     # path('auth/google/login/', google_login),
     # path('auth/callback/google/', google_callback),
     
-    # update user
-    path('users/me/', UpdateUserView.as_view(), name='user-me-update'),
     
-    
-    # user profile
-    path('users/me/profile/', UserProfileView.as_view(), name='user-profile'),
-    path('users/me/profile/categories/', UserProfileCategoryView.as_view(), name='profile-categories'),
 
 ]
