@@ -41,7 +41,6 @@ class ForgotPasswordView(APIView):
         return Response(
             SuccessAPIResponse(
                 message="Password reset link sent.",
-                code=202,
             ).to_dict(), status=status.HTTP_202_ACCEPTED
         )
     

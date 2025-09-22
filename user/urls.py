@@ -69,7 +69,4 @@ urlpatterns = [
     # sign in with google
     # path('auth/google/login/', google_login),
     # path('auth/callback/google/', google_callback),
-    
-    
-
 ]

@@ -39,6 +39,11 @@ class Product(models.Model):
 
 
     def add_categories(self, categories):
+        """
+        Add product to specific categories.
+        Args:
+            categories - List of names of categories.
+        """
         slugs = [slugify(c) for c in categories]
         found_categories =  Category.objects.filter(slug__in=slugs)
 
@@ -62,6 +67,8 @@ class Product(models.Model):
     def remove_categories(self, categories):
         """
         Remove product from a specific category.
+        Args:
+            categories - List of names of categories.
         """
         slugs = [slugify(c) for c in categories]
         found_categories = Category.objects.filter(slug__in=slugs)
