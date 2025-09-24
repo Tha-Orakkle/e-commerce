@@ -8,4 +8,3 @@ class InventorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Inventory
         fields = ['product', 'stock']
-          

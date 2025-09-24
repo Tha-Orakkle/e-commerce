@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.utils.text import slugify
 from decimal import Decimal
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
@@ -206,24 +207,31 @@ class Inventory(models.Model):
         """
         return f"<Inventory: {self.id}> {self.product.name} - {self.stock} items"
     
+    @transaction.atomic
     def add(self, value, staff_id):
         if value <= 0:
-            raise ErrorException("Provide a valid quantity that is greater than 0.")
-        self.stock += value
-        self.last_updated_by = staff_id
-        self.save()
-        return self
+            raise ValueError("Provide a valid quantity that is greater than 0.")
+        inventory = Inventory.objects.select_for_update().get(id=self.id)
+        inventory.stock += value
+        inventory.last_updated_by = staff_id
+        inventory.save()
+        return inventory
     
+    @transaction.atomic
     def substract(self, value, staff_id):
         if value <= 0:
-            raise ErrorException("Provide a valid quantity that is greater than 0.")
-        self.stock -= value
-        if self.stock < 0:
-            raise ErrorException("Insufficient inventory.")
-        self.last_updated_by = staff_id
-        self.save()
-        return self
-
+            raise ValueError("Provide a valid quantity that is greater than 0.")
+        
+        inventory = Inventory.objects.select_for_update().get(id=self.id)
+        inventory.stock -= value
+        if inventory.stock < 0:
+            raise ErrorException(
+                detail="Insufficient inventory to complete this operation.",
+                code='insufficient_inventory'
+            )
+        inventory.last_updated_by = staff_id
+        inventory.save()
+        return inventory
 
 
 @receiver(sender=Product, signal=post_save)
