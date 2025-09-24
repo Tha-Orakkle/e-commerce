@@ -1,3 +1,4 @@
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -81,5 +82,10 @@ class CustomerDetailView(APIView):
             )
         if not (user == request.user or request.user.is_superuser):
             raise PermissionDenied()
-        user.delete()
+        with transaction.atomic():
+            if not user.is_shopowner:
+                user.delete()
+            else:
+                user.is_customer = False
+                user.save()
         return Response({}, status=status.HTTP_204_NO_CONTENT)
