@@ -6,7 +6,7 @@ from common.swagger import (
     get_error_response_with_examples,
     get_success_response,
 )
-from cart.serializers.cart import CartSerializer
+from cart.api.v1.serializers import CartSerializer
 from product.api.v1.serializers import ProductSerializer
 
 # SWAGGER SCHEMAS FOR CART

@@ -1,6 +1,6 @@
-from .cart import CartView, UpdateCartView
+from .cart import CartDetailView, CartItemDetailView
 
 __all__ = [
-    'CartView',
-    'UpdateCartView',
+    'CartDetailView',
+    'CartItemDetailView',
 ]

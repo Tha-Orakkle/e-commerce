@@ -28,7 +28,10 @@ class Cart(models.Model):
         # confirm whats left of the stock
         stock = product.inventory.stock
         if stock == 0:
-            raise ErrorException("Product out of stock.")
+            raise ErrorException(
+                detail="Product out of stock.",
+                code='out_of_stock'
+            )
         quantity = stock if int(quantity) > stock else int(quantity)
 
         # check if product does not already exist in the cart
@@ -43,16 +46,29 @@ class Cart(models.Model):
 
         return self
 
+    def remove_from_cart(self, cart_item):
+        """
+        Remove an item from the cart.
+        """
+        cart_item.delete()
+        return self
+    
     def increment_item_quantity(self, item):
         item.quantity += 1
         if item.quantity > item.product.inventory.stock:
-            raise ErrorException(f"Insufficient stock. Only {item.product.inventory.stock} left.")
+            raise ErrorException(
+                detail=f"Insufficient stock. Only {item.product.inventory.stock} left.",
+                code='insufficient_stock'
+            )
         item.save()
         return self
     
     def decrement_item_quantity(self, item):
         if item.quantity == 0:
-            raise ErrorException("Cannot remove from item with zero quantity.")
+            raise ErrorException(
+                detail="Cannot remove from item with zero quantity.",
+                code='invalid_quantity'
+            )
         item.quantity -= 1
         if item.quantity == 0:
             item.delete()
@@ -65,7 +81,7 @@ class CartItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
     quantity = models.PositiveIntegerField(null=False)
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

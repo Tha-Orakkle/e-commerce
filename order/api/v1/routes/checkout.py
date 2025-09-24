@@ -7,10 +7,10 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
 from address.models import ShippingAddress
+from common.cores.validators import validate_id
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
-from common.utils.check_valid_uuid import validate_id
-from cart.utils.validate_cart import validate_cart
+from cart.utils.validators import validate_cart
 from order.models import Order, OrderItem
 from order.serializers.order import OrderSerializer
 from order.serializers.swagger import checkout_schema
@@ -35,7 +35,7 @@ class CheckoutView(APIView):
 
         if validated_response['items'] == []:
             raise ErrorException("Cart is empty.", code=status.HTTP_400_BAD_REQUEST)
-        if not validated_response['valid']:
+        if not validated_response['is_valid']:
             raise ErrorException(
                 "Cart contains invalid items.",
                 code=status.HTTP_400_BAD_REQUEST,
