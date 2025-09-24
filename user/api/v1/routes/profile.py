@@ -26,11 +26,15 @@ class UserProfileView(APIView):
         try:
             user.profile
         except User.profile.RelatedObjectDoesNotExist:
-            raise ErrorException("User has no profile.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="User has no profile.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
         serializer = UserProfileSerializer(user.profile, data=request.data, partial=True)
         if not serializer.is_valid():
             raise ErrorException(
                 detail="User profile update failed.",
+                code='validation_error',
                 errors=serializer.errors    
             )
         serializer.save()
@@ -55,14 +59,24 @@ class UserProfileCategoryView(APIView):
             profile = request.user.profile
         except User.profile.RelatedObjectDoesNotExist:
             raise ErrorException("User has no profile.", code=status.HTTP_404_NOT_FOUND)
-        action = request.query_params.get('action')
+        action = request.data.get('action', '')
+        if 'categories' not in request.data:
+            raise ErrorException(
+                detail="Please provide a list of categories in the 'categories' field.",
+                code='missing_categories',
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
         categories = request.data.getlist('categories', [])
         if action == 'add':
             profile.add_categories(categories)
         elif action == 'remove':
             profile.remove_categories(categories)
         else:
-            raise ErrorException(detail="Invalid action.", code=status.HTTP_400_BAD_REQUEST)
+            raise ErrorException(
+                detail="Enter a valid action: 'add' or 'remove'.",
+                code='invalid_action',
+                status_code=status.HTTP_400_BAD_REQUEST)
         return Response(SuccessAPIResponse(
             message='User preferred categories updated.'
         ).to_dict(), status=status.HTTP_200_OK)

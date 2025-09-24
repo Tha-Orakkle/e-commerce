@@ -103,7 +103,8 @@ class UserProfile(models.Model):
         if missing_slugs:
             raise ErrorException(
                 detail=f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
-                code=status.HTTP_404_NOT_FOUND
+                code='invalid_category',
+                status_code=status.HTTP_404_NOT_FOUND
             )
 
         existing_ids = set(self.preferred_categories.values_list('id', flat=True))

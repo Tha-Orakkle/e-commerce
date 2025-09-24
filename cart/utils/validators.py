@@ -19,7 +19,10 @@ def validate_cart(cart):
         'items': []
     }
     if not cart:
-        raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
+        raise ErrorException(
+            detail="No cart for the user.",
+            code='not_found',
+            status_code=status.HTTP_404_NOT_FOUND)
     if not cart.items.exists():
         return [[], response]
     
