@@ -223,12 +223,12 @@ class Inventory(models.Model):
             raise ValueError("Provide a valid quantity that is greater than 0.")
         
         inventory = Inventory.objects.select_for_update().get(id=self.id)
-        inventory.stock -= value
-        if inventory.stock < 0:
+        if inventory.stock - value  < 0:
             raise ErrorException(
-                detail="Insufficient inventory to complete this operation.",
+                detail=f"Insufficient inventory to complete this operation. Only {inventory.stock} left.",
                 code='insufficient_inventory'
             )
+        inventory.stock -= value
         inventory.last_updated_by = staff_id
         inventory.save()
         return inventory

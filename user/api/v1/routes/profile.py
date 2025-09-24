@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from user.models import User
@@ -18,7 +19,7 @@ class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
     
     @extend_schema(**update_user_profile_schema)
-    def put(self, request):
+    def patch(self, request):
         """
         Update the user profile.
         """
@@ -47,7 +48,7 @@ class UserProfileView(APIView):
 
 
 class UserProfileCategoryView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsCustomer]
 
     @extend_schema(**user_profile_category_add_or_remove_schema)
     def post(self, request):

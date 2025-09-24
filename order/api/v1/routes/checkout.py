@@ -4,11 +4,11 @@ from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
 
 from address.models import ShippingAddress
 from common.cores.validators import validate_id
 from common.exceptions import ErrorException
+from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
 from cart.utils.validators import validate_cart
 from order.models import Order, OrderItem
@@ -20,7 +20,7 @@ from user.models import User
 
 
 class CheckoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsCustomer]
 
     @extend_schema(**checkout_schema)
     def post(self, request):
@@ -30,7 +30,10 @@ class CheckoutView(APIView):
         try:
             cart = request.user.cart
         except User.cart.RelatedObjectDoesNotExist:
-            raise ErrorException("Cart not found.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="No cart found for the user.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
         cart_items, validated_response = validate_cart(cart)
 
         if validated_response['items'] == []:
