@@ -4,15 +4,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from common.cores.validators import validate_id
 from common.exceptions import ErrorException
 from common.permissions import IsStaff
 from common.utils.api_responses import SuccessAPIResponse
-from common.utils.check_valid_uuid import validate_id
 from product.models import Product
 from product.api.v1.serializers import InventorySerializer
-from product.serializers.swagger import update_inventory_schema
+from product.api.v1.swagger import update_inventory_schema
 
-class InventoryView(APIView):
+class InventoryUpdateView(APIView):
     permission_classes = [IsStaff]
 
     @extend_schema(**update_inventory_schema)

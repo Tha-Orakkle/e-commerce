@@ -5,14 +5,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
+from common.cores.validators import validate_id
 from common.exceptions import ErrorException
 from common.permissions import IsSuperUser
-from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination
 from common.utils.api_responses import SuccessAPIResponse
 from product.models import Category
 from product.api.v1.serializers import CategorySerializer
-from product.serializers.swagger import (
+from product.api.v1.swagger import (
     create_category_schema,
     delete_category_schema,
     get_categories_schema,

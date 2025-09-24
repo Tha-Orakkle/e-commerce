@@ -57,7 +57,7 @@ class ShopDetailView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop ID.",
+                detail="No shop found matching the given shop ID.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -75,7 +75,7 @@ class ShopDetailView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop ID.",
+                detail="No shop found matching the given shop ID.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -108,7 +108,7 @@ class ShopDetailView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop ID.",
+                detail="No shop found matching the given shop ID.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )

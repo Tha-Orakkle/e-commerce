@@ -5,12 +5,13 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from common.utils.check_valid_uuid import validate_id
+from common.permissions import IsStaff
+from common.cores.validators import validate_id
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from product.models import Product
-from product.serializers.product_image import ProductImageSerializer
-from product.serializers.swagger import (
+from product.api.v1.serializers import ProductImageSerializer
+from product.api.v1.swagger import (
     create_product_image_schema,
     delete_product_image_schema,
     get_product_images_schema,
@@ -18,15 +19,24 @@ from product.serializers.swagger import (
 )
 
 
-class ProductImagesView(APIView):
+class ProductImageListCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsStaff()]
+        return [IsAuthenticated()]
 
     @extend_schema(**get_product_images_schema)
     def get(self, request, product_id):
         validate_id(product_id, "product")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="No product found matching the given product ID.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
+
         queryset = product.images.all()
         serializers = ProductImageSerializer(queryset, many=True, context={'request': request})
         return Response(
@@ -41,17 +51,29 @@ class ProductImagesView(APIView):
         """
         Adds an image to a product instance.
         """
-        if not request.user.is_staff:
-            raise PermissionDenied()
         validate_id(product_id, "product")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="No product found matching the given product ID.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        if not request.user.can_manage_product(product):
+            raise PermissionDenied()
         if product.images.count() == 8:
-            raise ErrorException("Product images cannot exceed 8.")
-        images = request.data.getlist('images', [])
+            raise ErrorException(
+                detail="Product images cannot exceed 8. Cannot add more images.",
+                code='limit_exceeded'
+            )
+        images = request.FILES.getlist('images', [])
         if images:
             product.add_images(images)
+        else:
+            raise ErrorException(
+                detail="No images were provided.",
+                code='no_images'
+            )
         return Response(
             SuccessAPIResponse(
                 message="Product image added successfully."
@@ -59,9 +81,13 @@ class ProductImagesView(APIView):
         )
 
 
-
-class ProductImageView(APIView):
+class ProductImageDetailView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == 'DELETE':
+            return [IsStaff()]
+        return [IsAuthenticated()]
 
     @extend_schema(**get_product_image_schema)
     def get(self, request, product_id, image_id):
@@ -69,10 +95,16 @@ class ProductImageView(APIView):
         validate_id(image_id, "product image")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="No product found matching the given product ID.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
         product_image = product.images.filter(id=image_id).first()
         if not product_image:
-            raise ErrorException("Product image not found.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="No product image found matching the given image ID.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
         serializer = ProductImageSerializer(product_image, context={'request': request})
         return Response(
             SuccessAPIResponse(
@@ -86,15 +118,21 @@ class ProductImageView(APIView):
         """
         Deletes an image from a product instance.
         """
-        if not request.user.is_staff:
-            raise PermissionDenied()
         validate_id(product_id, "product")
         validate_id(image_id, "product image")
         product = Product.objects.filter(id=product_id).first()
         if not product:
-            raise ErrorException("Product not found.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="No product found matching the given product ID.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
+        if not request.user.can_manage_product(product):
+            raise PermissionDenied()
         image = product.images.filter(id=image_id).first()
         if not image:
-            raise ErrorException("Product image not found.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="No product image found matching the given image ID.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
         image.delete()
         return Response({}, status=status.HTTP_204_NO_CONTENT)

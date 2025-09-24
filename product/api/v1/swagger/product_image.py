@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from product.serializers.product_image import ProductImageSerializer
+from product.api.v1.serializers import ProductImageSerializer
 from common.swagger import (
     get_success_response,
     get_error_response,

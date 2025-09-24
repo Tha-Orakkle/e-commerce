@@ -1,17 +1,29 @@
 from .category import CategoryDetailView, CategoryListCreateView
+from .inventory import InventoryUpdateView
 from .product import (
     ProductListView,
     ProductDetailView,
     ShopProductListCreateView,
-    ProductCategoryView
+    ProductCategoryUpdateView
 )
+from .product_image import ProductImageListCreateView, ProductImageDetailView
 
 
 __all__ = [
+    # product views
     'ProductListView',
     'ProductDetailView',
     'ShopProductListCreateView',
-    'ProductCategoryView',
+
+    # product image views
+    'ProductImageListCreateView',
+    'ProductImageDetailView',
+    
+    # category views
     'CategoryDetailView',
     'CategoryListCreateView',
+    'ProductCategoryUpdateView',
+    
+    # inventory views
+    'InventoryUpdateView',
 ]

@@ -1,6 +1,7 @@
 from .category import CategorySerializer
-from .product import ProductSerializer, ProductImageSerializer
 from .inventory import InventorySerializer
+from .product import ProductSerializer
+from .product_image import ProductImageSerializer
 
 
 __all__ = [

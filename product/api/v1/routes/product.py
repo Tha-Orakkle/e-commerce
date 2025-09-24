@@ -6,16 +6,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.cores.validators import validate_id
 from common.exceptions import ErrorException
 from common.permissions import IsStaff
 from common.utils.api_responses import SuccessAPIResponse
-from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination
 from product.models import Product
 from product.api.v1.serializers import (
     ProductSerializer
 ) 
-from product.serializers.swagger import (
+from product.api.v1.swagger import (
     create_product_schema,
     delete_product_schema,
     get_products_schema,
@@ -215,7 +215,7 @@ class ProductDetailView(APIView):
         return Response({}, status=status.HTTP_204_NO_CONTENT)
 
 
-class ProductCategoryView(APIView):
+class ProductCategoryUpdateView(APIView):
     permission_classes = [IsStaff]
 
     @extend_schema(**product_category_add_or_remove_schema)

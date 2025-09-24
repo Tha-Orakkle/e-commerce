@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from .category import CategorySerializer
-from product.serializers.product_image import ProductImageSerializer
+from .product_image import ProductImageSerializer
 from common.exceptions import ErrorException
 from product.models import Product
 from shop.api.v1.serializers import ShopSerializer
