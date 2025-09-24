@@ -21,15 +21,26 @@ class ShopSerializer(serializers.ModelSerializer):
         Initialize the ShopSerializer.
         Remove field in the exclude arg.
         """
-        exclude = kwargs.pop('exclude', None)
-        super().__init__(*args, **kwargs)
-        
+        super().__init__(*args, **kwargs)        
         request = self.context.get('request', None)
-        self._owner = request.user if request else None
-        
-        if exclude is not None:
-            for field in exclude:
-                self.fields.pop(field)
+        self._user = getattr(request, 'user', None)
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        view = self.context.get('view')
+
+        if self._user and self._user.is_superuser:
+            return rep        
+   
+        from user.api.v1.routes import ShopOwnerRegistrationView
+        if not isinstance(view, ShopOwnerRegistrationView):
+            rep.pop('owner', None)
+            rep.pop('code', None)
+
+        if self._user and self._user.is_authenticated:
+            if instance in (getattr(self._user, 'owned_shop', None), getattr(self._user, 'shop', None)):
+                rep['code'] = instance.code
+        return rep
 
     def validate_name(self, value):
         """
@@ -43,9 +54,11 @@ class ShopSerializer(serializers.ModelSerializer):
         if len(value) > 40:
             raise ValidationError("Shop name must not be more than 40 characters.")
         exists = Shop.objects.filter(name=value).first()
+        # raise error if shop with name exists and it is not the 
+        # current user's shop.
         should_raise = (
-           (exists and not self._owner)
-           or (exists and self._owner and self._owner.owned_shop.name != value) 
+           (exists and not self.user)
+           or (exists and self.user and self.user.owned_shop.name != value) 
         )
         if should_raise:
             raise ValidationError("Shop with name already exists.")

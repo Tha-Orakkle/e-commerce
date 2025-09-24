@@ -14,6 +14,7 @@ import uuid
 
 from .utils.uploads import product_upload_image_path
 from common.exceptions import ErrorException
+from shop.models import Shop
 
 
 IMAGE_SIZE = (800, 800)
@@ -27,6 +28,9 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0.00), blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, null=False, related_name='products')
+    categories = models.ManyToManyField('product.Category', related_name='products')
+    
 
     class Meta:
         ordering = ['-created_at']
@@ -58,6 +62,9 @@ class Product(models.Model):
         if remaining_slot > 0:
             self.categories.add(*new_categories[:remaining_slot])
         
+        # update this to make sure errors are thrown in the serializer.
+        # Serializer validates the category lists and throws errors before
+        # the product is created
         if missing_slugs:
             raise ErrorException(
                 f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
@@ -79,7 +86,8 @@ class Product(models.Model):
         Return the upload path for product image.
         """
         from django.conf import settings
-        product_image_dir = f'products/pdt_{self.id}'
+        shop_code = self.shop.code
+        product_image_dir = f"{shop_code}/products/pdt_{self.id}"
         return settings.MEDIA_ROOT / product_image_dir
 
     def add_images(self, images):
@@ -137,7 +145,7 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, null=False)
-    image = models.ImageField(upload_to=product_upload_image_path, null=False)
+    image = models.ImageField(upload_to=product_upload_image_path, null=False, max_length=255)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
 
     def __str__(self):
@@ -186,7 +194,6 @@ class ProductImage(models.Model):
         super().delete(*args, **kwargs)
 
 
-    
 class Inventory(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, null=False)
     stock = models.PositiveIntegerField(default=0)
@@ -229,7 +236,6 @@ class Category(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, null=False)
     name = models.CharField(max_length=120, null=False, blank=False)
     slug = models.SlugField(max_length=150, unique=True)
-    products = models.ManyToManyField(Product, related_name='categories')
 
     class Meta:
         ordering = ['name']

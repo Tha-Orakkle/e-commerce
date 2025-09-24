@@ -3,13 +3,15 @@ from .roles import (
     IsCustomerOrShopOwner,
     IsSuperUser,
     IsShopOwner,
+    IsStaff,
     IsStaffSelfOrShopOwnerOrSuperuser
 )
 
 __all__ = [
     'IsCustomer',
+    'IsCustomerOrShopOwner',
     'IsSuperUser',
     'IsShopOwner',
+    'IsStaff',
     'IsStaffSelfOrShopOwnerOrSuperuser',
-    'IsCustomerOrShopOwner',
 ]

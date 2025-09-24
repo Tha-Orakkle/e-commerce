@@ -25,7 +25,11 @@ class ShopListView(APIView):
         
         paginator = Pagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
-        serializers = ShopSerializer(paginated_queryset, many=True, exclude=['owner'])
+        serializers = ShopSerializer(
+            paginated_queryset,
+            many=True,
+            context={'request': request}
+        )
         data = paginator.get_paginated_response(serializers.data).data
         
         return Response(SuccessAPIResponse(
@@ -53,13 +57,13 @@ class ShopDetailView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="Shop with ID not found.",
+                detail="No shop found with the given shop ID.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
         return Response(SuccessAPIResponse(
             message="Shop retrieved successfully.",
-            data=ShopSerializer(shop, exclude=['owner']).data
+            data=ShopSerializer(shop, context={'request': request}).data
         ).to_dict(), status=status.HTTP_200_OK)
         
         
@@ -71,7 +75,7 @@ class ShopDetailView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="Shop with ID not found.",
+                detail="No shop found with the given shop ID.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -79,7 +83,6 @@ class ShopDetailView(APIView):
             instance=shop,
             data=request.data,
             partial=True,
-            exclude=['owner'],
             context={'request': request}
         )
         try:
@@ -105,7 +108,7 @@ class ShopDetailView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="Shop with ID not found.",
+                detail="No shop found with the given shop ID.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )

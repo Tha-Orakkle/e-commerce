@@ -7,7 +7,7 @@ from common.swagger import (
     BasePaginatedResponse,
     ForbiddenSerializer
 )
-from product.serializers.category import CategorySerializer
+from product.api.v1.serializers.category import CategorySerializer
 
 # SWAGGER SCHEMAS FOR CATEGORY
 class CategoryDataRequest(serializers.Serializer):

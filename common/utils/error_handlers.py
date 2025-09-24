@@ -58,7 +58,7 @@ def custom_exception_handler(exc, context):
         )
     if isinstance(exc, ErrorException):
         error = ErrorAPIResponse(
-            code=exc.code if exc.code else 'upcoming_code',
+            code=exc.code if hasattr(exc, 'code') else 'upcoming_code',
             message=exc.detail,
         )
         if hasattr(exc, 'errors') and exc.errors:

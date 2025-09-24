@@ -2,7 +2,7 @@ from rest_framework import status
 
 from common.exceptions import ErrorException
 
-from product.serializers.product import ProductSerializer
+from product.api.v1.serializers import ProductSerializer
 
 
 def validate_cart(cart):

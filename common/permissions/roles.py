@@ -25,7 +25,23 @@ class IsShopOwner(BasePermission):
             and request.user.is_authenticated
             and getattr(request.user, 'is_shopowner', False)
         )
+
+
+class IsStaff(BasePermission):
+    """
+    Grant permission to staff.
+    """
     
+    def has_permission(self, request, view):
+        """
+        Check if the user is a stafff.
+        """
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and getattr(request.user, 'is_staff', False)
+        )
+
     
 class IsCustomer(BasePermission):
     """

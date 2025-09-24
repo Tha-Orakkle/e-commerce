@@ -1,17 +1,10 @@
-from django.db import models, transaction
-from django.contrib.auth import get_user_model
-from django.utils.text import slugify
-from rest_framework.exceptions import ValidationError
+from django.db import models
 
 import os
 import uuid
 
-from common.exceptions import ErrorException
-from user.api.v1.serializers import ShopStaffCreationSerializer
 from .utils.shop_code import generate_shop_code
 from .utils.uploads import shop_logo_upload_path
-
-User = get_user_model()
 
 
 class Shop(models.Model):
@@ -23,9 +16,12 @@ class Shop(models.Model):
     code = models.CharField(max_length=7, unique=True, blank=True)
     description = models.TextField()
     logo = models.ImageField(upload_to=shop_logo_upload_path, null=True)
-    owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name='owned_shop')
+    owner = models.OneToOneField('user.User', on_delete=models.CASCADE, related_name='owned_shop')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
     
     def __str__(self):
         """

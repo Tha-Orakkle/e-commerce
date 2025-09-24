@@ -9,7 +9,7 @@ from common.swagger import (
     BasePaginatedResponse,
     ForbiddenSerializer,
 )
-from product.serializers.product import ProductSerializer
+from product.api.v1.serializers import ProductSerializer
 
 
 # SWAGGER SCHEMAS FOR PRODUCT

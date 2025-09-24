@@ -44,7 +44,7 @@ urlpatterns = [
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password-confirm/', ResetPasswordConfirmView.as_view(), name='reset-password-confirm'),
     path('users/me/password/', UpdatePasswordView.as_view(), name='user-me-password'),
-    path('shops/<str:shop_code>/staff/<str:staff_id>/password/', UpdateStaffPasswordByShopOwnerView.as_view(), name='shop-staff-password'),
+    path('shops/<str:shop_id>/staff/<str:staff_id>/password/', UpdateStaffPasswordByShopOwnerView.as_view(), name='shop-staff-password'),
     
     # update user
     path('users/me/', UpdateUserView.as_view(), name='user-me-update'),
@@ -58,8 +58,8 @@ urlpatterns = [
     path('shopowners/<str:shopowner_id>/', ShopOwnerDetailView.as_view(), name='shopowner-detail'),
     
     # staff members
-    path('shops/<str:shop_code>/staff/', ShopStaffListCreateView.as_view(), name='shop-staff-list-create'),
-    path('shops/<str:shop_code>/staff/<str:staff_id>/', ShopStaffDetailView.as_view(), name='shop-staff-detail'),
+    path('shops/<str:shop_id>/staff/', ShopStaffListCreateView.as_view(), name='shop-staff-list-create'),
+    path('shops/<str:shop_id>/staff/<str:staff_id>/', ShopStaffDetailView.as_view(), name='shop-staff-detail'),
 
     # customers
     path('customers/', CustomerListView.as_view(), name='customer-list'),

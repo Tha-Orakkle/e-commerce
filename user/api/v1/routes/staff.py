@@ -29,12 +29,13 @@ class ShopStaffListCreateView(APIView):
     permission_classes = [IsShopOwner]
 
     @extend_schema(**get_shop_staff_schema)
-    def get(self, request, shop_code):
+    def get(self, request, shop_id):
         """
         Gets all the staff members of a shop.
         Only accessible by shop owners and super users.
         """
-        shop = Shop.objects.filter(code=shop_code).first()
+        validate_id(shop_id, 'shop')
+        shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
                 detail="No shop found with the given shop code.",
@@ -57,13 +58,12 @@ class ShopStaffListCreateView(APIView):
         )
 
     @extend_schema(**shop_staff_creation_schema)
-    def post(self, request, shop_code):
+    def post(self, request, shop_id):
         """
         Create a new staff member for a shop.
         """
-        shop = request.user.owned_shop
-
-        shop = Shop.objects.filter(code=shop_code).first()
+        validate_id(shop_id, 'shop')
+        shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
                 detail="No shop found with the given shop code.",
@@ -103,13 +103,14 @@ class ShopStaffDetailView(APIView):
         return [perm() for perm in self.permission_classes]
 
     @extend_schema(**get_shop_staff_memeber_schema)
-    def get(self, request, shop_code, staff_id):
+    def get(self, request, shop_id, staff_id):
         """
         Get a specific staff member of a specific shop
         identified by the staff id.
         """
+        validate_id(shop_id, 'shop')
         validate_id(staff_id, "staff")
-        shop = Shop.objects.filter(code=shop_code).first()
+        shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
                 detail="No shop found with the given shop code.",
@@ -136,13 +137,14 @@ class ShopStaffDetailView(APIView):
             ).to_dict(), status=status.HTTP_200_OK
         )
 
-    def patch(self, request, shop_code, staff_id):
+    def patch(self, request, shop_id, staff_id):
         """
         Update a staff member staff handle.
         Only accessible to the shop owner.
         """
+        validate_id(shop_id, 'shop')
         validate_id(staff_id, "staff")
-        shop = Shop.objects.filter(code=shop_code).first()
+        shop = Shop.objects.filter(code=shop_id).first()
         if not shop:
             raise ErrorException(
                 detail="No shop found with the given shop code.",
@@ -183,13 +185,14 @@ class ShopStaffDetailView(APIView):
             status=status.HTTP_200_OK
         )
 
-    def delete(self, request, shop_code, staff_id):
+    def delete(self, request, shop_id, staff_id):
         """
         Delete a staff member.
         Only a shop owner can delete a staff member.
         """
+        validate_id(shop_id, 'shop')
         validate_id(staff_id, "staff")
-        shop = Shop.objects.filter(code=shop_code).first()
+        shop = Shop.objects.filter(code=shop_id).first()
         if not shop:
             raise ErrorException(
                 detail="No shop found with the given shop code.",

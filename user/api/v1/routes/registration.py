@@ -50,7 +50,7 @@ class ShopOwnerRegistrationView(APIView):
         return Response(
             SuccessAPIResponse(
                 message="Shop owner registration successful.",
-                data=ShopSerializer(shop).data
+                data=ShopSerializer(shop, context={'view': self}).data
             ).to_dict(),
             status=status.HTTP_201_CREATED
         )

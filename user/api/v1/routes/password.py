@@ -111,9 +111,10 @@ class UpdatePasswordView(APIView):
 class UpdateStaffPasswordByShopOwnerView(APIView):
     permission_classes = [IsShopOwner]
     
-    def patch(self, request, shop_code, staff_id):
+    def patch(self, request, shop_id, staff_id):
+        validate_id(shop_id, 'shop')
         validate_id(staff_id, 'staff')
-        shop = Shop.objects.filter(code=shop_code).first()
+        shop = Shop.objects.filter(id=shop_id).first()
         user = request.user
         if not shop:
             raise ErrorException(

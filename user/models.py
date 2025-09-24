@@ -52,6 +52,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         role = 'Shop Owner' if self.is_shopowner else 'Customer' if not self.is_staff else 'Admin'
         return f"<User: {self.id}> {self.email or self.staff_id} ({role})"
+    
+    def can_manage_product(self, product):
+        """
+        Checks if a user can manage a particular product.
+        """
+        shop = product.shop
+        return (
+            self.is_superuser
+            or (self.is_shopowner and self.owned_shop == shop)
+            or (self.shop and self.shop == shop)
+        )
         
     
     
