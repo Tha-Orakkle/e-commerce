@@ -4,7 +4,6 @@ from .roles import (
     IsSuperUser,
     IsShopOwner,
     IsStaff,
-    IsStaffSelfOrShopOwnerOrSuperuser
 )
 
 __all__ = [
@@ -13,5 +12,4 @@ __all__ = [
     'IsSuperUser',
     'IsShopOwner',
     'IsStaff',
-    'IsStaffSelfOrShopOwnerOrSuperuser',
 ]

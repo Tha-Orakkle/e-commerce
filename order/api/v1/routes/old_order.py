@@ -1,52 +1,37 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from common.cores.validators import validate_id
 from common.exceptions import ErrorException
-from common.permissions import IsCustomer, IsStaff
 from common.utils.api_responses import SuccessAPIResponse
+from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination
-from order.api.v1.serializers import (
-    OrderGroupListSerializer,
-    OrderGroupSerializer,
-    OrderSerializerForShop
-)
-from order.models import Order, OrderGroup
-
+from order.models import Order
 from order.serializers.order import OrderSerializer
 from order.serializers.swagger import (
     get_orders_schema,
     get_user_orders_schema,
     get_user_order_schema
 )
-from order.utils.ordering_filter import SmartOrdering, OrderFilter
+from order.utils.ordering_filter import SmartOrderingFilter, OrderFilter
 
 
-class ShopOrderView(APIView):
+class OrdersView(APIView):
     """
     Gets all orders sorted by the ordering parameters and
     filtered by the status parameter. All passed as query strings.
     """
-    permission_classes = [IsStaff]
+    permission_classes = [IsAdminUser]
 
-    filter_backends = [DjangoFilterBackend, SmartOrdering]
+    filter_backends = [DjangoFilterBackend, SmartOrderingFilter]
     ordering_fields = ['created_at', 'status']
     filterset_class = OrderFilter
 
     def get_queryset(self):
-        user = self.request.user
-        if user.is_superuser:
-            return Order.objects.all()
-        if user.is_shopowner:
-            shop = user.owned_shop
-        else:
-            shop = user.shop
-
-        return shop.orders.all()            
-
+        return Order.objects.all()
 
     @extend_schema(**get_orders_schema)
     def get(self, request):
@@ -60,50 +45,48 @@ class ShopOrderView(APIView):
         paginator = Pagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request, view=self)
 
-        serializers = OrderSerializerForShop(paginated_queryset, many=True)
+        serializers = OrderSerializer(paginated_queryset, many=True)
 
         return Response(SuccessAPIResponse(
             message="All orders retrieved successfully.",
+            code=status.HTTP_200_OK,
             data=paginator.get_paginated_response(serializers.data).data
         ).to_dict(), status=status.HTTP_200_OK)
 
 
-class CustomerOrderGroupListView(APIView):
-    permission_classes = [IsCustomer]
+class UserOrdersView(APIView):
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(**get_user_orders_schema)
     def get(self, request):
         """
-        Get a list of user's order groups 
+        Get a list of user's order 
         """
         paginator = Pagination()
-        queryset = request.user.order_groups.all()
+        queryset = request.user.orders.all()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
-        serializers = OrderGroupListSerializer(paginated_queryset, many=True)
+        serializers = OrderSerializer(paginated_queryset, many=True)
         return Response(SuccessAPIResponse(
-            message="User order groups retrieved successfully.",
+            message="User orders retrieved successfully.",
+            code=status.HTTP_200_OK,
             data=paginator.get_paginated_response(serializers.data).data
         ).to_dict(), status=status.HTTP_200_OK)
 
 
-class CustomerOrderGroupView(APIView):
-    permission_classes = [IsCustomer]
+class UserOrderView(APIView):
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(**get_user_order_schema)
-    def get(self, request, order_group_id):
+    def get(self, request, order_id):
         """
-        Get a specific order group.
+        Get a specific order.
         """
-        validate_id(order_group_id, 'order group')
-        o_grp = OrderGroup.objects.filter(id=order_group_id).first()
-        if not o_grp or (o_grp and o_grp.user != request.user and not request.user.is_superuser):
-            raise ErrorException(
-                detail="No order group matching the given ID found.",
-                code='not_found',
-                status_code=status.HTTP_404_NOT_FOUND
-            )
-        serializer = OrderGroupSerializer(o_grp)
+        validate_id(order_id, 'order')
+        order = Order.objects.filter(id=order_id).first()
+        if not order or (order and order.user != request.user and not request.user.is_superuser):
+            raise ErrorException('Order not found', code=status.HTTP_404_NOT_FOUND)
+        serializer = OrderSerializer(order)
         return Response(SuccessAPIResponse(
-            message="Order group retrieved successfully.",
+            message="Order retrieved successfully.",
             data=serializer.data
         ).to_dict(), status=status.HTTP_200_OK)

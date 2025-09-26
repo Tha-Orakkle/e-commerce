@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.exceptions import ErrorException
-from common.permissions import IsStaffSelfOrShopOwnerOrSuperuser, IsShopOwner
+from common.permissions import IsStaff, IsShopOwner
 from common.cores.validators import validate_id
 from common.permissions import IsShopOwner
 from common.utils.api_responses import SuccessAPIResponse
@@ -99,7 +99,7 @@ class ShopStaffDetailView(APIView):
     def get_permissions(self):
         # update the permission for a get request
         if self.request.method == 'GET':
-            return [IsStaffSelfOrShopOwnerOrSuperuser()]
+            return [IsStaff()]
         return [perm() for perm in self.permission_classes]
 
     @extend_schema(**get_shop_staff_memeber_schema)

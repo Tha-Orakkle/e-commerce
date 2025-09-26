@@ -12,7 +12,7 @@ from common.utils.bools import parse_bool
 from common.utils.check_valid_uuid import validate_id
 from order.serializers.swagger import admin_update_order_status_schema
 from order.utils.delivery import validate_delivery_date
-from order.utils.validate_order import validate_order
+from order.utils.validators import validate_order
 from order.models import Order
 
 

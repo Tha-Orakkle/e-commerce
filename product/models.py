@@ -225,8 +225,8 @@ class Inventory(models.Model):
         inventory = Inventory.objects.select_for_update().get(id=self.id)
         if inventory.stock - value  < 0:
             raise ErrorException(
-                detail=f"Insufficient inventory to complete this operation. Only {inventory.stock} left.",
-                code='insufficient_inventory'
+                detail=f"Insufficient stock to complete this operation. Only {inventory.stock} left.",
+                code='insufficient_stock'
             )
         inventory.stock -= value
         inventory.last_updated_by = staff_id

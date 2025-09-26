@@ -24,7 +24,7 @@ class OrderFilter(django_filters.FilterSet):
         fields = ['status']
 
 
-class SmartOrderingFilter(OrderingFilter):
+class SmartOrdering(OrderingFilter):
     """
     Custom ordering model that allows for smart ordering of queryset.
     It will order by 'status' first, and then 'created_at'.
@@ -55,7 +55,8 @@ class SmartOrderingFilter(OrderingFilter):
             priority=Case(
                 When(status='PENDING', then=Value(0)),
                 When(status='PROCESSING', then=Value(1)),
-                default=Value(2),
+                When(status='SHIPPED', then=Value(2)),
+                default=Value(3),
                 output_field=IntegerField()
             )
         ).order_by('priority', 'created_at')

@@ -8,7 +8,10 @@ class IsSuperUser(BasePermission):
         """
         Checks if user is super user.
         """
-        return bool(request.user and request.user.is_superuser)
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.is_superuser)
 
 
 class IsShopOwner(BasePermission):
@@ -78,25 +81,25 @@ class IsCustomerOrShopOwner(BasePermission):
         
         return False
 
-class IsStaffSelfOrShopOwnerOrSuperuser(BasePermission):
-    """
-    Grants permission to super users, shopowners and staff members.
-    """
+# class IsStaffSelfOrShopOwnerOrSuperuser(BasePermission):
+#     """
+#     Grants permission to super users, shopowners and staff members.
+#     """
     
-    def has_permission(self, request, view):
-        """
-        Check if the staff_id matches the authenticated user's or
-        if the user is the owner of the shop or if super user.
-        """
-        staff_id = view.kwargs.get('staff_id').strip()
-        user = request.user
+#     def has_permission(self, request, view):
+#         """
+#         Check if the staff_id matches the authenticated user's or
+#         if the user is the owner of the shop or if super user.
+#         """
+#         staff_id = view.kwargs.get('staff_id').strip()
+#         user = request.user
         
-        if not user.is_authenticated:
-            return False
+#         if not user.is_authenticated:
+#             return False
         
-        if user.is_superuser:
-            return True
+#         if user.is_superuser:
+#             return True
         
-        if getattr(user, 'is_shopowner', False):
-            return True
-        return staff_id == str(user.id)
+#         if getattr(user, 'is_shopowner', False):
+#             return True
+#         return staff_id == str(user.id)

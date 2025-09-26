@@ -37,6 +37,15 @@ class CartDetailView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND)
             
         product_id = request.data.get('product')
+        validate_id(product_id, "product")
+        product = Product.objects.select_related('inventory').filter(id=product_id).first()
+        if not product:
+            raise ErrorException(
+                detail="No product found with the given ID.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
         quantity = request.data.get('quantity', 1)
         try:
             quantity = int(quantity)
@@ -49,14 +58,6 @@ class CartDetailView(APIView):
             raise ErrorException(
                 detail="Provide a valid quantity that is greater than 0.",
                 code='invalid_quantity'
-            )
-        validate_id(product_id, "product")
-        product = Product.objects.select_related('inventory').filter(id=product_id).first()
-        if not product:
-            raise ErrorException(
-                detail="No product found with the given ID.",
-                code='not_found',
-                status_code=status.HTTP_404_NOT_FOUND
             )
         cart = cart.add_to_cart(product, quantity)
         serializer = CartSerializer(cart)

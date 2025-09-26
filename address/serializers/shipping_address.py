@@ -65,8 +65,8 @@ class ShippingAddressSerializer(serializers.ModelSerializer):
         errors, city = validate_location(country_code, state_id, city_id)
         if errors:
             raise ErrorException(
-                "Shipping address creation failed.",
-                code=400,
+                detail="Shipping address creation failed.",
+                code='validation_error',
                 errors=errors
             )
         user = validated_data.get('user')
@@ -84,8 +84,8 @@ class ShippingAddressSerializer(serializers.ModelSerializer):
         errors, city = validate_location(country_code, state_id, city_id)
         if errors:
             raise ErrorException(
-                "Shipping address creation failed.",
-                code=400,
+                detail="Shipping address update failed.",
+                code='validation_error',
                 errors=errors
             )
         user = validated_data.get('user')

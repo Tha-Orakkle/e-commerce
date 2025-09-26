@@ -5,7 +5,7 @@ from common.exceptions import ErrorException
 from product.api.v1.serializers import ProductSerializer
 
 
-def validate_cart(cart):
+def validate_cart(cart, include_shop=False):
     """
     Validates that the cart conatins available items.
     Args:
@@ -26,7 +26,11 @@ def validate_cart(cart):
     if not cart.items.exists():
         return [[], response]
     
-    cart_items = cart.items.select_related('product__inventory')
+    select = ['product__inventory']
+    if include_shop:
+        select.append('product__shop')
+
+    cart_items = cart.items.select_related(*select)
     for item in cart_items:
         _item = {
             'id': item.id,

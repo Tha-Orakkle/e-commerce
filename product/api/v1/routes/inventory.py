@@ -34,6 +34,10 @@ class InventoryUpdateView(APIView):
         
         action = request.data.get('action')
         quantity = request.data.get('quantity')
+        if action not in ['add', 'subtract']:
+            raise ErrorException(
+                detail="Provide a valid action: 'add' or 'subtract'.",
+                code='invalid_action')
         try:
             quantity = int(quantity)
         except (TypeError, ValueError):
@@ -41,11 +45,8 @@ class InventoryUpdateView(APIView):
                 detail="Provide a valid quantity that is greater than 0.",
                 code='invalid_quantity'
             )
+
         inventory = None
-        if action not in ['add', 'subtract']:
-            raise ErrorException(
-                detail="Provide a valid action: 'add' or 'subtract'.",
-                code='invalid_action')
         try:
             if action == 'add':
                 inventory = product.inventory.add(quantity, request.user.staff_id)
