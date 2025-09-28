@@ -1,14 +1,16 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-
+from common.cores.validators import validate_id
 from common.exceptions import ErrorException
+from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
 from payment.models import Payment
-from payment.serializers.swagger import verify_payment_schema
+from payment.api.v1.swagger import verify_payment_schema
+from payment.api.v1.serializers import PaymentSerializer
 
 
 class TempCallback(APIView):
@@ -33,24 +35,29 @@ class VerifyPaymentView(APIView):
     """
     Verify payment.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsCustomer]
 
     @extend_schema(**verify_payment_schema)
-    def get(self, request):
+    def get(self, request, reference):
         """"
         Verify payment from paystack.
         """
-        reference = request.query_params.get('reference')
-
+        validate_id(reference, "payment reference")
         payment = Payment.objects.filter(reference=reference).first()
         if not payment:
-            raise ErrorException("Payment not found", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="No payment matching the given reference found.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
         
+        serializer = PaymentSerializer(payment)
         if payment.verified:
             return Response(SuccessAPIResponse(
-                message="Payment verified."
+                message="Payment is verified.",
+                data=serializer.data
             ).to_dict(), status=status.HTTP_200_OK)
         
         return Response(SuccessAPIResponse(
-            message="Payment not verified yet."
+            message="Payment not verified yet.",
+            data=serializer.data
         ).to_dict(), status=status.HTTP_200_OK)

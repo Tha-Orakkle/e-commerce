@@ -1,20 +1,22 @@
 from django.urls import path
 
-from order.api.v1.routes.cancel_order import CancelOrderView
-from order.api.v1.routes.admin_update_order_status import AdminUpdateOrderStatus
 from order.api.v1.routes import (
     CheckoutView,
+    CancelCustomerOrderGroupView,
     CustomerOrderGroupView,
     CustomerOrderGroupListView,
-    ShopOrderView
+    ShopOrderView,
+    ShopOrderDetailView,
+    ShopOrderStatusUpdateView
 )
 
 urlpatterns = [
     path('checkout/', CheckoutView.as_view(), name='checkout'),
-    path('orders/', ShopOrderView.as_view(), name='orders'), # Get all orders for a shop
     path('order-groups/', CustomerOrderGroupListView.as_view(), name='user-groups'),
     path('order-groups/<str:order_group_id>/', CustomerOrderGroupView.as_view(), name='order-group'), 
+    path('order-groups/<str:order_group_id>/cancel/', CancelCustomerOrderGroupView.as_view(), name='cancel-order'),
     
-    path('orders/<str:order_id>/cancel/', CancelOrderView.as_view(), name='cancel-order'),
-    path('orders/<str:order_id>/update-status/', AdminUpdateOrderStatus.as_view(), name='update-order-status')
+    path('shop/orders/', ShopOrderView.as_view(), name='orders'), # Get all orders for a shop
+    path('shop/orders/<str:order_id>/', ShopOrderDetailView.as_view(), name='get-shop-order'),
+    path('shop/orders/<str:order_id>/update-status/', ShopOrderStatusUpdateView.as_view(), name='update-order-status')
 ]

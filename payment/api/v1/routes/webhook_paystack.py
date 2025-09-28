@@ -12,7 +12,7 @@ import hmac, hashlib, json
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 from payment.models import Payment
-from payment.serializers.swagger import paystack_webhook_schema
+from payment.api.v1.swagger import paystack_webhook_schema
 from payment.tasks import verify_paystack_payment
 
 
@@ -33,7 +33,7 @@ class PaystackWebhookView(APIView):
             hashlib.sha512
         ).hexdigest()
         if computed != signature:
-            raise ErrorException("Invalid signature.", code=status.HTTP_400_BAD_REQUEST)
+            raise ErrorException(detail="Invalid signature.", code='invalid_signature')
 
         event = json.loads(request.body)
         if event.get('event') == 'charge.success':

@@ -11,7 +11,7 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from common.permissions import IsCustomer
 from order.api.v1.serializers import OrderGroupSerializer
-from order.serializers.swagger import checkout_schema
+from order.api.v1.swagger import checkout_schema
 from order.utils.orders import create_orders_from_cart
 
 

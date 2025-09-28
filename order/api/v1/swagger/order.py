@@ -9,7 +9,7 @@ from common.swagger import (
     get_error_response_with_examples,
     ForbiddenSerializer
 )
-from order.serializers.order import OrderSerializer
+from order.api.v1.serializers import OrderGroupSerializer, OrderGroupListSerializer
 
 # SWAGGER SCHEMAS FOR ORDER
 
@@ -17,7 +17,7 @@ class OrderListResponse(BasePaginatedResponse):
     """
     Serializer for the paginated response of orders.
     """
-    results = OrderSerializer(many=True)
+    results = OrderGroupListSerializer(many=True)
 
 
 # schemas
@@ -73,7 +73,7 @@ get_user_order_schema = {
     'operation_id': 'get_user_order',
     'request': None,
     'responses': {
-        200: get_success_response("Order retrieved successfully.", 200, OrderSerializer()),
+        200: get_success_response("Order retrieved successfully.", 200, OrderGroupSerializer()),
         400: get_error_response('Invalid order id.', 400),
         401: get_error_response_with_examples(code=401),
         404: get_error_response('Order not found.', 404)

@@ -4,7 +4,7 @@ from django.urls import reverse
 
 import uuid
 
-from order.models import Order
+from order.models import OrderGroup
 
 
 class Payment(models.Model):
@@ -18,7 +18,7 @@ class Payment(models.Model):
     verified = models.BooleanField(default=False)
     paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment')
+    order_group = models.OneToOneField(OrderGroup, on_delete=models.CASCADE, related_name='payment')
 
     # to handle cancelled orders
     refund_requested = models.BooleanField(default=False)

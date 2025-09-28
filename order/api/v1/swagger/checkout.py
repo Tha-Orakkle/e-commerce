@@ -4,7 +4,7 @@ from common.swagger import (
     get_success_response,
     get_error_response_with_examples
 )
-from order.serializers.order import OrderSerializer
+from order.api.v1.serializers import OrderGroupSerializer
 
 # SWAGGER SCHEMAS FOR CHECKOUT
 class CheckoutRequestData(serializers.Serializer):
@@ -34,7 +34,7 @@ checkout_schema = {
     'tags': ['Checkout'],
     'request': CheckoutRequestData,
     'responses': {
-        200: get_success_response('Checkout successful. Order has been created.', 200, OrderSerializer()),
+        200: get_success_response('Checkout successful. Order has been created.', 200, OrderGroupSerializer()),
         400: get_error_response_with_examples(examples=checkout_error_examples),
         401: get_error_response_with_examples(code=401),
     }

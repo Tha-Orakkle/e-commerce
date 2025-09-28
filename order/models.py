@@ -14,6 +14,7 @@ class OrderGroupStatus(models.TextChoices):
     PENDING = 'PENDING', 'Pending'
     PARTIALLY_FULFILLED = 'PARTIALLY_FULFILLED', 'Partially Fulfilled'
     FULFILLED = 'FULFILLED', 'Fulfilled'
+    CANCELLED = 'CANCELLED', 'Cancelled'
 
 
 class OrderStatus(models.TextChoices):
@@ -45,7 +46,7 @@ class OrderGroup(models.Model):
     payment_method = models.CharField(max_length=15, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     fulfillment_method = models.CharField(max_length=9, choices=FulFillmentMethod.choices, default=FulFillmentMethod.PICKUP)
-    is_paid = models.BooleanField(default=False)
+    # is_paid = models.BooleanField(default=False)
     
     # shipping address data including denormalized data
     shipping_address = models.ForeignKey(ShippingAddress, on_delete=models.SET_NULL, null=True)
@@ -61,10 +62,16 @@ class OrderGroup(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
     
     
     def __str__(self):
         return f"<OrderGroup: {self.id}> {self.total_amount} - {self.status}"
+    
+    
+    @property
+    def is_paid(self):
+        return all(order.is_paid for order in self.orders.all())
     
     
     def denormalize_shipping_address(self):
@@ -92,12 +99,14 @@ class Order(models.Model):
     shop = models.ForeignKey(Shop, on_delete=models.SET_NULL, null=True, related_name='orders')
     status = models.CharField(max_length=12, choices=OrderStatus.choices, default=OrderStatus.PENDING)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0.00))
+    is_paid = models.BooleanField(default=False)
     
     is_delivered = models.BooleanField(default=False)
     is_picked_up = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     delivery_date = models.DateField(blank=True, null=True)
+    paid_at = models.DateTimeField(blank=True, null=True)
     processing_at = models.DateTimeField(blank=True, null=True)
     shipped_at = models.DateTimeField(blank=True, null=True)
     completed_at = models.DateTimeField(blank=True, null=True)

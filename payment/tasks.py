@@ -6,6 +6,7 @@ from django.utils.timezone import now
 import requests
 
 from e_core import logger
+from order.models import Order
 from payment.models import Payment
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
@@ -20,7 +21,7 @@ def verify_paystack_payment(self, data):
     reference = data['reference']
 
     try:
-        payment = Payment.objects.filter(reference=reference).first()
+        payment = Payment.objects.select_related('order_group').filter(reference=reference).first()
         if not payment:
             logger.error(f"Payment with reference {reference} not found.")
             return
@@ -35,18 +36,23 @@ def verify_paystack_payment(self, data):
         
         if res.status_code == 200 and res_json['data']['status'] == 'success':
             with transaction.atomic():
+                _now = now()
                 paid_at = res_json.get('paid_at', None)
                 if paid_at:
-                    payment.paid_at = now().fromisoformat(paid_at)
-                else:
-                    payment.paid_at = now()
+                    _now = now().fromisoformat(paid_at)
+                    
+                payment.paid_at = _now
                 payment.verified = True
-                payment.order.is_paid = True
+                orders = list(payment.order_group.orders.all())
+                for order in orders:
+                    order.is_paid = True
+                    order.paid_at = _now
+                Order.objects.bulk_update(orders, ['is_paid', 'paid_at'])
                 payment.save(update_fields=['paid_at', 'verified'])
-                payment.order.save(update_fields=['is_paid'])
+
             logger.info(f"Payment with reference {reference} verified successfully.")
         else:
-            logger.error(f"Payment verification failed for reference {reference}: {res_json.get('message', 'Unknown error')}")
+            logger.error(f"Payment verification failed for reference {reference}: {res_json.get('message', 'Paystack error')}")
             raise self.retry(exc=Exception(res_json.get('message', 'Payment verification failed')))
 
     except requests.RequestException as e:
