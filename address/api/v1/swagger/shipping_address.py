@@ -7,7 +7,7 @@ from common.swagger import (
     get_error_response_with_examples,
     get_success_response
 )
-from address.serializers.shipping_address import ShippingAddressSerializer
+from address.api.v1.serializers import ShippingAddressSerializer, ShippingAddressCreateUpdateSerializer
 
 # SWAGGER SCHEMAS FOR SHIPPING ADDRESS
 
@@ -90,7 +90,7 @@ create_shipping_address_schema = {
     'description': 'Create a new shipping address for the authenticated user.',
     'tags': ['Shipping Address'],
     'operation_id': 'create_shipping_address',
-    'request': ShippingAddressDataRequest,
+    'request': ShippingAddressCreateUpdateSerializer,
     'responses': {
         201: get_success_response("Shipping address created successfully.", 201, ShippingAddressSerializer()),
         400: get_error_response("Shipping address creation failed.", 400, ShippingAddressDataError()),
@@ -103,7 +103,7 @@ update_shipping_address_schema = {
     'description': 'Update an existing shipping address by its ID.',
     'tags': ['Shipping Address'],
     'operation_id': 'update_shipping_address',
-    'request': ShippingAddressDataRequest,
+    'request': ShippingAddressCreateUpdateSerializer,
     'responses': {
         201: get_success_response("Shipping address updated successfully.", 201, ShippingAddressSerializer()),
         400: get_error_response("Shipping address update failed.", 400, ShippingAddressDataError()),

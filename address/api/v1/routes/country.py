@@ -5,12 +5,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from address.models import Country
-from address.serializers.country import CountrySerializer
-from address.serializers.swagger import get_countries_schema
+from address.api.v1.serializers import CountrySerializer
+from address.api.v1.swagger import get_countries_schema
 from common.utils.api_responses import SuccessAPIResponse
 
 
-class CountryView(APIView):
+class CountryListView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(**get_countries_schema)

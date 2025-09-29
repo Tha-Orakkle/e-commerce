@@ -2,7 +2,7 @@ from common.swagger import (
     get_error_response_with_examples,
     get_success_response,
 )
-from address.serializers.country import CountrySerializer
+from address.api.v1.serializers import CountrySerializer
 
 # SWAGGER SCHEMAS FOR COUNTRY
 get_countries_schema = {

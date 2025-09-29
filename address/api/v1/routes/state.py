@@ -5,12 +5,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from address.models import State
-from address.serializers.state import StateSerializer
-from address.serializers.swagger import get_states_schema
+from address.api.v1.serializers import StateSerializer
+from address.api.v1.swagger import get_states_schema
 from common.utils.api_responses import SuccessAPIResponse
 
 
-class StateView(APIView):
+class StateListView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(**get_states_schema)

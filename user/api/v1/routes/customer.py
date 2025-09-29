@@ -5,10 +5,10 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.cores.validators import validate_id
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from common.permissions import IsCustomer, IsSuperUser
-from common.utils.check_valid_uuid import validate_id
 from common.utils.pagination import Pagination
 from user.api.v1.serializers import UserSerializer
 from user.api.v1.swagger import (

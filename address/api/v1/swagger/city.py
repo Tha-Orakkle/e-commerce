@@ -5,7 +5,7 @@ from common.swagger import (
     get_error_response,
     get_error_response_with_examples
 )
-from address.serializers.city import CitySerializer
+from address.api.v1.serializers import CitySerializer
 
 # SWAGGER SCHEMAS FOR CITY
 get_cities_schema = {

@@ -1,6 +1,6 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 
-from address.serializers.state import StateSerializer
+from address.api.v1.serializers import StateSerializer
 from common.swagger import (
     get_error_response_with_examples,
     get_success_response

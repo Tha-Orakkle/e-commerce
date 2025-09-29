@@ -1,58 +1,83 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from address.serializers.shipping_address import ShippingAddressSerializer
-from address.serializers.swagger import (
+from address.models import ShippingAddress
+from address.api.v1.serializers import (
+    ShippingAddressSerializer,
+    ShippingAddressCreateUpdateSerializer
+)
+from address.api.v1.swagger import (
     create_shipping_address_schema,
     delete_shipping_address_schema,
     get_shipping_addresses_schema,
     get_shipping_address_schema,
     update_shipping_address_schema
 )
+from common.cores.validators import validate_id
 from common.exceptions import ErrorException
+from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
-from common.utils.check_valid_uuid import validate_id
 
 
-class ShippingAddressView(APIView):
-    permission_classes = [IsAuthenticated]
+class ShippingAddressListCreateView(APIView):
+    permission_classes = [IsCustomer]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return ShippingAddress.objects.all()
+        
+        return user.addresses.all()
 
     @extend_schema(**get_shipping_addresses_schema)
     def get(self, request):
         """
         Get a specific user's shipping addresses.
         """
-        addresses = request.user.addresses.all()
-        serializers = ShippingAddressSerializer(addresses, many=True)
+        qs = self.get_queryset()
+        serializers = ShippingAddressSerializer(qs, many=True, context={'request': request})
         return Response(SuccessAPIResponse(
             message="Shipping addresses retrieved successfully.",
             data=serializers.data
         ).to_dict(), status=status.HTTP_200_OK)
-    
+
+
     @extend_schema(**create_shipping_address_schema)
     def post(self, request):
         """
         Create a new ShippingAddress instance.
         """
-        serializer = ShippingAddressSerializer(data=request.data)
-        if not serializer.is_valid():
+        serializer = ShippingAddressCreateUpdateSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        try:
+            serializer.is_valid(raise_exception=True)
+            address = serializer.save()
+        except ValidationError as e:
             raise ErrorException(
                 detail="Shipping address creation failed.",
-                errors=serializer.errors
+                code='validation_error',
+                errors=e.detail
             )
-        serializer.save(user=request.user)
         return Response(SuccessAPIResponse(
             message="Shipping address created succssfully.",
-            code=201,
-            data=serializer.data
+            data=ShippingAddressSerializer(address).data
         ).to_dict(), status=status.HTTP_201_CREATED)
     
 
 class ShippingAddressDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsCustomer]
+
+    def get_object(self, address_id):
+        user = self.request.user
+        if user.is_superuser:
+            return ShippingAddress.objects.filter(id=address_id).first()
+
+        return user.addresses.filter(id=address_id).first()
 
     @extend_schema(**get_shipping_address_schema)
     def get(self, request, address_id):
@@ -60,41 +85,49 @@ class ShippingAddressDetailView(APIView):
         Get a specific shipping address by ID.
         """
         validate_id(address_id, "shipping address")
-        address = request.user.addresses.filter(id=address_id).first()
+        address = self.get_object(address_id)
         if not address:
-            raise ErrorException("Shipping address not found.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="Shipping address not found.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
         
-        serializer = ShippingAddressSerializer(address)
         return Response(SuccessAPIResponse(
             message="Shipping address retrieved successfully.",
-            data=serializer.data
+            data=ShippingAddressSerializer(address, context={'request': request}).data
         ).to_dict(), status=status.HTTP_200_OK)
     
     @extend_schema(**update_shipping_address_schema)
-    def put(self, request, address_id):
+    def patch(self, request, address_id):
         """
         Update a specific shipping address by ID.
         """
         validate_id(address_id, "shipping address")
-        address = request.user.addresses.filter(id=address_id).first()
+        address = self.get_object(address_id)
         if not address:
-            raise ErrorException(detail="Shipping address not found.", code=status.HTTP_404_NOT_FOUND)
-        
-        serializer = ShippingAddressSerializer(
+            raise ErrorException(
+                detail="No shipping address matching given ID found.", 
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
+
+        serializer = ShippingAddressCreateUpdateSerializer(
             instance=address,
             data=request.data,
-            partial=True
+            partial=True,
+            context={'request': request}
         )
-        if not serializer.is_valid():
+        try:
+            serializer.is_valid(raise_exception=True)
+            address = serializer.save()
+        except ValidationError as e:
             raise ErrorException(
                 detail="Shipping address update failed.",
+                code='validation_error',
                 errors=serializer.errors
             )
-        
-        serializer.save(user=request.user)
         return Response(SuccessAPIResponse(
             message="Shipping address updated successfully.",
-            data=serializer.data
+            data=ShippingAddressSerializer(address).data
         ).to_dict(), status=status.HTTP_200_OK)
 
 
@@ -104,9 +137,12 @@ class ShippingAddressDetailView(APIView):
         Delete a specific shipping address by ID.
         """
         validate_id(address_id, "shipping address")
-        address = request.user.addresses.filter(id=address_id).first()
+        address = self.get_object(address_id)
         if not address:
-            raise ErrorException(detail="Shipping address not found.", code=status.HTTP_404_NOT_FOUND)
-        
+            raise ErrorException(
+                detail="Shipping address not found.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
+
         address.delete()
         return Response({}, status=status.HTTP_204_NO_CONTENT)

@@ -5,13 +5,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from address.models import City
-from address.serializers.city import CitySerializer
-from address.serializers.swagger import get_cities_schema
+from address.api.v1.serializers import CitySerializer
+from address.api.v1.swagger import get_cities_schema
+from common.cores.validators import validate_id
 from common.utils.api_responses import SuccessAPIResponse
-from common.utils.check_valid_uuid import validate_id
 
 
-class CityView(APIView):
+class CityListView(APIView):
     permission_classes = [IsAuthenticated]
     
     @extend_schema(**get_cities_schema)

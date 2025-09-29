@@ -69,7 +69,7 @@ class Product(models.Model):
         if missing_slugs:
             raise ErrorException(
                 f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
-                code=404
+                code='missing_categories'
             )
 
     def remove_categories(self, categories):

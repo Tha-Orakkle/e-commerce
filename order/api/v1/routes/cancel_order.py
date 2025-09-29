@@ -6,10 +6,10 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from common.permissions import IsCustomer 
+from common.cores.validators import validate_id
+from common.permissions import IsCustomer
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
-from common.utils.check_valid_uuid import validate_id
 from order.models import Order
 from order.api.v1.swagger import cancel_order_schema
 from order.tasks import restock_inventory_with_cancelled_order
