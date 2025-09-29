@@ -86,7 +86,12 @@ class CartItem(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('cart', 'product')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['cart', 'product'],
+                name='unique_cart_product'
+            )
+        ]
         ordering = ['-updated_at']
 
 

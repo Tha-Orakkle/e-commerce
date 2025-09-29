@@ -71,10 +71,9 @@ def custom_exception_handler(exc, context):
         res_code = ERROR_CODES.get(response.status_code, 'unknwown')
         detail = getattr(exc, 'detail', str(exc))
         if isinstance(detail, dict):
-            if detail.get('code'):
-                res_code = detail['code']
-            if detail.get('detail'):
-                detail = detail['detail']
+            res_code = detail.get('code', res_code)
+            detail = detail.get('message', detail)
+
         error_response = ErrorAPIResponse(
             code=res_code,
             message=detail

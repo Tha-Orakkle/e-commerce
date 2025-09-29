@@ -1,11 +1,7 @@
-from django.contrib.auth import authenticate
 from django.contrib.auth.models import BaseUserManager
-# from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db.models import Q
 from rest_framework.exceptions import ValidationError
 
-from common.exceptions import ErrorException
 
 class UserManager(BaseUserManager):
     """

@@ -28,10 +28,16 @@ class Country(models.Model):
         Save a new Country instance.
         """
         if not self.name:
-            raise ErrorException("Enter a valid country name.")
+            raise ErrorException(
+                detail="Enter a valid country name.",
+                code='invalid_country_name'
+            )
         country = pycountry.countries.get(name=self.name)
         if not country:
-            raise ErrorException("Enter a valid country name")
+            raise ErrorException(
+                detail="Enter a valid country name",
+                code='invalid_country_name'
+            )
         self.code = country.alpha_2
         super().save(*args, **kwargs)
     

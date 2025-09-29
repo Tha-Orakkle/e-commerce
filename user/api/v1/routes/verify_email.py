@@ -16,10 +16,16 @@ class VerifyEmailView(APIView):
         """
         token = request.query_params.get('token', None)
         if not token:
-            raise ErrorException("Token not provided.")
+            raise ErrorException(
+                detail="Token not provided.",
+                code='verification_error'
+            )
         user = verify_email_verification_token(token)
         if not user:
-            raise ErrorException("Invalid or expired token.")
+            raise ErrorException(
+                detail="Invalid or expired token.",
+                code='verification_error'
+            )
         user.is_verified = True
         user.save()
         return Response(

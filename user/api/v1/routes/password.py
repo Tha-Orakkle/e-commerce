@@ -29,7 +29,9 @@ class ForgotPasswordView(APIView):
         # Logic for handling password reset
         email = request.data.get('email')
         if not email:
-            raise ErrorException("Email address required.")
+            raise ErrorException(
+                detail="Email address is required.",
+                code='validation_error')
         user = User.objects.filter(email=email).first()
         if user:
             token_generator = PasswordResetTokenGenerator()
@@ -59,6 +61,7 @@ class ResetPasswordConfirmView(APIView):
         confirm_password = request.data.get('confirm_password')
         exc = ErrorException(
             detail='Password reset failed.',
+            code='reset_failed',
             errors = {'link': ['Invalid or expired password reset link.']}
         )
         if not uid or not token:
@@ -67,7 +70,7 @@ class ResetPasswordConfirmView(APIView):
             exc.errors = {'password': ['Password and confirm password fields are required.']}
             raise exc
         if new_password != confirm_password:
-            exc.errors =  {'password': ['Password and confirm password fields do not match.']}
+            exc.errors =  {'confirm_password': ['Passwords do not match.']}
             raise exc
         try:
             email = force_str(urlsafe_base64_decode(uid))

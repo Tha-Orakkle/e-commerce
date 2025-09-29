@@ -59,13 +59,15 @@ class UserProfileCategoryView(APIView):
         try:
             profile = request.user.profile
         except User.profile.RelatedObjectDoesNotExist:
-            raise ErrorException("User has no profile.", code=status.HTTP_404_NOT_FOUND)
+            raise ErrorException(
+                detail="User has no profile.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND)
         action = request.data.get('action', '')
         if 'categories' not in request.data:
             raise ErrorException(
                 detail="Please provide a list of categories in the 'categories' field.",
-                code='missing_categories',
-                status_code=status.HTTP_400_BAD_REQUEST
+                code='missing_categories'
             )
 
         categories = request.data.getlist('categories', [])
@@ -77,7 +79,7 @@ class UserProfileCategoryView(APIView):
             raise ErrorException(
                 detail="Enter a valid action: 'add' or 'remove'.",
                 code='invalid_action',
-                status_code=status.HTTP_400_BAD_REQUEST)
+            )
         return Response(SuccessAPIResponse(
             message='User preferred categories updated.'
         ).to_dict(), status=status.HTTP_200_OK)
