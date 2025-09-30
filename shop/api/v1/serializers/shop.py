@@ -1,9 +1,16 @@
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from io import BytesIO
+from PIL import Image
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+
+import uuid
+import os
 
 from shop.models import Shop
 from user.api.v1.serializers import UserSerializer
 
+LOGO_SIZE = (400, 400)
 
 class ShopSerializer(serializers.ModelSerializer):
     """
@@ -73,3 +80,23 @@ class ShopSerializer(serializers.ModelSerializer):
         if value and len(value) > 2000:
             raise ValidationError("Shop description must not be more than 2000 characters.")
         return value
+    
+    def validate_shop_logo(self, value):
+        if not value:
+            return None 
+        img = Image.open(value)
+        img.thumbnail(LOGO_SIZE, Image.LANCZOS)
+        buffer = BytesIO()
+        img_fmt = img.format if img.format else 'PNG'
+        img.save(buffer, format=img_fmt)
+        buffer.seek(0)
+        ext = os.path.splitext(value.name)[1] or '.png'
+        name = str(uuid.uuid4())[:8] + ext
+        return InMemoryUploadedFile(
+            file=buffer,
+            field_name=getattr(img, 'field_name', None),
+            name=name,
+            content_type='image/jpeg',
+            size=buffer.tell(),
+            charset=getattr(img, 'charset', None)
+        )

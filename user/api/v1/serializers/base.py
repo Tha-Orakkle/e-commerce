@@ -16,8 +16,6 @@ class BaseUserCreationSerializer(serializers.Serializer):
     first_name = serializers.CharField(min_length=2, max_length=30)
     last_name = serializers.CharField(min_length=2, max_length=30)
     telephone = PhoneNumberField(
-        required=False,
-        allow_blank=True,
         region='NG',
     )
     

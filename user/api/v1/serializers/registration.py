@@ -1,15 +1,22 @@
 from django.apps import apps
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth import get_user_model
+from io import BytesIO
+from PIL import Image
 from rest_framework import serializers
+
+import os
+import uuid
 
 from .base import BaseUserCreationSerializer
 from .profile import UserProfileSerializer
-
 from common.exceptions import ErrorException
 from common.utils.bools import parse_bool
 from cart.models import Cart
 
 User = get_user_model()
+
+LOGO_SIZE = (400, 400)
 
 class ShopOwnerRegistrationSerializer(BaseUserCreationSerializer):
     email = serializers.EmailField()
@@ -19,6 +26,7 @@ class ShopOwnerRegistrationSerializer(BaseUserCreationSerializer):
     shop_name = serializers.CharField(min_length=3, max_length=40)
     shop_description = serializers.CharField(
         min_length=10, max_length=2000, required=False, allow_blank=True)
+    shop_logo = serializers.ImageField()
     already_customer = serializers.BooleanField(default=False)
     
     def __init__(self, *args, **kwargs):
@@ -59,6 +67,26 @@ class ShopOwnerRegistrationSerializer(BaseUserCreationSerializer):
             raise serializers.ValidationError("Shop with name already exists.")
         return value
     
+    def validate_shop_logo(self, value):
+        if not value:
+            return None 
+        img = Image.open(value)
+        img.thumbnail(LOGO_SIZE, Image.LANCZOS)
+        buffer = BytesIO()
+        img_fmt = img.format if img.format else 'PNG'
+        img.save(buffer, format=img_fmt)
+        buffer.seek(0)
+        ext = os.path.splitext(value.name)[1] or '.png'
+        name = str(uuid.uuid4())[:8] + ext
+        return InMemoryUploadedFile(
+            file=buffer,
+            field_name=getattr(img, 'field_name', None),
+            name=name,
+            content_type='image/jpeg',
+            size=buffer.tell(),
+            charset=getattr(img, 'charset', None)
+        )
+
     
     def validate(self, attrs):
         """
@@ -78,7 +106,8 @@ class ShopOwnerRegistrationSerializer(BaseUserCreationSerializer):
         
         shop_data = {
             'name': validated_data.pop('shop_name'),
-            'description': validated_data.pop('shop_description')
+            'description': validated_data.pop('shop_description', ''),
+            'logo': validated_data.pop('shop_logo', None)
         }
         if already_customer and not self._existing_user:
             raise ErrorException(
