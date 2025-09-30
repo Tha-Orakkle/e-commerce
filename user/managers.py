@@ -52,26 +52,26 @@ class UserManager(BaseUserManager):
         
         return self.create_user(email, password, **extra_fields)
     
-    def create_staff(self, shop, staff_id, password, **extra_fields):
+    def create_staff(self, shop, staff_handle, password, **extra_fields):
         """
-        Create staff with staff_id (username) and password.
+        Create staff with staff_handle and password.
         Email not required for the staff creation.
         """
-        if shop.staff_id_exists(staff_id):
-            raise ValidationError("Staff member with staff ID already exists.")
+        if shop.staff_handle_exists(staff_handle):
+            raise ValidationError("Staff member with staff handle already exists.")
     
         extra_fields['is_active'] = True
         extra_fields['is_staff'] = True
         extra_fields['is_verified'] = True
         
-        user = self.model(shop=shop, staff_id=staff_id, **extra_fields)
+        user = self.model(shop=shop, staff_handle=staff_handle, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_shopowner(self, email, staff_id, password, **extra_fields):
+    def create_shopowner(self, email, staff_handle, password, **extra_fields):
         """
-        Create a shop owner with the email, staff_id (username), and password.
+        Create a shop owner with the email, staff_handle, and password.
         """
         try:
             email = self.validate_and_normalize_email(email)
@@ -88,7 +88,7 @@ class UserManager(BaseUserManager):
         user.is_active = True
         user.is_staff = True
         user.is_shopowner = True
-        user.staff_id = staff_id
+        user.staff_handle = staff_handle
         user.save(using=self._db)
         return user
 

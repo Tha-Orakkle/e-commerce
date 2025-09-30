@@ -33,7 +33,7 @@ def test_admin_user_creation(admin_user):
     assert admin_user.is_staff == True
     assert admin_user.is_verified == True
     assert admin_user.is_superuser == False
-    assert admin_user.staff_id == "admin-user"
+    assert admin_user.staff_handle == "admin-user"
     assert admin_user.password != "Password123#"
     assert admin_user.check_password("Password123#")
 

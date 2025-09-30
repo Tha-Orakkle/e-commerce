@@ -49,30 +49,30 @@ class Shop(models.Model):
             os.remove(self.logo.path)
         super().delete(*args, **kwargs)
         
-    def staff_id_exists(self, staff_id):
+    def staff_handle_exists(self, staff_handle):
         """
         Check that staff already exists.
         """
-        if staff_id:
-            if staff_id == self.owner.staff_id:
+        if staff_handle:
+            if staff_handle == self.owner.staff_handle:
                 return True
-            return self.staff_members.filter(staff_id=staff_id).exists()
+            return self.staff_members.filter(staff_handle=staff_handle).exists()
         return False
     
     def get_staff_member(self, id):
         """
-        Get a specfic staff member by staff id.
+        Get a staff member by ID.
         """
         if id is not None:
             return self.staff_members.filter(id=id).first()
         return None
     
-    def get_staff_member_by_handle(self, handle):
+    def get_staff_by_handle(self, handle):
         """
-        Get a specfic staff member by staff id.
+        Get a staff member by staff handle.
         """
         if handle is not None:
-            return self.staff_members.filter(staff_id=handle).first()
+            return self.staff_members.filter(staff_handle=handle).first()
         return None
     
     def get_all_staff_members(self):

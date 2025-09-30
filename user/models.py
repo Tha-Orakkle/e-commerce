@@ -26,7 +26,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4, unique=True, null=False)
     email = models.EmailField(unique=True, null=True, blank=True)
     is_active = models.BooleanField(default=True)
-    staff_id = models.CharField(max_length=20, null=True, blank=True)
+    staff_handle = models.CharField(max_length=20, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     is_customer = models.BooleanField(default=False)
     is_shopowner = models.BooleanField(default=False)
@@ -39,7 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['staff_id'] # just for the creation of super user
+    REQUIRED_FIELDS = ['staff_handle'] # just for the creation of super user
 
     class Meta:
         ordering = ['-date_joined']
@@ -51,7 +51,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             str: A string in the format "<User: {self.id}> {self.email}".
         """
         role = 'Shop Owner' if self.is_shopowner else 'Customer' if not self.is_staff else 'Admin'
-        return f"<User: {self.id}> {self.email or self.staff_id} ({role})"
+        return f"<User: {self.id}> {self.email or self.staff_handle} ({role})"
     
     def can_manage_product(self, product):
         """
@@ -85,7 +85,7 @@ class UserProfile(models.Model):
         Returns:
             str: A string in the format "<UserProfile: {self.id}> {self.user.email}".
         """
-        return f"<UserProfile: {self.id}> {self.user.email or self.user.staff_id + ' (Admin)'}"
+        return f"<UserProfile: {self.id}> {self.user.email or self.user.staff_handle + ' (Admin)'}"
     
     
     def add_categories(self, categories):

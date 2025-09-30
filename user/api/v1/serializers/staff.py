@@ -7,7 +7,7 @@ from .profile import UserProfileSerializer
 User = get_user_model()
 
 class ShopStaffCreationSerializer(BaseUserCreationSerializer):
-    staff_id = serializers.CharField(min_length=3, max_length=20)
+    staff_handle = serializers.CharField(min_length=3, max_length=20)
    
     def __init__(self, *args, **kwargs):
         """
@@ -19,14 +19,14 @@ class ShopStaffCreationSerializer(BaseUserCreationSerializer):
             raise serializers.ValidationError({'shop': ['Shop context is required.']}) 
         self._profile_data = None
         
-    def validate_staff_id(self, value):
+    def validate_staff_handle(self, value):
         """
-        Validate the staff ID.
+        Validate the staff handle.
         """
-        staff_id = value.strip().lower()
-        if self._shop and self._shop.staff_id_exists(staff_id):
-            raise serializers.ValidationError("Staff member with staff ID already exists.")
-        return staff_id
+        staff_handle = value.strip().lower()
+        if self._shop and self._shop.staff_handle_exists(staff_handle):
+            raise serializers.ValidationError("Staff member with handle already exists.")
+        return staff_handle
     
     def validate(self, attrs):
         """
@@ -46,7 +46,7 @@ class ShopStaffCreationSerializer(BaseUserCreationSerializer):
         """
         staff = User.objects.create_staff(
             shop=self._shop,
-            staff_id=validated_data['staff_id'],
+            staff_handle=validated_data['staff_handle'],
             password=validated_data['password'],
         )
         # Create the profile
@@ -55,7 +55,7 @@ class ShopStaffCreationSerializer(BaseUserCreationSerializer):
 
 
 class StaffUpdateSerializer(serializers.Serializer):
-    staff_id = serializers.CharField(
+    staff_handle = serializers.CharField(
         required=True, min_length=3, max_length=20)
 
     def __init__(self, *args, **kwargs):
@@ -76,12 +76,12 @@ class StaffUpdateSerializer(serializers.Serializer):
                 "UpdateStaffSerializer requires a the target staff to be updated in the context."
             )
 
-    def validate_staff_id(self, value):
+    def validate_staff_handle(self, value):
         """
-        Ensure the staff id passed does not already exist in the shop.
+        Ensure the staff handle passed does not already exist in the shop.
         """
         value = value.strip().lower()
-        if self._shop.staff_id_exists(value) and self._staff.staff_id != value:
+        if self._shop.staff_handle_exists(value) and self._staff.staff_handle != value:
             raise serializers.ValidationError("Staff member with staff handle already exists.")
         return value
     
@@ -90,8 +90,8 @@ class StaffUpdateSerializer(serializers.Serializer):
         Save changes.
         Ensure updates only occur when real changes are made.
         """
-        new = self.validated_data['staff_id']
-        if new != self._staff.staff_id:
-            self._staff.staff_id = new
-            self._staff.save(update_fields=['staff_id', 'updated_at'])
+        new = self.validated_data['staff_handle']
+        if new != self._staff.staff_handle:
+            self._staff.staff_handle = new
+            self._staff.save(update_fields=['staff_handle', 'updated_at'])
         return self._staff

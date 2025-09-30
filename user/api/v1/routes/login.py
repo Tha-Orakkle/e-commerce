@@ -25,11 +25,11 @@ class ShopOwnerOrStaffLoginView(APIView):
     def post(self, request):
         """
         Sign the admin user (staff and shop owner) in.
-        Take the shop_code, staff_id and the password.
+        Take the shop_code, staff_handle and the password.
         """
         errors = {}
         shop_code = request.data.get('shop_code', '').strip().upper()
-        staff_handle = request.data.get('staff_id', '').strip()
+        staff_handle = request.data.get('staff_handle', '').strip()
         pwd = request.data.get('password', '').strip()
         remember_me = parse_bool(request.data.get('remember_me', False))
         lifespan = timedelta(days=7) if remember_me else timedelta(days=1)

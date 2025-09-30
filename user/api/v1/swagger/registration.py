@@ -19,7 +19,7 @@ from user.api.v1.serializers import UserSerializer
 # SWAGGER SCHEMAS FOR SHOP OWNERS REGISTRATION
 
 class CreateStaffRequestData(BaseUserCreationSerializer):
-    staff_id = serializers.CharField(min_length=2, max_length=20)
+    staff_handle = serializers.CharField(min_length=2, max_length=20)
 
 
 # error fields
@@ -30,7 +30,7 @@ email = [
     'Enter a valid email address.',
     'User with email already exists.',
 ]
-staff_id = [
+staff_handle = [
     'This field is required',
     'This field may not be blank.',
     'Ensure this field has at least 3 characters.',
@@ -74,7 +74,7 @@ shopowner_registration_errors = {
             *email,
             'Shop owner with email already exists.'
         ],
-        'staff_id': staff_id,
+        'staff_handle': staff_handle,
         'first_name': name,
         'last_name': name,
         'telephone': telephone,
@@ -116,9 +116,9 @@ customer_registration_errors = {
 
 staff_creation_errors = {
     'validation_error': {
-        'staff_id': [
-            *staff_id,
-            'Staff member with staff ID already exists.'
+        'staff_handle': [
+            *staff_handle,
+            'Staff member with handle already exists.'
         ],
         'first_name': name,
         'last_name': name,

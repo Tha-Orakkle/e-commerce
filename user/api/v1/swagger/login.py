@@ -14,7 +14,7 @@ class AdminLoginRequestData(serializers.Serializer):
     Serializer for admin user login request.
     """
     shop_code = serializers.CharField()
-    staff_id = serializers.CharField()
+    staff_handle = serializers.CharField()
     password = serializers.CharField()
     remember_me = serializers.BooleanField()
 
@@ -34,7 +34,7 @@ class CustomerLoginRequestData(serializers.Serializer):
 
 invalid_credentials = {'non_field_errors': ['Invalid credentials matching any customer.']}
 email = ['This field is required',]
-staff_id = ['This field is required']
+staff_handle = ['This field is required']
 shop_code = ['This field is required']
 password = ['This field is required']
 
@@ -42,7 +42,7 @@ admin_login_errors = {
     'invalid_credentials': invalid_credentials,
     'validation_error': {
         'shop_code': shop_code,
-        'staff_id': staff_id,
+        'staff_handle': staff_handle,
         'password': password
     }
 }
@@ -58,7 +58,7 @@ customer_login_errors = {
 # schemas
 admin_login_schema = {
     'summary': 'Admin user login',
-    'description': 'Login an admin with the shop_code, staff id \
+    'description': 'Login an admin with the shop_code, staff_handle \
         and password. Returns access and refresh token as cookies. \
         Only an admin user can login.',
     'tags': ['Auth'],

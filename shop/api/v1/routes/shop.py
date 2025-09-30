@@ -123,7 +123,7 @@ class ShopDetailView(APIView):
             else:
                 user.is_shopowner = False
                 user.is_staff = False
-                user.staff_id = None
+                user.staff_handle = None
                 user.save()
             
         return Response({}, status=status.HTTP_204_NO_CONTENT)

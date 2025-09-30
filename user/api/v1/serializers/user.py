@@ -25,7 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserUpdateSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=False)
-    staff_id = serializers.CharField(
+    staff_handle = serializers.CharField(
         min_length=3,
         max_length=20,
         required=False,
@@ -49,15 +49,15 @@ class UserUpdateSerializer(serializers.Serializer):
         return value
     
     
-    def validate_staff_id(self, value):
+    def validate_staff_handle(self, value):
         """
-        Check that staff id does not already exists in the shop.
+        Check that staff handle does not already exists in the shop.
         """
         value = value.strip().lower()
         if not self._user.is_shopowner:
             return None
         shop = self._user.owned_shop
-        if shop.staff_id_exists(value) and self._user.staff_id != value:
+        if shop.staff_handle_exists(value) and self._user.staff_handle != value:
             raise serializers.ValidationError("Staff member with staff handle already exists.")
         return value
     
@@ -67,11 +67,11 @@ class UserUpdateSerializer(serializers.Serializer):
         request is not a shop owner.
         """
         if not self._user.is_shopowner:
-            attrs.pop('staff_id', None)
+            attrs.pop('staff_handle', None)
             if not attrs.get('email', ''):
                 raise serializers.ValidationError({'email': ['This field is required.']})
         else:
-            if not attrs.get('email', '') and not attrs.get('staff_id', ''):
+            if not attrs.get('email', '') and not attrs.get('staff_handle', ''):
                 raise serializers.ValidationError({
                     'non_field_errors': ["Either 'email' or 'staff_handle' is field is required."],
                 })
@@ -83,10 +83,10 @@ class UserUpdateSerializer(serializers.Serializer):
         """
         fields = []
         old_email = self._user.email
-        old_staff_id = self._user.staff_id
+        old_staff_handle = self._user.staff_handle
         
         for k,v in self.validated_data.items():
-            if (k == 'email' and v == old_email) or (k == 'staff_id' and v == old_staff_id):
+            if (k == 'email' and v == old_email) or (k == 'staff_handle' and v == old_staff_handle):
                 continue
             setattr(self._user, k, v)
             fields.append(k)

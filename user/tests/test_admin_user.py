@@ -118,11 +118,11 @@ def test_get_admin_user_by_non_superuser(client, admin_user, signed_in_user):
 def test_put_admin_user_by_superuser(client, admin_user, signed_in_superuser):
     """
     Test update a specific admin user by super user.
-    Only super user can update staff_id (staff username).
+    Only super user can update staff_handle (staff username).
     """
     url = reverse('admin-user', kwargs={'user_id': admin_user.id})
     data = {
-        'staff_id': 'admin-user-updated',
+        'staff_handle': 'admin-user-updated',
         'old_password': 'Password123#',
         'password': "Password12345#",
         'confirm_password': "Password12345#"
@@ -133,7 +133,7 @@ def test_put_admin_user_by_superuser(client, admin_user, signed_in_superuser):
     assert response.data['status'] == "success"
     assert response.data['code'] == 200
     assert response.data['message'] == "Admin user updated successfully."
-    assert response.data['data']['staff_id'] == data['staff_id']
+    assert response.data['data']['staff_handle'] == data['staff_handle']
 
 
 def test_put_admin_user_password_by_same_admin_user(client, admin_user, signed_in_admin):
@@ -158,7 +158,7 @@ def test_put_admin_user_by_another_user(client, signed_in_admin):
     Test update admin user by a different non superuser admin user.
     """
     admin = User.objects.create_staff(
-        staff_id='new-admin-user',
+        staff_handle='new-admin-user',
         password='Example123#'
     )
     url = reverse('admin-user', kwargs={'user_id': admin.id})
@@ -175,12 +175,12 @@ def test_put_admin_user_by_another_user(client, signed_in_admin):
     assert response.data['message'] == "You do not have permission to perform this action."
 
 
-def test_put_admin_user_staff_id_by_non_superuser(client, admin_user, signed_in_admin):
+def test_put_admin_user_staff_handle_by_non_superuser(client, admin_user, signed_in_admin):
     """
-    Test update a specific admin user staff_id by non super user.
+    Test update a specific admin user staff_handle by non super user.
     """
     url = reverse('admin-user', kwargs={'user_id': admin_user.id})
-    data = {'staff_id': 'new-admin-user'}
+    data = {'staff_handle': 'new-admin-user'}
     client.cookies['access_token'] = signed_in_admin['access_token']
     response = client.put(url, data=data, format='json')
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -194,7 +194,7 @@ def test_put_admin_user_by_non_admin(client, admin_user, signed_in_user):
     Test update admin user by non admin.  
     """
     url = reverse('admin-user', kwargs={'user_id': admin_user.id})
-    data = {'staff_id': 'new-admin-user'}
+    data = {'staff_handle': 'new-admin-user'}
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.put(url, data=data, format='json')
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -208,7 +208,7 @@ def test_put_admin_user_with_invalid_id(client, signed_in_superuser):
     Test update admin user with invalid id.  
     """
     url = reverse('admin-user', kwargs={'user_id': "123-Invalid-id"})
-    data = {'staff_id': 'new-admin-user'}
+    data = {'staff_handle': 'new-admin-user'}
     client.cookies['access_token'] = signed_in_superuser['access_token']
     response = client.put(url, data=data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -372,7 +372,7 @@ def test_delete_admin_user(client, signed_in_superuser):
     Test delete admin user by superuser.
     """
     admin = User.objects.create_staff(
-        staff_id='new-admin',
+        staff_handle='new-admin',
         password='Password123#'
     )
     url = reverse('admin-user', kwargs={'user_id': admin.id})

@@ -10,7 +10,7 @@ def test_admin_user_creation_by_superuser(client, signed_in_superuser):
     """
     tokens = signed_in_superuser
     data = {
-        'staff_id': 'admin-user2',
+        'staff_handle': 'admin-user2',
         'password': 'Password123#',
         'confirm_password': 'Password123#'
     }
@@ -18,7 +18,7 @@ def test_admin_user_creation_by_superuser(client, signed_in_superuser):
     response = client.post(create_admin_url, data, format='json')
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data['status'] == "success"
-    assert response.data['message'] == f"Admin user {data['staff_id']} created successfully."
+    assert response.data['message'] == f"Admin user {data['staff_handle']} created successfully."
 
 
 def test_admin_user_creation_by_non_superuser(client, signed_in_admin):
@@ -27,7 +27,7 @@ def test_admin_user_creation_by_non_superuser(client, signed_in_admin):
     """
     tokens = signed_in_admin
     data = {
-        'staff_id': 'admin-user2',
+        'staff_handle': 'admin-user2',
         'password': 'Password123#',
         'confirm_password': 'Password123#'
     }
@@ -43,7 +43,7 @@ def test_admin_user_creation_by_without_access_token(client):
     Test admin user creation without super user access token passed.
     """
     data = {
-        'staff_id': 'admin-user2',
+        'staff_handle': 'admin-user2',
         'password': 'Password123#',
         'confirm_password': 'Password123#'
     }
@@ -54,10 +54,10 @@ def test_admin_user_creation_by_without_access_token(client):
 
 
 
-def test_admin_user_creation_missing_staff_id(client, signed_in_superuser):
+def test_admin_user_creation_missing_staff_handle(client, signed_in_superuser):
     """
     Test admin user creation by super user process with
-    missing staff_id.
+    missing staff_handle.
     """
     tokens = signed_in_superuser
     data = {
@@ -68,7 +68,7 @@ def test_admin_user_creation_missing_staff_id(client, signed_in_superuser):
     response = client.post(create_admin_url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == 'error'
-    assert response.data['message'] == "Please provide staff_id (username) and password for the staff."
+    assert response.data['message'] == "Please provide staff_handle (username) and password for the staff."
 
 
 def test_admin_user_creation_missing_password(client, signed_in_superuser):
@@ -78,14 +78,14 @@ def test_admin_user_creation_missing_password(client, signed_in_superuser):
     """
     tokens = signed_in_superuser
     data = {
-        'staff_id': 'admin-user2',
+        'staff_handle': 'admin-user2',
         'confirm_password': 'Password123#'
     }
     client.cookies['access_token'] == tokens['access_token']
     response = client.post(create_admin_url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == 'error'
-    assert response.data['message'] == "Please provide staff_id (username) and password for the staff."
+    assert response.data['message'] == "Please provide staff_handle (username) and password for the staff."
 
 
 
@@ -96,7 +96,7 @@ def test_admin_user_creation_mismatching_password(client, signed_in_superuser):
     """
     tokens = signed_in_superuser
     data = {
-        'staff_id': 'admin-user2',
+        'staff_handle': 'admin-user2',
         'password': 'Password123#',
         'confirm_password': 'Password1234#'
     }
@@ -113,7 +113,7 @@ def test_admin_user_creation_password_length(client, signed_in_superuser):
     """
     tokens = signed_in_superuser
     data = {
-        'staff_id': 'admin-user2',
+        'staff_handle': 'admin-user2',
         'password': 'passw12',
         'confirm_password': 'passw12'
     }
@@ -125,14 +125,14 @@ def test_admin_user_creation_password_length(client, signed_in_superuser):
 
 
 
-def test_admin_user_creation_existing_staff_id(client, signed_in_superuser, admin_user):
+def test_admin_user_creation_existing_staff_handle(client, signed_in_superuser, admin_user):
     """
     Test admin user creation by super user process with
-    existing staff_id.
+    existing staff_handle.
     """
     tokens = signed_in_superuser
     data = {
-        'staff_id': 'admin-user',
+        'staff_handle': 'admin-user',
         'password': 'Password123#',
         'confirm_password': 'Password123#'
     }
@@ -140,7 +140,7 @@ def test_admin_user_creation_existing_staff_id(client, signed_in_superuser, admi
     response = client.post(create_admin_url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == 'error'
-    assert response.data['message'] == "Admin user with staff id already exists."
+    assert response.data['message'] == "Admin user with staff handle already exists."
 
 
 def test_admin_user_creation_password_without_digit(client, signed_in_superuser):
@@ -149,7 +149,7 @@ def test_admin_user_creation_password_without_digit(client, signed_in_superuser)
     """
     tokens = signed_in_superuser
     data = {
-        'staff_id': 'admin-user2',
+        'staff_handle': 'admin-user2',
         'password': 'Weak_password#',
         'confirm_password': 'Weak_password#'
     }
@@ -166,7 +166,7 @@ def test_admin_user_creation_password_without_special_char(client, signed_in_sup
     """
     tokens = signed_in_superuser
     data = {
-        'staff_id': 'admin-user2',
+        'staff_handle': 'admin-user2',
         'password': 'Weak_password123',
         'confirm_password': 'Weak_password123'
     }
@@ -183,7 +183,7 @@ def test_admin_user_creation_password_without_letters(client, signed_in_superuse
     """
     tokens = signed_in_superuser
     data = {
-        'staff_id': 'admin-user2',
+        'staff_handle': 'admin-user2',
         'password': '12345678#',
         'confirm_password': '12345678#'
     }

@@ -49,9 +49,9 @@ class InventoryUpdateView(APIView):
         inventory = None
         try:
             if action == 'add':
-                inventory = product.inventory.add(quantity, request.user.staff_id)
+                inventory = product.inventory.add(quantity, request.user.staff_handle)
             elif action == 'subtract':
-                inventory = product.inventory.substract(quantity, request.user.staff_id)
+                inventory = product.inventory.substract(quantity, request.user.staff_handle)
         except ValueError as ve:
             raise ErrorException(
                 detail=str(ve),

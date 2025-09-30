@@ -105,8 +105,7 @@ class ShopStaffDetailView(APIView):
     @extend_schema(**get_shop_staff_memeber_schema)
     def get(self, request, shop_id, staff_id):
         """
-        Get a specific staff member of a specific shop
-        identified by the staff id.
+        Get a specific staff member of a specific shop.
         """
         validate_id(shop_id, 'shop')
         validate_id(staff_id, "staff")

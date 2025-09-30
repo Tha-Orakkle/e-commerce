@@ -76,7 +76,7 @@ class ShopProductListCreateView(APIView):
         
         if not (
             request.user.is_superuser
-            or shop.staff_id_exists(request.user.staff_id)
+            or shop.staff_handle_exists(request.user.staff_handle)
         ):
             raise PermissionDenied()    
 

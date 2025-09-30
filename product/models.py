@@ -215,17 +215,17 @@ class Inventory(models.Model):
         return f"<Inventory: {self.id}> {self.product.name} - {self.stock} items"
     
     @transaction.atomic
-    def add(self, value, staff_id):
+    def add(self, value, staff_handle):
         if value <= 0:
             raise ValueError("Provide a valid quantity that is greater than 0.")
         inventory = Inventory.objects.select_for_update().get(id=self.id)
         inventory.stock += value
-        inventory.last_updated_by = staff_id
+        inventory.last_updated_by = staff_handle
         inventory.save()
         return inventory
     
     @transaction.atomic
-    def substract(self, value, staff_id):
+    def substract(self, value, staff_handle):
         if value <= 0:
             raise ValueError("Provide a valid quantity that is greater than 0.")
         
@@ -236,7 +236,7 @@ class Inventory(models.Model):
                 code='insufficient_stock'
             )
         inventory.stock -= value
-        inventory.last_updated_by = staff_id
+        inventory.last_updated_by = staff_handle
         inventory.save()
         return inventory
 

@@ -21,7 +21,7 @@ class ShopStaffRequestData(serializers.Serializer):
     """
     Serializer for admin user registration requests.
     """
-    staff_id = serializers.CharField()
+    staff_handle = serializers.CharField()
     password = serializers.CharField()
     confirm_password = serializers.CharField()
 
@@ -30,7 +30,7 @@ class ShopStaffDataError(serializers.Serializer):
     """
     Serializer for the error response when creating or updating an admin user.
     """
-    staff_id = serializers.ListField(child=serializers.CharField(), required=False)
+    staff_handle = serializers.ListField(child=serializers.CharField(), required=False)
     password = serializers.ListField(child=serializers.CharField(), required=False)
 
 

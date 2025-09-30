@@ -51,7 +51,7 @@ class CookieJWTAuthenticationScheme(OpenApiAuthenticationExtension):
 class AdminUserBackend(ModelBackend):
     """
     Authention Backend for admin user since admin users will
-    use staff id and password to sign in.
+    use staff handle and password to sign in.
     """
     def authenticate(self, request, shop_code, staff_handle, password, **kwargs):
         User = get_user_model()
@@ -61,7 +61,7 @@ class AdminUserBackend(ModelBackend):
         if not shop:
             return None
         
-        staff = shop.owner if shop.owner.staff_id == staff_handle else shop.get_staff_member_by_handle(staff_handle)
+        staff = shop.owner if shop.owner.staff_handle == staff_handle else shop.get_staff_by_handle(staff_handle)
         if staff and staff.check_password(password):
             return staff
         return None

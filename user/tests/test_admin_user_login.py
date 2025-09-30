@@ -9,22 +9,22 @@ def test_admin_user_login(client, admin_user):
     Test the admin user login process.
     """
     data = {
-        'staff_id': admin_user.staff_id,
+        'staff_handle': admin_user.staff_handle,
         'password': 'Password123#'
     }
     response = client.post(admin_login_url, data, format='json')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == "Admin user logged in successfully."
-    assert response.data['data']['staff_id'] == admin_user.staff_id
+    assert response.data['data']['staff_handle'] == admin_user.staff_handle
     assert response.cookies['access_token'].value is not None
     assert response.cookies['refresh_token'].value is not None
     assert response.cookies['access_token']['httponly'] is True
     assert response.cookies['refresh_token']['httponly'] is True
 
 
-def test_admin_user_login_missing_staff_id(client, admin_user):
+def test_admin_user_login_missing_staff_handle(client, admin_user):
     """
-    Test the admin user login process with a missing staff_id.
+    Test the admin user login process with a missing staff_handle.
     """
     data = {
         'password': 'Password123#'
@@ -32,7 +32,7 @@ def test_admin_user_login_missing_staff_id(client, admin_user):
     response = client.post(admin_login_url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Please provide staff id and password."
+    assert response.data['message'] == "Please provide staff handle and password."
 
 
 def test_admin_user_login_missing_password(client, admin_user):
@@ -45,7 +45,7 @@ def test_admin_user_login_missing_password(client, admin_user):
     response = client.post(admin_login_url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['status'] == "error"
-    assert response.data['message'] == "Please provide staff id and password."
+    assert response.data['message'] == "Please provide staff handle and password."
 
 
 def test_admin_user_invalid_password(client, admin_user):
@@ -53,7 +53,7 @@ def test_admin_user_invalid_password(client, admin_user):
     Test the admin user login process with wrong password.
     """
     data = {
-        'staff_id': admin_user.staff_id,
+        'staff_handle': admin_user.staff_handle,
         'password': 'Password1234#'
     }
     response = client.post(admin_login_url, data, format='json')
@@ -62,12 +62,12 @@ def test_admin_user_invalid_password(client, admin_user):
     assert response.data['message'] == "Invalid login credentials."
 
 
-def test_admin_user_non_existent_staff_id(client, db_access):
+def test_admin_user_non_existent_staff_handle(client, db_access):
     """
     Test the admin user login process with wrong password.
     """
     data = {
-        'staff_id': 'admin-non-existent',
+        'staff_handle': 'admin-non-existent',
         'password': 'Password123#'
     }
     response = client.post(admin_login_url, data, format='json')
@@ -81,7 +81,7 @@ def test_admin_user_login_no_remember_me(client, admin_user):
     Test the admin user login process with remember_me set to False.
     """
     data = {
-        'staff_id': admin_user.staff_id,
+        'staff_handle': admin_user.staff_handle,
         'password': 'Password123#',
         'remember_me': False
     }
@@ -99,7 +99,7 @@ def test_admin_user_login_remember_me(client, admin_user):
     Test the admin user login process with remember_me set to True.
     """
     data = {
-        'staff_id': admin_user.staff_id,
+        'staff_handle': admin_user.staff_handle,
         'password': 'Password123#',
         'remember_me': True
     }

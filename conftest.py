@@ -63,7 +63,7 @@ def shopowner(db):
     """
     user = User.objects.create_shopowner(
         email='shopowner@email.com',
-        staff_id='shopowner',
+        staff_handle='shopowner',
         password='Password123#'
     )
     UserProfile.objects.create(
@@ -87,7 +87,7 @@ def super_user(db):
     """
     return User.objects.create_superuser(
         email='superuser@email.com',
-        staff_id='superuser',
+        staff_handle='superuser',
         password="Password123#"
     )
 
@@ -98,7 +98,7 @@ def admin_user(db):
     Create an admin user.
     """
     return User.objects.create_staff(
-        staff_id='staff',
+        staff_handle='staff',
         password='Password123#'
     )
 
@@ -144,7 +144,7 @@ def signed_in_superuser(client, super_user):
     """
     admin_login_url = reverse('admin-login')
     data = {
-        'staff_id': super_user.staff_id,
+        'staff_handle': super_user.staff_handle,
         'password': 'Password123#'
     }
     response = client.post(admin_login_url, data, format='json')
@@ -165,7 +165,7 @@ def signed_in_admin(client, admin_user):
     """
     admin_login_url = reverse('admin-login')
     data = {
-        'staff_id': admin_user.staff_id,
+        'staff_handle': admin_user.handle,
         'password': 'Password123#'
     }
     response = client.post(admin_login_url, data, format='json')

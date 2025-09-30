@@ -20,7 +20,7 @@ LOGO_SIZE = (400, 400)
 
 class ShopOwnerRegistrationSerializer(BaseUserCreationSerializer):
     email = serializers.EmailField()
-    staff_id = serializers.CharField(min_length=3, max_length=20)
+    staff_handle = serializers.CharField(min_length=3, max_length=20)
     
     # shop fields
     shop_name = serializers.CharField(min_length=3, max_length=40)
@@ -38,9 +38,9 @@ class ShopOwnerRegistrationSerializer(BaseUserCreationSerializer):
         self._profile_data = None
     
     
-    def validate_staff_id(self, value):
+    def validate_staff_handle(self, value):
         """
-        Convert staff ID to lowercase.
+        Convert staff handle to lowercase.
         """
         return value.strip().lower()
     
@@ -125,12 +125,12 @@ class ShopOwnerRegistrationSerializer(BaseUserCreationSerializer):
                 )
             user.is_shopowner = True
             user.is_staff = True
-            user.staff_id = validated_data['staff_id']
+            user.staff_handle = validated_data['staff_handle']
             user.save()
         else:
             user = User.objects.create_shopowner(
                 email=validated_data['email'],
-                staff_id=validated_data['staff_id'],
+                staff_handle=validated_data['staff_handle'],
                 password=password,
                 already_customer=False               
             )
