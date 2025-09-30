@@ -7,7 +7,7 @@ def product_upload_image_path(instance, filename):
     Returns the upload path for product images.
     """
     shop_id = instance.product.shop.id
-    dir_name = f"shp_{str(shop_id)}/products/pdt_{str(instance.product.id)}"
+    dir_name = f"shp_{shop_id}/products/pdt_{instance.product.id}"
     _, ext = os.path.splitext(filename)
     
     from uuid import uuid4

@@ -18,7 +18,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = '__all__'
+        exclude = ['is_active']
 
     def __init__(self, *args, **kwargs):
         exclude = kwargs.pop('exclude', None)

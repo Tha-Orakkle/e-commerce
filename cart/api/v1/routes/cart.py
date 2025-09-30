@@ -38,7 +38,10 @@ class CartDetailView(APIView):
             
         product_id = request.data.get('product')
         validate_id(product_id, "product")
-        product = Product.objects.select_related('inventory').filter(id=product_id).first()
+        product = Product.objects.select_related('inventory').filter(
+            id=product_id,
+            is_active=True
+        ).first()
         if not product:
             raise ErrorException(
                 detail="No product found with the given ID.",

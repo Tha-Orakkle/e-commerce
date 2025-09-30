@@ -40,7 +40,7 @@ def validate_cart(cart, include_shop=False):
             'issue': "Product no longer available",
             'product': None
         }
-        if item.product:
+        if item.product and item.product.is_active:
             _item['stock'] = item.product.inventory.stock
             _item['status'] = 'available'
             _item['issue'] = None

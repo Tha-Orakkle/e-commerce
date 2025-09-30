@@ -27,6 +27,7 @@ class Product(models.Model):
     name = models.CharField(max_length=50, null=False, blank=False, unique=True)
     description = models.TextField(null=False, blank=False, default='')
     price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0.00), blank=False)
+    is_active = models.BooleanField(default=True, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, null=False, related_name='products')
@@ -87,8 +88,8 @@ class Product(models.Model):
         Return the upload path for product image.
         """
         from django.conf import settings
-        shop_code = self.shop.code
-        product_image_dir = f"{shop_code}/products/pdt_{self.id}"
+        shp_id = self.shop.id
+        product_image_dir = f"shp_{shp_id}/products/pdt_{self.id}"
         return settings.MEDIA_ROOT / product_image_dir
 
     def add_images(self, images):
@@ -132,8 +133,14 @@ class Product(models.Model):
         """
         Delete a Product instance.
         """
-        self.delete_all_image_files()       
-        super().delete(*args, **kwargs)
+        self.delete_images()
+        if self.orderitem_set.exists():
+            self.is_active = False
+            self.save(update_fields=['is_active'])
+        else:
+            super().delete(*args, **kwargs)
+        # self.delete_all_image_files()
+        # super().delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         """

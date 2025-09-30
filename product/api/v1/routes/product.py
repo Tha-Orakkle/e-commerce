@@ -47,7 +47,7 @@ class ShopProductListCreateView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND
             )
         paginator = Pagination()
-        queryset = shop.products.all()
+        queryset = shop.products.filter(is_active=True).all()
         paginated_queryset  = paginator.paginate_queryset(queryset, request)
         serializers = ProductSerializer(
             paginated_queryset,
@@ -112,7 +112,7 @@ class ProductListView(APIView):
         # update to take filters
         # categories and names
         paginator = Pagination()
-        queryset = Product.objects.all()
+        queryset = Product.objects.filter(is_active=True).all()
         paginated_queryset  = paginator.paginate_queryset(queryset, request)
         serializers = ProductSerializer(
             paginated_queryset,
@@ -132,6 +132,9 @@ class ProductDetailView(APIView):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
         return [IsStaff()] 
+    
+    def get_object(self, product_id):
+        return Product.objects.filter(id=product_id, is_active=True).first()
 
     @extend_schema(**get_product_schema)
     def get(self, request, product_id):
@@ -139,7 +142,7 @@ class ProductDetailView(APIView):
         Get a specific product.
         """
         validate_id(product_id, "product")
-        product = Product.objects.filter(id=product_id).first()
+        product = self.get_object(product_id)
         if not product:
             raise ErrorException(
                 detail="Product not found.",
@@ -161,7 +164,7 @@ class ProductDetailView(APIView):
         Update a specific product.
         """
         validate_id(product_id, "product")
-        product = Product.objects.filter(id=product_id).first()
+        product = self.get_object(product_id)
         if not product:
             raise ErrorException(
                 detail="Product not found.",
@@ -198,10 +201,8 @@ class ProductDetailView(APIView):
         """
         Delete a specific product.
         """
-        # if not request.user.is_staff:
-        #     raise PermissionDenied()
         validate_id(product_id, "product")
-        product = Product.objects.filter(id=product_id).first()
+        product = self.get_object(product_id)
         if not product:
             raise ErrorException(
                 detail="Product not found.",
@@ -224,7 +225,7 @@ class ProductCategoryUpdateView(APIView):
         Add/Remove Category from a product.
         """
         validate_id(product_id, 'product')
-        product = Product.objects.filter(id=product_id).first()
+        product = Product.objects.filter(id=product_id, is_active=True).first()
         if not product:
             raise ErrorException(
                 detail="Product not found.",
