@@ -1,17 +1,22 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 
 from common.swagger import (
-    get_success_response,
-    get_error_response,
-    get_error_response_with_examples
+    make_success_schema_response,
+    make_bad_request_error_schema_response,
+    make_unauthorized_error_schema_response
 )
 from address.api.v1.serializers import CitySerializer
 
 # SWAGGER SCHEMAS FOR CITY
+
+errors = {
+    'invalid_uuid': 'Invalid state id.',
+    'missing_state': 'State ID is required to retrievd asociated cities.'
+}
 get_cities_schema = {
     'summary': 'Get all cities of a state',
     'description': 'Returns a list of all cities within the state associated with the id passed as query parameter',
-    'tags': ['location'],
+    'tags': ['Location'],
     'operation_id': 'get_cities',
     'parameters': [OpenApiParameter(
         name='state',
@@ -22,8 +27,10 @@ get_cities_schema = {
     )],
     'request': None,
     'responses': {
-        200: get_success_response("Cities retrieved successfully.", 200, CitySerializer(many=True)),
-        400: get_error_response("Invalid state id."),
-        401: get_error_response_with_examples(code=401)
+        200: make_success_schema_response(
+            "Cities retrieved successfully.", 
+            CitySerializer, many=True),
+        400: make_bad_request_error_schema_response(errors),
+        401: make_unauthorized_error_schema_response()
     }
 }

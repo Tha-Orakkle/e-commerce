@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from address.models import State
 from address.api.v1.serializers import StateSerializer
 from address.api.v1.swagger import get_states_schema
+from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 
 
@@ -19,6 +20,11 @@ class StateListView(APIView):
         Get a list of all states in a country.
         """
         country_code = request.query_params.get('country')
+        if not country_code:
+            raise ErrorException(
+                detail="Country code (ISO2) is required to retrieve associated states.",
+                code='missing_country',
+            )
         states = State.objects.filter(country__code=country_code)
         serializers = StateSerializer(states, many=True)
         return Response(SuccessAPIResponse(

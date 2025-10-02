@@ -10,11 +10,11 @@ from address.api.v1.serializers import (
     ShippingAddressCreateUpdateSerializer
 )
 from address.api.v1.swagger import (
-    create_shipping_address_schema,
+    post_shipping_address_schema,
     delete_shipping_address_schema,
     get_shipping_addresses_schema,
     get_shipping_address_schema,
-    update_shipping_address_schema
+    patch_shipping_address_schema
 )
 from common.cores.validators import validate_id
 from common.exceptions import ErrorException
@@ -45,7 +45,7 @@ class ShippingAddressListCreateView(APIView):
         ).to_dict(), status=status.HTTP_200_OK)
 
 
-    @extend_schema(**create_shipping_address_schema)
+    @extend_schema(**post_shipping_address_schema)
     def post(self, request):
         """
         Create a new ShippingAddress instance.
@@ -88,7 +88,7 @@ class ShippingAddressDetailView(APIView):
         address = self.get_object(address_id)
         if not address:
             raise ErrorException(
-                detail="Shipping address not found.",
+                detail="No shipping address matching the given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
         
@@ -97,7 +97,7 @@ class ShippingAddressDetailView(APIView):
             data=ShippingAddressSerializer(address, context={'request': request}).data
         ).to_dict(), status=status.HTTP_200_OK)
     
-    @extend_schema(**update_shipping_address_schema)
+    @extend_schema(**patch_shipping_address_schema)
     def patch(self, request, address_id):
         """
         Update a specific shipping address by ID.

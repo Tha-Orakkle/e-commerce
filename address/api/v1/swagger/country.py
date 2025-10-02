@@ -1,6 +1,8 @@
 from common.swagger import (
     get_error_response_with_examples,
-    get_success_response,
+    make_success_schema_response,
+    make_unauthorized_error_schema_response,
+    make_forbidden_error_schema_response
 )
 from address.api.v1.serializers import CountrySerializer
 
@@ -8,12 +10,14 @@ from address.api.v1.serializers import CountrySerializer
 get_countries_schema = {
     'summary': 'Get all supported countries.',
     'description': 'Returns a list of all supported countries.',
-    'tags': ['location'],
+    'tags': ['Location'],
     'operation_id': 'get_countries',
     'request': None,
     'responses': {
-        200: get_success_response("Countries retrieved successfully.", 200, CountrySerializer(many=True)),
-        401: get_error_response_with_examples(code=401)
+        200: make_success_schema_response(
+            "Countries retrieved successfully.",
+            CountrySerializer, many=True),
+        401: make_unauthorized_error_schema_response(),
     }
 
 }

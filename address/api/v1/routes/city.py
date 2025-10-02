@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from address.models import City
 from address.api.v1.serializers import CitySerializer
 from address.api.v1.swagger import get_cities_schema
+from common.exceptions import ErrorException
 from common.cores.validators import validate_id
 from common.utils.api_responses import SuccessAPIResponse
 
@@ -20,6 +21,11 @@ class CityListView(APIView):
         Get all cities.
         """
         state_id = request.query_params.get('state')
+        if not state_id:
+            raise ErrorException(
+                detail="State ID is required to retrieve associated cities.",
+                code='missing_state',
+            )
         validate_id(state_id, 'state')
         cities = City.objects.filter(state__id=state_id)
         serializers = CitySerializer(cities, many=True)

@@ -75,7 +75,7 @@ class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
         
         if not Country.objects.filter(code=country_code).exists():
             raise serializers.ValidationError(
-                {'country': f'Country with ISO2 `{country_code}` not found or supported.'}
+                {'country': f'Country with code not found or supported.'}
             )
             
         state = State.objects.select_related('country').filter(id=state_id).first()
@@ -83,13 +83,13 @@ class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError({'state': 'State with given ID not found or supported.'})
         
         if state and state.country.code != country_code:
-            raise serializers.ValidationError({'state': f'State does not belong to country with {country_code}'})
+            raise serializers.ValidationError({'state': f'State does not belong to country with code.'})
         
         city = City.objects.filter(id=city_id).first()
         if not city:
             raise serializers.ValidationError({'city': 'City with given ID not found or supported.'})
         if city.state_id != state_id:
-            raise serializers.ValidationError({'city': f'City does not belong to state with {state_id}'})
+            raise serializers.ValidationError({'city': f'City does not belong to state.'})
 
         return city 
         
