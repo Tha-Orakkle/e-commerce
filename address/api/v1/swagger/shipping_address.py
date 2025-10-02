@@ -40,31 +40,7 @@ class ShippingAddressDataRequest(ShippingAddressSerializer):
         exclude = ['id', 'created_at', 'updated_at', 'user']
         read_only_fields = ['id', 'created_at', 'updated_at', 'user']
 
-
-# class ShippingAddressDataError(serializers.Serializer):
-#     """
-#     Serializer for the error response when creating or updating a shipping address.
-#     """
-#     full_name = serializers.ListField(child=serializers.CharField(
-#         default="Full name must be at least 2 characters long."
-#     ), required=False)
-#     telephone = serializers.ListField(child=serializers.CharField(
-#         default="Invalid telephone number."
-#     ), required=False)
-#     city = serializers.ListField(child=serializers.CharField(
-#         default="Invalid or unsupported city name."
-#     ), required=False)
-#     state = serializers.ListField(child=serializers.CharField(
-#         default="Invalid or unsupported state name."
-#     ), required=False)
-#     country = serializers.ListField(child=serializers.CharField(
-#         default="Invalid or unsupported country code."
-#     ), required=False)
-#     postal_code = serializers.ListField(child=serializers.CharField(
-#         default="Invalid postal code."
-#     ), required=False)
-
-
+# ERROR RESPONSES FOR SWAGGER UI
 errors = {
     **build_invalid_id_error('shipping address')
 }

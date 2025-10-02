@@ -36,7 +36,7 @@ unauthorized_errors ={
 }
 
 
-def get_error_response_with_examples(examples=unauthorized_errors, code='unauthorized_request'):
+def get_error_response_with_examples(examples=unauthorized_errors, code=None):
     return OpenApiResponse(
         response={
             'type': 'object',
@@ -52,7 +52,7 @@ def get_error_response_with_examples(examples=unauthorized_errors, code='unautho
             name.replace(".", "").replace("_", " ").capitalize(),
             value={
                 'status': 'error',
-                'code': code,
+                'code': code if code else name,
                 'message': message
             }
         ) for name, message in examples.items()]
@@ -129,7 +129,7 @@ polymorphic_response = PolymorphicProxySerializer(
     resource_type_field_name=None
 )
 
-def make_error_schema_examples(errors):
+def build_error_schema_examples(errors):
     return [OpenApiExample(
         name=' '.join(code.split('_')).capitalize(),
         value={
@@ -140,7 +140,7 @@ def make_error_schema_examples(errors):
     ) for code, message in errors.items()]
 
 
-def make_error_schema_examples_with_errors_field(message, errors={}):
+def build_error_schema_examples_with_errors_field(message, errors={}):
     return [OpenApiExample(
         name=' '.join(code.split('_')).capitalize(),
         value={
@@ -157,7 +157,7 @@ def make_error_schema_examples_with_errors_field(message, errors={}):
 
 
 # for bad request errors 400 (necessary where errors wont be one_of)
-def make_bad_request_error_schema_response(errors, code):
+def make_bad_request_error_schema_response(errors, code=None):
     """
     Response schema for bad requests.
     Args:
@@ -183,6 +183,7 @@ def make_unauthorized_error_schema_response():
 def make_forbidden_error_schema_response():
     return ForbiddenSerializer
 
+
 # for not found errors 404
 def build_not_found_error_message(obj):
     return f'No {obj.lower()} matching the given id found.'
@@ -190,3 +191,6 @@ def build_not_found_error_message(obj):
 def make_not_found_error_schema_response(objs):
     errors = {obj: build_not_found_error_message(obj) for obj in objs}
     return get_error_response_with_examples(examples=errors, code='not_found')
+
+def build_invalid_id_error(obj_name):
+    return {'invalid_uuid': f'Invalid {obj_name.lower()} id.'}

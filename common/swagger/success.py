@@ -44,7 +44,7 @@ _success_response_schema_cache = {}
 from django.utils.text import slugify
 import hashlib
 
-def make_success_schema(message, data_serializer=None, many=False, paginated=False):
+def make_success_schema_response(message, data_serializer=None, many=False, paginated=False):
     data_name = getattr(data_serializer, '__name__', 'Generic')
     slug = slugify(message)
     key_name = f"{data_name}_{slug}"
