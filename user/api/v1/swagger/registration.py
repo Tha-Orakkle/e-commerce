@@ -23,7 +23,7 @@ class CreateStaffRequestData(BaseUserCreationSerializer):
 
 
 # error fields
-invalid_credentials = {'non_field_errors': ['Invalid credentials matching any customer.']}
+# invalid_credentials = {'non_field_errors': ['Invalid credentials matching any customer.']}
 email = [
     'This field is required',
     'This field may not be blank.',

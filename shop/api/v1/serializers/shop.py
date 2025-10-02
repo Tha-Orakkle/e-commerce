@@ -57,9 +57,9 @@ class ShopSerializer(serializers.ModelSerializer):
         if not value:
             raise ValidationError("This field may not be blank.")
         if len(value) < 3:
-            raise ValidationError("Shop name must be at least 3 characters.")
+            raise ValidationError("Ensure this field has at least 3 characters.")
         if len(value) > 40:
-            raise ValidationError("Shop name must not be more than 40 characters.")
+            raise ValidationError("Ensure this field has no more than 40 characters.")
         exists = Shop.objects.filter(name=value).first()
         # raise error if shop with name exists and it is not the 
         # current user's shop.
@@ -76,9 +76,9 @@ class ShopSerializer(serializers.ModelSerializer):
         Validate the shop description.
         """
         if value and len(value) < 10:        
-            raise ValidationError("Shop description must be at least 10 characters.")
+            raise ValidationError("Ensure this field has at least 10 characters.")
         if value and len(value) > 2000:
-            raise ValidationError("Shop description must not be more than 2000 characters.")
+            raise ValidationError("Ensure this field has no more than 2000 characters.")
         return value
     
     def validate_shop_logo(self, value):

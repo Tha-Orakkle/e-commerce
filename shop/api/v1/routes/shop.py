@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from django.db import transaction
 from rest_framework import status
 from rest_framework.exceptions import ValidationError, PermissionDenied
@@ -12,11 +13,19 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.utils.pagination import Pagination
 from shop.models import Shop
 from shop.api.v1.serializers import ShopSerializer
+from shop.api.v1.swagger import (
+    shop_list_schema,
+    get_shop_schema,
+    patch_shop_schema,
+    delete_shop_schema
+)
+
 
 
 class ShopListView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
+    @extend_schema(**shop_list_schema)
     def get (self, request):
         """
         Get a paginated list of all shops.
@@ -49,6 +58,7 @@ class ShopDetailView(APIView):
             return [IsAuthenticated()]
         return [perm() for perm in self.permission_classes]
     
+    @extend_schema(**get_shop_schema)
     def get(self, request, shop_id):
         """
         Get a specific shop.
@@ -57,7 +67,7 @@ class ShopDetailView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found matching the given shop ID.",
+                detail="No shop matching the given shop ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -66,7 +76,7 @@ class ShopDetailView(APIView):
             data=ShopSerializer(shop, context={'request': request}).data
         ).to_dict(), status=status.HTTP_200_OK)
         
-        
+    @extend_schema(**patch_shop_schema)
     def patch(self, request, shop_id):
         """
         Update a specific shop.
@@ -75,7 +85,7 @@ class ShopDetailView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found matching the given shop ID.",
+                detail="No shop matching the given shop ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -98,7 +108,8 @@ class ShopDetailView(APIView):
             message="Shop updated successfully.",
             data=serializer.data
         ).to_dict(), status=status.HTTP_200_OK)
-        
+      
+    @extend_schema(**delete_shop_schema)  
     def delete(self, request, shop_id):
         """
         Deletes a shop and the associated
