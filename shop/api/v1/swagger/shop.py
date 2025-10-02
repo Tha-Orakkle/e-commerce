@@ -5,10 +5,10 @@ from common.swagger import (
     make_bad_request_error_schema_response,
     make_not_found_error_schema_response,
     make_forbidden_error_schema_response,
-    make_success_schema,
+    make_success_schema_response,
     make_unauthorized_error_schema_response,
-    make_error_schema_examples,
-    make_error_schema_examples_with_errors_field
+    build_error_schema_examples,
+    build_error_schema_examples_with_errors_field
 )
 
 from shop.api.v1.serializers import ShopSerializer
@@ -21,7 +21,7 @@ shop_list_schema = {
     'operation_id': 'get_shops',
     'request': None,
     'responses': {
-        200: make_success_schema(
+        200: make_success_schema_response(
             "Shops retrieved successfully.",
             ShopSerializer,
             many=True,
@@ -54,7 +54,7 @@ get_shop_schema = {
     'operation_id': 'get_shop',
     'request': None,
     'responses': {
-        200: make_success_schema(
+        200: make_success_schema_response(
             "Shop retrieved successfully.",
             ShopSerializer
         ),
@@ -72,15 +72,15 @@ patch_shop_schema = {
     'operation_id': 'update_shop',
     'request': ShopSerializer,
     'responses': {
-        200: make_success_schema(
+        200: make_success_schema_response(
             "Shop updated successfully.",
             ShopSerializer
         ),
         400: OpenApiResponse(
             response=polymorphic_response,
             examples=[
-                *make_error_schema_examples(errors),
-                *make_error_schema_examples_with_errors_field(
+                *build_error_schema_examples(errors),
+                *build_error_schema_examples_with_errors_field(
                     message="Shop update failed.",
                     errors=patch_shop_errors
                 )
