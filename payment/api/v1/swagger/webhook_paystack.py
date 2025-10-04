@@ -1,6 +1,6 @@
 from common.swagger import (
     get_success_response,
-    make_bad_request_error_schema_response
+    make_error_schema_response
 )
 
 # SWAGGER SCHEMAS FOR PAYSTACK WEBHOOK
@@ -12,7 +12,7 @@ paystack_webhook_schema = {
     'request': None,
     'responses': {
         200: get_success_response('Webhook processed successfully.'),
-        400: make_bad_request_error_schema_response(
+        400: make_error_schema_response(
             {'invalid_signature': 'Invalid signature'}
         )
     }

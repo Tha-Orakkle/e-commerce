@@ -157,7 +157,7 @@ def build_error_schema_examples_with_errors_field(message, errors={}):
 
 
 # for bad request errors 400 (necessary where errors wont be one_of)
-def make_bad_request_error_schema_response(errors, code=None):
+def make_error_schema_response(errors, code=None):
     """
     Response schema for bad requests.
     Args:
@@ -167,7 +167,7 @@ def make_bad_request_error_schema_response(errors, code=None):
     """
     return get_error_response_with_examples(examples=errors, code=code)
     
-def make_bad_request_error_schema_response_with_errors_field(errors, message):
+def make_error_schema_response_with_errors_field(errors, message):
     return get_error_response_for_post_requests(message=message, errors=errors)
 
 # for unauthorized errors 401

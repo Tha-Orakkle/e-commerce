@@ -3,7 +3,7 @@ from rest_framework import serializers
 from common.swagger import (
     ForbiddenSerializer,
     make_success_schema_response,
-    make_bad_request_error_schema_response,
+    make_error_schema_response,
     make_not_found_error_schema_response,
     make_unauthorized_error_schema_response,
     build_invalid_id_error
@@ -43,7 +43,7 @@ initialize_payment_schema = {
         200: make_success_schema_response(
             'Payment initialized successfully.',
             InitializePaymentResponseData),
-        400: make_bad_request_error_schema_response(initailze_error_examples),
+        400: make_error_schema_response(initailze_error_examples),
         401: make_unauthorized_error_schema_response(),
         403: ForbiddenSerializer,
         404: make_not_found_error_schema_response(['order group'])
@@ -68,6 +68,6 @@ verify_payment_schema = {
             PaymentSerializer),
         401: make_unauthorized_error_schema_response(),
         403: ForbiddenSerializer,
-        404: make_bad_request_error_schema_response(vf_errors)
+        404: make_error_schema_response(vf_errors)
     }
 }

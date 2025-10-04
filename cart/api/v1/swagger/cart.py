@@ -1,12 +1,13 @@
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 from rest_framework import serializers
 
 from common.swagger import (
-    get_error_response,
-    get_error_response_with_examples,
-    get_success_response,
+    ForbiddenSerializer,
+    make_unauthorized_error_schema_response,
+    make_error_schema_response,
+    make_success_schema_response,
+    build_invalid_id_error
 )
-from cart.api.v1.serializers import CartSerializer
+from cart.api.v1.serializers import CartSerializer, CartItemSerializer
 from product.api.v1.serializers import ProductSerializer
 
 # SWAGGER SCHEMAS FOR CART
@@ -51,14 +52,17 @@ class GetCartResponse(serializers.Serializer):
     data = CartValidationSerializer()
 
 
-# add to cart schema
-add_to_cart_404_examples = {
-    'Missing product': 'Product not found',
-    'Missing Cart': 'Cart not found'
+# CART SCHEMAS 
+cart_error = {
+    'Missing Cart': 'No cart found for the user.'
 }
-add_to_cart_400_examples = {
-    'Invalid quantity': 'Provide a valid quantity that is greater than 0.',
-    'Invalid product id': 'Invalid product id.'
+add_to_cart_errors_404 = {
+    **cart_error,
+    'Missing product': 'No product matching the given ID found.',
+}
+add_to_cart_errors_400 = {
+    'invalid_quantity': 'Provide a valid quantity that is greater than 0.',
+    **build_invalid_id_error('product')
 }
 
 add_to_cart_schema = {
@@ -68,47 +72,88 @@ add_to_cart_schema = {
     'tags': ['Cart'],
     'request': AddToCartRequest,
     'responses': {
-        200: get_success_response('Item added to cart successfully.'),
-        400: get_error_response_with_examples(examples=add_to_cart_400_examples),
-        401: get_error_response_with_examples(code=401),
-        404: get_error_response_with_examples(examples=add_to_cart_404_examples, code=404)
+        200: make_success_schema_response(
+            'Item added to cart successfully.', 
+            CartSerializer),
+        400: make_error_schema_response(errors=add_to_cart_errors_400),
+        401: make_unauthorized_error_schema_response(),
+        404: make_error_schema_response(errors=add_to_cart_errors_404, code='not_found')
     }
 }
 
-
-# get cart schema
 get_cart_schema = {
     'summary': 'Get cart',
-    'description': 'Retrieves the current user\'s cart and all items in it.',
+    'description': 'Retrieves the current user\'s cart and all items in it. \
+        Cart is validated and the response data contains the status and issue of each cart item.',
     'operation_id': 'get_cart',
     'tags': ['Cart'],
     'request': None,
     'responses': {
-        200: GetCartResponse(),
-        401: get_error_response_with_examples(code=401),
-        404: get_error_response('Cart not found.', 404)
+        200: GetCartResponse,
+        401: make_unauthorized_error_schema_response(),
+        404: make_error_schema_response(errors=cart_error)
     }
 }
 
-# update cart schema
-update_cart_error_examples = {
-    'Cart item not found': 'Item not found in cart.',
-    'Invalid operation': 'Invalid operation.',
-    'Out of stock': 'Product out of stock.',
-    'Zero quantity': 'Cannot remove from item with zero quantity.'
+# CART ITEMS SCHEMA
+cart_item_error_404 = {
+    **cart_error,
+    'Missing Cart Item': 'No item matching given ID found in cart.'
+}
+update_cart_item_errors = {
+    'invalid_operation': 'Provide a valid operation: \'increment\' or \'decrement\'.',
+    'insufficient_stock': 'Insufficient stock. Only <count> left.',
+    'invalid_quantity': 'Cannot remove from item with zero quantity.',
+    'produt_unavailable': 'Product no longer available.',
+    **build_invalid_id_error('cart_itemm')
 }
 
-update_cart_schema = {
-    'summary': 'Update cart items quantity',
-    'description': 'Updates the quantity of an item in the cart. Requires product_id \
-        as part of the path and quantity in the request body. If no quantity is provided, it defaults to 1.',
+update_cart_item_schema = {
+    'summary': 'Increment or decrement quantity of cart items by 1',
+    'description': 'Increment/decrement the quantity of an items in the cart by 1. Requires cart item id \
+        as part of the path.',
     'operation_id': 'update_cart',
     'tags': ['Cart'],
     'request': UpdateCartItemRequest,
     'responses': {
-        200: get_success_response('Cart updated successfully.', 200, CartSerializer(many=True)),
-        400: get_error_response_with_examples(update_cart_error_examples),
-        401: get_error_response_with_examples(code=401),
-        404: get_error_response('Product not found.', 404)
+        200: make_success_schema_response(
+            'Cart item updated successfully.',
+            CartItemSerializer),
+        400: make_error_schema_response(update_cart_item_errors),
+        401: make_unauthorized_error_schema_response(),
+        404: make_error_schema_response(errors=cart_item_error_404, code='not_found')
+    }
+}
+
+get_cart_item_schema = {
+    'summary': 'Get a cart item',
+    'description': 'Get a cart item with the ID passed in the url path.',
+    'operation_id': 'get_cart_item',
+    'tags': ['Cart'],
+    'request': None,
+    'responses': {
+        200: make_success_schema_response(
+            'Cart item retrieved successfully.',
+            CartItemSerializer
+        ),
+        400: make_error_schema_response(errors=build_invalid_id_error('cart item')),
+        401: make_unauthorized_error_schema_response(),
+        403: ForbiddenSerializer,
+        404: make_error_schema_response(errors=cart_item_error_404, code='not_found')
+    }
+}
+
+delete_cart_item_schema =  {
+    'summary': 'Delete a cart item',
+    'description': 'Delete a cart item with the ID passed in the url path',
+    'operation_id': 'delete_cart_item',
+    'tags': ['Cart'],
+    'request': None,
+    'responses': {
+        204: {},
+        400: make_error_schema_response(errors=build_invalid_id_error('cart item')),
+        401: make_unauthorized_error_schema_response(),
+        403: ForbiddenSerializer,
+        404: make_error_schema_response(errors=cart_item_error_404, code='not_found')
     }
 }

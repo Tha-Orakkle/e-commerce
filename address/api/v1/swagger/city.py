@@ -3,7 +3,7 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 from address.api.v1.serializers import CitySerializer
 from common.swagger import (
     make_success_schema_response,
-    make_bad_request_error_schema_response,
+    make_error_schema_response,
     make_unauthorized_error_schema_response
 )
 
@@ -30,7 +30,7 @@ get_cities_schema = {
         200: make_success_schema_response(
             "Cities retrieved successfully.", 
             CitySerializer, many=True),
-        400: make_bad_request_error_schema_response(errors),
+        400: make_error_schema_response(errors),
         401: make_unauthorized_error_schema_response()
     }
 }

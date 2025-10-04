@@ -6,10 +6,10 @@ from common.swagger import (
     make_success_schema_response,
     make_unauthorized_error_schema_response,
     make_not_found_error_schema_response,
-    make_bad_request_error_schema_response,
-    make_bad_request_error_schema_response_with_errors_field,
+    make_error_schema_response,
+    make_error_schema_response_with_errors_field,
     build_invalid_id_error,
-    make_forbidden_error_schema_response,
+    ForbiddenSerializer,
     polymorphic_response,
     build_error_schema_examples,
     build_error_schema_examples_with_errors_field
@@ -111,7 +111,7 @@ get_shipping_address_schema = {
         200: make_success_schema_response(
             "Shipping address retrieved successfully.",
             ShippingAddressSerializer),
-        400: make_bad_request_error_schema_response(errors),
+        400: make_error_schema_response(errors),
         401: make_unauthorized_error_schema_response(),
         404: make_not_found_error_schema_response(['Shipping address'])
     },
@@ -127,11 +127,11 @@ post_shipping_address_schema = {
         201: make_success_schema_response(
             "Shipping address created successfully.",
             ShippingAddressSerializer),
-        400: make_bad_request_error_schema_response_with_errors_field(
+        400: make_error_schema_response_with_errors_field(
             message="Shipping address creation failed.",
             errors=shipping_address_errors),
         401: make_unauthorized_error_schema_response(),
-        403: make_forbidden_error_schema_response()
+        403: ForbiddenSerializer
     },
 }
 
@@ -156,7 +156,7 @@ patch_shipping_address_schema = {
             ]
             ),
         401: make_unauthorized_error_schema_response(),
-        403: make_forbidden_error_schema_response(),
+        403: ForbiddenSerializer,
         404: make_not_found_error_schema_response(['Shipping address']),
     },
 }
@@ -170,7 +170,7 @@ delete_shipping_address_schema = {
     'request': None,
     'responses': {
         204: {},
-        400: make_bad_request_error_schema_response(errors),
+        400: make_error_schema_response(errors),
         401: make_unauthorized_error_schema_response(),
         404: make_not_found_error_schema_response(['Shipping address']),
     },

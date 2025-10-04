@@ -12,8 +12,10 @@ from product.models import Product
 from cart.api.v1.serializers import CartSerializer, CartItemSerializer
 from cart.api.v1.swagger import (
     add_to_cart_schema,
+    delete_cart_item_schema,
     get_cart_schema,
-    update_cart_schema,
+    get_cart_item_schema,
+    update_cart_item_schema
 )
 from cart.utils.validators import validate_cart
 
@@ -44,7 +46,7 @@ class CartDetailView(APIView):
         ).first()
         if not product:
             raise ErrorException(
-                detail="No product found with the given ID.",
+                detail="No product matching the given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -94,6 +96,7 @@ class CartDetailView(APIView):
 class CartItemDetailView(APIView):
     permission_classes = [IsCustomer]
 
+    @extend_schema(**get_cart_item_schema)
     def get(self, request, cart_item_id):
         """
         Gets a specific item in the cart.
@@ -120,10 +123,10 @@ class CartItemDetailView(APIView):
         ).to_dict(), status=status.HTTP_200_OK)
 
  
-    @extend_schema(**update_cart_schema)
+    @extend_schema(**update_cart_item_schema)
     def post(self, request, cart_item_id):
         """
-        Updates quantity of an item already on the Cart.
+        Increment/decrement the quantity of item in the cart by 1.
         """
         try:
             cart = request.user.cart
@@ -158,7 +161,7 @@ class CartItemDetailView(APIView):
             data=CartItemSerializer(item).data
         ).to_dict(), status=status.HTTP_200_OK)
 
-
+    @extend_schema(**delete_cart_item_schema)
     def delete(self, request, cart_item_id):
         """
         Deletes an item from the cart.

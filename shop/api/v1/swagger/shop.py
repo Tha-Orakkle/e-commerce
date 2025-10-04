@@ -2,9 +2,10 @@ from drf_spectacular.utils import OpenApiResponse
 
 from common.swagger import (
     polymorphic_response,
-    make_bad_request_error_schema_response,
+    build_invalid_id_error,
+    make_error_schema_response,
     make_not_found_error_schema_response,
-    make_forbidden_error_schema_response,
+    ForbiddenSerializer,
     make_success_schema_response,
     make_unauthorized_error_schema_response,
     build_error_schema_examples,
@@ -31,7 +32,7 @@ shop_list_schema = {
     }
 }
 
-errors = {'Invalid_uuid': 'Invalid shop id.'}
+errors = {**build_invalid_id_error('shop')}
 patch_shop_errors = {
     'validation_error': {
         'name': [
@@ -58,9 +59,9 @@ get_shop_schema = {
             "Shop retrieved successfully.",
             ShopSerializer
         ),
-        400: make_bad_request_error_schema_response(errors, 'invalid_uuid'),
+        400: make_error_schema_response(errors),
         401: make_unauthorized_error_schema_response(),
-        403: make_forbidden_error_schema_response(),
+        403: ForbiddenSerializer,
         404: make_not_found_error_schema_response(['shop']),
     }
 }
@@ -87,7 +88,7 @@ patch_shop_schema = {
             ]
         ),
         401: make_unauthorized_error_schema_response(),
-        403: make_forbidden_error_schema_response(),
+        403: ForbiddenSerializer,
         404: make_not_found_error_schema_response(['shop']),
     }
 }
@@ -102,9 +103,9 @@ delete_shop_schema = {
     'request': None,
     'responses': {
         204: {},
-        400: make_bad_request_error_schema_response(errors, 'invalid_uuid'),
+        400: make_error_schema_response(errors, 'invalid_uuid'),
         401: make_unauthorized_error_schema_response(),
-        403: make_forbidden_error_schema_response(),
+        403: ForbiddenSerializer,
         404: make_not_found_error_schema_response(['shop'])
     }
 }

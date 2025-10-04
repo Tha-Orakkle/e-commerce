@@ -4,7 +4,7 @@ from address.api.v1.serializers import StateSerializer
 from common.swagger import (
     make_success_schema_response,
     make_unauthorized_error_schema_response,
-    make_bad_request_error_schema_response
+    make_error_schema_response
 )
 
 # SWAGGER SCHEMAS FOR STATE
@@ -29,7 +29,7 @@ get_states_schema = {
         200: make_success_schema_response(
             "States retrieved successfully.",
             StateSerializer, many=True),
-        400: make_bad_request_error_schema_response(errors),
+        400: make_error_schema_response(errors),
         401: make_unauthorized_error_schema_response()
     }
 }
