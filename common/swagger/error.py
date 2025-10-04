@@ -178,12 +178,6 @@ def make_unauthorized_error_schema_response():
     }
     return get_error_response_with_examples(examples=errors, code='unauthorized_request')
 
-
-# for forbidden request 403
-def make_forbidden_error_schema_response():
-    return ForbiddenSerializer
-
-
 # for not found errors 404
 def build_not_found_error_message(obj):
     return f'No {obj.lower()} matching the given id found.'

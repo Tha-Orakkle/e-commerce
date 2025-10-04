@@ -10,7 +10,6 @@ from .error import (
     build_error_schema_examples, # 400 example maker
     build_error_schema_examples_with_errors_field, # 400 with errors example maker
     make_unauthorized_error_schema_response, #401
-    make_forbidden_error_schema_response, # 403
     make_not_found_error_schema_response, # 404
     build_invalid_id_error
     
@@ -35,6 +34,5 @@ __all__ = [
     'make_not_found_error_schema_response',
     'make_error_schema_response',
     'make_error_schema_response_with_errors_field',
-    'make_forbidden_error_schema_response',
     'build_invalid_id_error'
 ]
