@@ -1,21 +1,16 @@
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 from rest_framework import serializers
 
 from common.swagger import (
-    get_success_response,
-    get_error_response,
-    get_error_response_with_examples
+    ForbiddenSerializer,
+    make_success_schema_response,
+    make_bad_request_error_schema_response,
+    make_not_found_error_schema_response,
+    make_unauthorized_error_schema_response,
+    build_invalid_id_error
 )
+from payment.api.v1.serializers import PaymentSerializer
 
-# SWAGGER SCHEMAS FOR PAYMENT
-class InitializePaymentRequestData(serializers.Serializer):
-    """
-    Serializer for the request data to initialize a payment.
-    """
-    order = serializers.UUIDField(
-        help_text="The ID of the order to initialize payment for.",
-        required=True
-    )
+
 
 class InitializePaymentResponseData(serializers.Serializer):
     """
@@ -29,51 +24,50 @@ class InitializePaymentResponseData(serializers.Serializer):
 
 # schemas
 initailze_error_examples = {
-    'Invalid order id': 'Invalid order id.',
-    'Payment method not digital': 'Cash payment method does not require Paystack initialization.',
-    'payment already verified': 'Payment has already been verified.'
+    **build_invalid_id_error('order group'),
+    'not_allowed': 'Cash payment method does not require Paystack initialization.',
+    'invalid_status': 'Only pending order groups can be paid for.',
+    'duplicate_transaction': 'Payment has already been verified',
+    'paystack_error': 'Payment request failed; Paystack error.',
 }
 
 initialize_payment_schema = {
     'summary': 'Initialize a payment',
-    'description': 'Initializes a payment for an order. \
-        The order ID will be passed as a request data. \
+    'description': 'Initializes a payment for an order group. \
+        The order group ID will be passed as part of the url path. \
         The order must be one with a pending status and a \'digital\' payment method.',
     'tags': ['Payment'],
     'operation_id': 'initialize_payment',
-    'request': InitializePaymentRequestData,
+    'request': None,
     'responses': {
-        200: get_success_response(
+        200: make_success_schema_response(
             'Payment initialized successfully.',
-            200,
-            InitializePaymentResponseData()
-        ),
-        400: get_error_response_with_examples(examples=initailze_error_examples),
-        401: get_error_response_with_examples(code=401),
-        404: get_error_response('Order not found.', 404)
+            InitializePaymentResponseData),
+        400: make_bad_request_error_schema_response(initailze_error_examples),
+        401: make_unauthorized_error_schema_response(),
+        403: ForbiddenSerializer,
+        404: make_not_found_error_schema_response(['order group'])
     }
 }
 
 
+vf_errors = {
+    'not_found': 'No payment matching the given reference found.'
+}
+
 verify_payment_schema = {
     'summary': 'Verify a payment',
     'description': 'Verifies a payment using the payment reference. \
-        The payment reference will be passed as a query string parameter.',
+        The payment reference will be passed as part of the url path.',
     'tags': ['Payment'],
     'operation_id': 'verify_payment',
-    'parameters': [
-        OpenApiParameter(
-            name='reference',
-            type=OpenApiTypes.STR,
-            description="The payment reference to verify.",
-            location=OpenApiParameter.QUERY,
-            required=True
-        )
-    ],
     'request': None,
     'responses': {
-        200: get_success_response('Payment verified.'),
-        401: get_error_response_with_examples(code=401),
-        404: get_error_response('Payment not found.', 404)
+        200: make_success_schema_response(
+            'Payment is (not) verified.', 
+            PaymentSerializer),
+        401: make_unauthorized_error_schema_response(),
+        403: ForbiddenSerializer,
+        404: make_bad_request_error_schema_response(vf_errors)
     }
 }

@@ -2,7 +2,6 @@ from drf_spectacular.utils import extend_schema
 from django.conf import settings
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 import requests
@@ -10,6 +9,7 @@ import uuid
 
 from common.cores.validators import validate_id
 from common.exceptions import ErrorException
+from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
 from payment.models import Payment
 from payment.api.v1.swagger import initialize_payment_schema
@@ -19,7 +19,7 @@ class InitializePaystackView(APIView):
     """
     Initialize Payment (Paystack).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsCustomer]
     
     @extend_schema(**initialize_payment_schema)
     def post(self, request, order_group_id):
@@ -43,7 +43,7 @@ class InitializePaystackView(APIView):
         if o_grp.status != 'PENDING':
             raise ErrorException(
                 detail="Only pending order groups can be paid for.",
-                code='invalid_order_group_status',
+                code='invalid_status',
             )
         
         # create payment
