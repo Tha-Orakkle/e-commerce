@@ -1,10 +1,9 @@
 from common.swagger import (
-    get_error_response_with_examples,
     make_success_schema_response,
     make_unauthorized_error_schema_response,
-    make_forbidden_error_schema_response
 )
 from address.api.v1.serializers import CountrySerializer
+
 
 # SWAGGER SCHEMAS FOR COUNTRY
 get_countries_schema = {
@@ -19,5 +18,4 @@ get_countries_schema = {
             CountrySerializer, many=True),
         401: make_unauthorized_error_schema_response(),
     }
-
 }

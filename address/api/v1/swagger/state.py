@@ -32,5 +32,4 @@ get_states_schema = {
         400: make_bad_request_error_schema_response(errors),
         401: make_unauthorized_error_schema_response()
     }
-
 }

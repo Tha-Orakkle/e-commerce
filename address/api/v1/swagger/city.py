@@ -1,11 +1,11 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 
+from address.api.v1.serializers import CitySerializer
 from common.swagger import (
     make_success_schema_response,
     make_bad_request_error_schema_response,
     make_unauthorized_error_schema_response
 )
-from address.api.v1.serializers import CitySerializer
 
 # SWAGGER SCHEMAS FOR CITY
 
