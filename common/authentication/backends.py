@@ -1,10 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
-
 
 
 class CookieJWTAuthentication(JWTAuthentication):
@@ -30,23 +28,6 @@ class CookieJWTAuthentication(JWTAuthentication):
             raise AuthenticationFailed(err)
         return self.get_user(validated_token), validated_token
 
-
-class CookieJWTAuthenticationScheme(OpenApiAuthenticationExtension):
-    target_class = "common.backends.authentication.CookieJWTAuthentication"
-    name = "CookieJWTAuthentication"
-
-    def get_security_definition(self, auto_schema):
-        """
-        defines the security details for the API docs
-        """
-        view = auto_schema.view
-        return {
-            'type': 'apiKey',
-            'in': 'cookie',
-            'name': 'access_token',
-            'description': 'JWT access token stored in http-only cookie'
-        }
-    
 
 class AdminUserBackend(ModelBackend):
     """

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.google',
     
     # local_apps
+    'common',
     'address',
     'cart',
     'order',
