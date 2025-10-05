@@ -13,8 +13,9 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.utils.bools import parse_bool
 from common.utils.pagination import Pagination
 from order.api.v1.swagger import (
-    admin_update_order_status_schema,
-    get_orders_schema
+    get_shop_orders_schema,
+    get_shop_order_schema,
+    update_shop_order_status_schema
 )
 from order.api.v1.serializers import OrderSerializerForShop
 from order.api.v1.state_machine import OrderStateMachine
@@ -47,7 +48,7 @@ class ShopOrderView(APIView):
         return shop.orders.all()            
 
 
-    @extend_schema(**get_orders_schema)
+    @extend_schema(**get_shop_orders_schema)
     def get(self, request):
         queryset = self.get_queryset()
 
@@ -82,6 +83,7 @@ class ShopOrderDetailView(APIView):
     
         return shop.orders.filter(id=o_id).first()
     
+    @extend_schema(**get_shop_order_schema)
     def get(self, request, order_id):
         """
         Get a specific order from a shop matching the given order ID.
@@ -107,7 +109,7 @@ class ShopOrderStatusUpdateView(APIView):
     """
     permission_classes = [IsStaff]
 
-    @extend_schema(**admin_update_order_status_schema)
+    @extend_schema(**update_shop_order_status_schema)
     def post(self, request, order_id):
         """
         Update the status of an order.

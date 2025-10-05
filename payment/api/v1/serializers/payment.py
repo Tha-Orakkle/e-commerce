@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 from rest_framework import serializers
 
 from payment.models import Payment
@@ -9,6 +10,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = ['reference', 'verified', 'amount', 'paid_at']
         
+    @extend_schema_field(OpenApiTypes.FLOAT)
     def get_amount(self, obj):
         """
         Returns the amount in Naira

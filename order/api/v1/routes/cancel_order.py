@@ -1,27 +1,27 @@
-from django.db import transaction
 from datetime import timedelta
-from drf_spectacular.utils import extend_schema
+from django.db import transaction
 from django.utils.timezone import now
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.cores.validators import validate_id
-from common.permissions import IsCustomer
 from common.exceptions import ErrorException
+from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
+from order.api.v1.swagger import cancel_customer_order_group_schema
 from order.models import Order
-from order.api.v1.swagger import cancel_order_schema
 from order.tasks import restock_inventory_with_cancelled_order
 
 
 class CancelCustomerOrderGroupView(APIView):
     permission_classes = [IsCustomer]
 
-    @extend_schema(**cancel_order_schema)
+    @extend_schema(**cancel_customer_order_group_schema)
     def post(self, request, order_group_id):
         """
-    Cancel an order by a user as long as it has not been
+        Cancel an order group by a user as long as it has not been
         processed and not more than 4 hours.
         """
         validate_id(order_group_id, 'order group')
@@ -39,7 +39,7 @@ class CancelCustomerOrderGroupView(APIView):
         if o_group.created_at < now() - timedelta(hours=4):
             raise ErrorException(
                 detail="Order cannot be cancelled after 4 hours of creation.",
-                code='cancellation_time_expired',
+                code='cancellation_time_expired'
             )
         with transaction.atomic():
             n = now()

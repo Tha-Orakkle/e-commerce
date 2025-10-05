@@ -14,15 +14,15 @@ from order.api.v1.serializers import (
     OrderGroupListSerializer
 )
 from order.api.v1.swagger import (
-    get_user_orders_schema,
-    get_user_order_schema
+    get_order_groups_schema,
+    get_order_group_schema
 )
 
 
 class CustomerOrderGroupListView(APIView):
     permission_classes = [IsCustomer]
 
-    @extend_schema(**get_user_orders_schema)
+    @extend_schema(**get_order_groups_schema)
     def get(self, request):
         """
         Get a list of user's order groups 
@@ -40,7 +40,7 @@ class CustomerOrderGroupListView(APIView):
 class CustomerOrderGroupView(APIView):
     permission_classes = [IsCustomer]
 
-    @extend_schema(**get_user_order_schema)
+    @extend_schema(**get_order_group_schema)
     def get(self, request, order_group_id):
         """
         Get a specific order group.
