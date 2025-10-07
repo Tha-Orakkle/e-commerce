@@ -20,15 +20,18 @@ from user.api.v1.serializers import (
 )
 from user.api.v1.swagger import (
     shop_staff_creation_schema,
-    get_shop_staff_memeber_schema,
-    get_shop_staff_schema,
+    get_shop_staff_members_schema,
+    get_shop_staff_member_schema,
+    patch_shop_staff_member_schema,
+    delete_shop_staff_member_schema
+    
 )
 
 
 class ShopStaffListCreateView(APIView):
     permission_classes = [IsShopOwner]
 
-    @extend_schema(**get_shop_staff_schema)
+    @extend_schema(**get_shop_staff_members_schema)
     def get(self, request, shop_id):
         """
         Gets all the staff members of a shop.
@@ -38,7 +41,7 @@ class ShopStaffListCreateView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop code.",
+                detail="No shop matching the given shop ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -52,7 +55,7 @@ class ShopStaffListCreateView(APIView):
         data = paginator.get_paginated_response(serializers.data).data
         return Response(
             SuccessAPIResponse(
-                message="Shop staff retrieved successfully.",
+                message="Shop staff members retrieved successfully.",
                 data=data
             ).to_dict(), status=status.HTTP_200_OK
         )
@@ -66,7 +69,7 @@ class ShopStaffListCreateView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop code.",
+                detail="No shop matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -102,7 +105,7 @@ class ShopStaffDetailView(APIView):
             return [IsStaff()]
         return [perm() for perm in self.permission_classes]
 
-    @extend_schema(**get_shop_staff_memeber_schema)
+    @extend_schema(**get_shop_staff_member_schema)
     def get(self, request, shop_id, staff_id):
         """
         Get a specific staff member of a specific shop.
@@ -112,14 +115,14 @@ class ShopStaffDetailView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop code.",
+                detail="No shop matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
         staff = shop.get_staff_member(staff_id)
         if not staff:
             raise ErrorException(
-                detail="No staff memnber found with the given ID.",
+                detail="No staff member matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -136,6 +139,7 @@ class ShopStaffDetailView(APIView):
             ).to_dict(), status=status.HTTP_200_OK
         )
 
+    @extend_schema(**patch_shop_staff_member_schema)
     def patch(self, request, shop_id, staff_id):
         """
         Update a staff member staff handle.
@@ -146,14 +150,14 @@ class ShopStaffDetailView(APIView):
         shop = Shop.objects.filter(code=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop code.",
+                detail="No shop matching the given shop ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
         staff = shop.get_staff_member(staff_id)
         if not staff:
             raise ErrorException(
-                detail="No staff memnber found with the given ID.",
+                detail="No staff member matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -183,7 +187,9 @@ class ShopStaffDetailView(APIView):
             ).to_dict(),
             status=status.HTTP_200_OK
         )
-
+        
+        
+    @extend_schema(**delete_shop_staff_member_schema)
     def delete(self, request, shop_id, staff_id):
         """
         Delete a staff member.

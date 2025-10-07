@@ -7,6 +7,16 @@ from common.swagger import (
     ForbiddenSerializer
 )
 
+from common.swagger import (
+    make_error_schema_response,
+    make_error_schema_response_with_errors_field,
+    make_success_schema_response,
+    make_not_found_error_schema_response,
+    make_not_found_error_schema_response,
+    make_unauthorized_error_schema_response,
+    
+)
+
 from user.api.v1.serializers import (
     BaseUserCreationSerializer,
     CustomerRegistrationSerializer,
@@ -178,16 +188,15 @@ shop_staff_creation_schema = {
     'tags': ['Shop-Staff'],
     'request': CreateStaffRequestData,
     'responses': {
-        200: get_success_response(
-            message="Shop staff member creation successful.",
-            data_serializer=UserSerializer()
-        ),
-        400: get_error_response_for_post_requests(
+        200: make_success_schema_response(
+            "Shop staff member creation successful.",
+            UserSerializer),
+        400: make_error_schema_response_with_errors_field(
             message="Shop staff member creation failed.",
             errors=staff_creation_errors
         ),
-        401: get_error_response_with_examples(),
-        403: ForbiddenSerializer
+        401: make_unauthorized_error_schema_response(),
+        403: ForbiddenSerializer,
+        404: make_not_found_error_schema_response(['shop'])
     }
 }
-

@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -7,11 +8,13 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from common.permissions import IsCustomerOrShopOwner
 from user.api.v1.serializers import UserUpdateSerializer, UserSerializer
+from user.api.v1.swagger import patch_user_schema
 from user.tasks import send_verification_mail_task
 
 class UpdateUserView(APIView):
     permission_classes = [IsCustomerOrShopOwner]
     
+    @extend_schema(**patch_user_schema)
     def patch(self, request):
         """
         Update a user's (customer or shopowner) email or staff handle

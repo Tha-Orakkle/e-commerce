@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.views import APIView
@@ -9,8 +10,10 @@ from common.exceptions import ErrorException
 from common.permissions import IsSuperUser, IsShopOwner
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.pagination import Pagination
-from user.api.v1.serializers import (
-    UserSerializer
+from user.api.v1.serializers import UserSerializer
+from user.api.v1.swagger import (
+    get_shopowner_schema,
+    get_shopowners_schema
 )
 
 User = get_user_model()
@@ -19,6 +22,7 @@ User = get_user_model()
 class ShopOwnerListView(APIView):
     permission_classes = [IsSuperUser]
 
+    @extend_schema(**get_shopowners_schema)
     def get(self, request):
         """
         Gets a paginated list of all shopowners.
@@ -31,7 +35,7 @@ class ShopOwnerListView(APIView):
         data = paginator.get_paginated_response(serializers.data).data
         return Response(
             SuccessAPIResponse(
-                message="Shop owners retrieval successful.",
+                message="Shop owners retrieved successfully.",
                 data=data
             ).to_dict(),
             status=status.HTTP_200_OK
@@ -41,6 +45,7 @@ class ShopOwnerListView(APIView):
 class ShopOwnerDetailView(APIView):
     permission_classes = [IsShopOwner]
 
+    @extend_schema(**get_shopowner_schema)
     def get(self, request, shopowner_id):
         """
         Get a shop owner.
@@ -58,7 +63,7 @@ class ShopOwnerDetailView(APIView):
             raise PermissionDenied()
         return Response(
             SuccessAPIResponse(
-                message="Shop owner retrival successful.",
+                message="Shop owner retrived successfully.",
                 data=UserSerializer(shop_owner).data
             ).to_dict(),
             status=status.HTTP_200_OK

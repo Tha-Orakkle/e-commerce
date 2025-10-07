@@ -12,9 +12,9 @@ from common.permissions import IsCustomer, IsSuperUser
 from common.utils.pagination import Pagination
 from user.api.v1.serializers import UserSerializer
 from user.api.v1.swagger import (
-    delete_user_schema,
-    get_user_schema,
-    get_users_schema,
+    delete_customer_schema,
+    get_customer_schema,
+    get_customers_schema,
 )
 from user.models import User
 
@@ -22,7 +22,7 @@ from user.models import User
 class CustomerListView(APIView):
     permission_classes = [IsSuperUser]
 
-    @extend_schema(**get_users_schema)
+    @extend_schema(**get_customers_schema)
     def get(self, request):
         """
         Gets all customers.
@@ -44,7 +44,7 @@ class CustomerListView(APIView):
 class CustomerDetailView(APIView):
     permission_classes = [IsCustomer]
 
-    @extend_schema(**get_user_schema)
+    @extend_schema(**get_customer_schema)
     def get(self, request, customer_id):
         """
         Gets a specific user.
@@ -53,7 +53,7 @@ class CustomerDetailView(APIView):
         user = User.objects.filter(id=customer_id, is_customer=True).first()
         if not user:
             raise ErrorException(
-                detail="No customer found with the given ID.",
+                detail="No customer matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -67,7 +67,7 @@ class CustomerDetailView(APIView):
             ).to_dict()
         )
 
-    @extend_schema(**delete_user_schema)
+    @extend_schema(**delete_customer_schema)
     def delete(self, request, customer_id):
         """
         Delete a customer.
@@ -76,7 +76,7 @@ class CustomerDetailView(APIView):
         user = User.objects.filter(id=customer_id, is_customer=True).first()
         if not user:
             raise ErrorException(
-                detail="No customer found with the given ID.",
+                detail="No customer mactching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
