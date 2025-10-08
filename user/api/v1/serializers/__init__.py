@@ -1,7 +1,7 @@
 from .base import BaseUserCreationSerializer
 from .staff import ShopStaffCreationSerializer, StaffUpdateSerializer
 from .profile import UserProfileSerializer
-from .password import PasswordUpdateSerializer
+from .password import PasswordUpdateSerializer, ResetPasswordConfirmSerializer
 from .registration import (
     ShopOwnerRegistrationSerializer,
     CustomerRegistrationSerializer

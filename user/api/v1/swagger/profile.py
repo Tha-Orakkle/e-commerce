@@ -1,33 +1,15 @@
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
-from phonenumber_field.modelfields import PhoneNumberField
 from rest_framework import serializers
 
 from common.swagger import (
-    get_error_response,
-    get_error_response_with_examples,
-    get_success_response,
-    ForbiddenSerializer
-)    
+    ForbiddenSerializer,
+    make_success_schema_response,
+    make_unauthorized_error_schema_response,
+    make_error_schema_response,
+    make_error_schema_response_with_errors_field,
+)
+
 from user.api.v1.serializers import UserProfileSerializer
 
-
-# SWAGGER SCHEMAS FOR USER PROFILES
-class ProfileDataRequest(serializers.Serializer):
-    """
-    Serializer for user profile requests.
-    """
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
-    telephone = PhoneNumberField()
-
-
-class ProfileDataError(serializers.Serializer):
-    """
-    Serializer for the error response when updating a user profile.
-    """
-    first_name = serializers.ListField(child=serializers.CharField(), required=False)
-    last_name = serializers.ListField(child=serializers.CharField(), required=False)
-    telephone = serializers.ListField(child=serializers.CharField(), required=False)
 
 class ProfileCategoryRequestData(serializers.Serializer):
     """
@@ -37,46 +19,67 @@ class ProfileCategoryRequestData(serializers.Serializer):
     categories = serializers.ListField(child=serializers.CharField(default="category"))
 
 
+# UPDATE PROFILE DATA SCHEMA
+no_profile_error = {
+    'not_found': 'User has no profile.',
+}
 
-# schemas
+update_profile_erorrs = {
+    'validation_error': {
+        'first_name': [
+            'This field may not be blank',
+            'Ensure this field has at least 2 characters.',
+            'Ensure this field has no more than 30 characters.'
+        ],
+        'last_name': [
+            'This field may not be blank',
+            'Ensure this field has at least 2 characters.',
+            'Ensure this field has no more than 30 characters.'
+        ],
+        'telephone': ['Enter a valid phone number.']
+    },
+}
+
+
 update_user_profile_schema = {
     'summary': 'Update a user profile',
-    'description': 'Accepts data to update the users profile. \
-        Users can only update their profile',
+    'description': ' Update a user\'s profile data. Target user is the authenticated user',
     'tags': ['User'],
     'operation_id': 'update_user_profile',
-    'request': ProfileDataRequest,
+    'request': UserProfileSerializer,
     'responses': {
-        200: get_success_response('User profile updated successfully.', 200, UserProfileSerializer()),
-        400: get_error_response('User profile update failed.', 400, ProfileDataError()),
-        401: get_error_response_with_examples(code=401),
-        404: get_error_response('User has no profile', 404)
+        200: make_success_schema_response(
+            "User profile updated successfully.",
+            UserProfileSerializer),
+        400: make_error_schema_response_with_errors_field(
+            message="user profile update failed.",
+            errors=update_profile_erorrs
+        ),
+        401: make_unauthorized_error_schema_response(),
+        404: make_error_schema_response(errors=no_profile_error)
     }
 }
 
-# add 'action' query parameter to the request
-user_category_404_examples = {
-    'Missing profile': 'User has no profile',
-    'Missing product': 'Product not found'
+
+# UPDATE USER PREFERRED CATEGORY SCHEMA
+category_errors = {
+    'missing_categories': 'Please provide a list of categories in the \'categories\' field.',
+    'invalid_action': 'Enter a valid action: \'add\' or \'remove\'.'
 }
-user_profile_category_add_or_remove_schema = {
+
+update_user_preferred_category_schema = {
     'summary': 'Update a user preferred categories',
-    'description': 'Collects a list categories and adds or removes them from user\'s preferred categories.',
+    'description': 'Collects a list categories and adds or removes them from \
+        user\'s preferred categories. Takes operation to be performed in the request body.',
     'tags': ['User-Category'],
     'operation_id': 'user_preferred_categories',
     'request': ProfileCategoryRequestData,
-    'parameters': [OpenApiParameter(
-        name='action',
-        type=OpenApiTypes.STR,
-        description="Could be 'add' or 'remove'",
-        location=OpenApiParameter.QUERY,
-        required=True
-    )],
     'responses': {
-        200: get_success_response("Product categories updated successfully.", 200),
-        400: get_error_response("Invalid action.", 400),
-        401: get_error_response_with_examples(code=401),
+        200: make_success_schema_response(
+            "User preferred categories updated successfully."),
+        400: make_error_schema_response(errors=category_errors),
+        401: make_unauthorized_error_schema_response(),
         403: ForbiddenSerializer,
-        404: get_error_response_with_examples(user_category_404_examples)
+        404: make_error_schema_response(errors=no_profile_error)
     }
 }

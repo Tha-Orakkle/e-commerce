@@ -1,14 +1,13 @@
 from common.swagger import (
-    get_success_response,
-    get_error_response_with_examples
+    make_success_schema_response,
+    make_error_schema_response
 )
 
 
-# SWAGGER SCHEMA FOR TOKEN REFRESH
-token_refresh_error_examples = {
+# TOKEN REFRESH SCHEMA
+token_refresh_errors = {
     'Missing refresh token': 'Refresh token was not provided.',
-    'Invalid refresh token': 'Invalid refresh token.'
-
+    'Invalid refresh token': 'Token is invalid or expired.',
 }
 
 token_refresh_schema = {
@@ -20,7 +19,10 @@ token_refresh_schema = {
     'operation_id': 'token_refresh',
     'request': None,
     'responses': {
-        200: get_success_response('Token refreshed successfully', 200),
-        400: get_error_response_with_examples(examples=token_refresh_error_examples)
+        200: make_success_schema_response("Token refreshed successfully"),
+        400: make_error_schema_response(
+            errors=token_refresh_errors,
+            code='authentication_error'
+        )
     }
 }

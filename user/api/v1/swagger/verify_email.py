@@ -1,23 +1,26 @@
 from common.swagger import (
-    get_error_response_with_examples,
-    get_success_response
+    make_error_schema_response,
+    make_success_schema_response
 )
 
 
-# SWAGGER SCHEMAS FOR VERIFY EMAIL ADDRESS
+# VERIFY EMAIL ADDRESS SCHEMA
 
-# schema
-verify_email_error_examples = {
+verify_email_errors = {
     'Missing token': 'Token not provided',
     'Invalid token': 'Invalid or expired token.'
 }
+
 verify_email_schema = {
     'summary': 'Verify Email',
     'description': 'Verifies the email address using a token.',
     'tags': ['Auth'],
     'request': None,
     'responses': {
-        200: get_success_response('Email verified successfully.', 200),
-        400: get_error_response_with_examples(examples=verify_email_error_examples)
+        200: make_success_schema_response("Email verified successfully."),
+        400: make_error_schema_response(
+            errors=verify_email_errors,
+            code='verification_error'
+        )
     }
 }

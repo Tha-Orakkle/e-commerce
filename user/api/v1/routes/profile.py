@@ -11,7 +11,7 @@ from user.models import User
 from user.api.v1.serializers import UserProfileSerializer
 from user.api.v1.swagger import (
     update_user_profile_schema,
-    user_profile_category_add_or_remove_schema
+    update_user_preferred_category_schema
 )
 
 
@@ -50,7 +50,7 @@ class UserProfileView(APIView):
 class UserProfileCategoryView(APIView):
     permission_classes = [IsCustomer]
 
-    @extend_schema(**user_profile_category_add_or_remove_schema)
+    @extend_schema(**update_user_preferred_category_schema)
     def post(self, request):
         """
         Add category to your preferences. This will be used for
@@ -81,5 +81,5 @@ class UserProfileCategoryView(APIView):
                 code='invalid_action',
             )
         return Response(SuccessAPIResponse(
-            message='User preferred categories updated.'
+            message='User preferred categories updated successfully.'
         ).to_dict(), status=status.HTTP_200_OK)

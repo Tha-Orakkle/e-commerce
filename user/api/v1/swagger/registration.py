@@ -1,29 +1,19 @@
 from rest_framework import serializers
 
 from common.swagger import (
-    get_success_response,
-    get_error_response_with_examples,
-    get_error_response_for_post_requests,
-    ForbiddenSerializer
-)
-
-from common.swagger import (
-    make_error_schema_response,
+    ForbiddenSerializer,
     make_error_schema_response_with_errors_field,
     make_success_schema_response,
     make_not_found_error_schema_response,
     make_not_found_error_schema_response,
-    make_unauthorized_error_schema_response,
-    
+    make_unauthorized_error_schema_response,   
 )
-
+from shop.api.v1.serializers import ShopSerializer
 from user.api.v1.serializers import (
     BaseUserCreationSerializer,
     CustomerRegistrationSerializer,
     ShopOwnerRegistrationSerializer,
-    ShopStaffCreationSerializer
 )
-from shop.api.v1.serializers import ShopSerializer
 from user.api.v1.serializers import UserSerializer
 
 # SWAGGER SCHEMAS FOR SHOP OWNERS REGISTRATION
@@ -32,8 +22,6 @@ class CreateStaffRequestData(BaseUserCreationSerializer):
     staff_handle = serializers.CharField(min_length=2, max_length=20)
 
 
-# error fields
-# invalid_credentials = {'non_field_errors': ['Invalid credentials matching any customer.']}
 email = [
     'This field is required',
     'This field may not be blank.',
@@ -138,29 +126,28 @@ staff_creation_errors = {
     }
 }
 
-
-
-
-# schemas
+# SHOP OWNER REGISTRATION SCHEMA
 
 shopowner_registration_schema = {
     'summary': 'Register as a shop owner.',
-    'description': 'Create an account for a seller.',
+    'description': 'Create an account for a seller and returns the shop data.',
     'operation_id': 'shopowner_registration',
     'tags': ['Auth'],
     'request': ShopOwnerRegistrationSerializer,
     'responses': {
-        200: get_success_response(
-            message="Shop owner registration successful.",
-            data_serializer=ShopSerializer()
+        200: make_success_schema_response(
+            "Shop owner registration successful.",
+            ShopSerializer
         ),
-        400: get_error_response_for_post_requests(
+        400: make_error_schema_response_with_errors_field(
             message="Shop owner registration failed.",
             errors=shopowner_registration_errors
         )
         
     }
 }
+
+# CUSTOMER REGISTRATION SCHEMA
 
 customer_registration_schema = {
     'summary': 'Register as a customer.',
@@ -169,17 +156,19 @@ customer_registration_schema = {
     'tags': ['Auth'],
     'request': CustomerRegistrationSerializer,
     'responses': {
-        200: get_success_response(
-            message="Customer registration successful.",
-            data_serializer=UserSerializer()
+        200: make_success_schema_response(
+            "Customer registration successful.",
+            UserSerializer
         ),
-        400: get_error_response_for_post_requests(
+        400: make_error_schema_response_with_errors_field(
             message="Customer registration failed.",
             errors=customer_registration_errors
         )
         
     }
 }
+
+# SHOP STAFF CREATION SCHEMA
 
 shop_staff_creation_schema = {
     'summary': 'Create a staff for a shop.',

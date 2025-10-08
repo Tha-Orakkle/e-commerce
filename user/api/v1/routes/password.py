@@ -1,12 +1,12 @@
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
+from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from drf_spectacular.utils import extend_schema
 
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
@@ -14,8 +14,13 @@ from common.permissions import IsShopOwner
 from common.cores.validators import validate_id
 from shop.models import Shop
 from user.models import User
-from user.api.v1.serializers import PasswordUpdateSerializer
-from user.api.v1.swagger import forgot_password_schema, reset_password_confirm_schema
+from user.api.v1.serializers import PasswordUpdateSerializer, ResetPasswordConfirmSerializer
+from user.api.v1.swagger import (
+    forgot_password_schema,
+    reset_password_confirm_schema,
+    update_password_schema,
+    update_staff_password_by_shopowner_schema
+)
 from user.tasks import send_password_reset_mail_task
 
 class ForgotPasswordView(APIView):
@@ -30,8 +35,10 @@ class ForgotPasswordView(APIView):
         email = request.data.get('email')
         if not email:
             raise ErrorException(
-                detail="Email address is required.",
-                code='validation_error')
+                detail="Could not generate password reset link.",
+                code='validation_error',
+                errors={'email': ['This field is required.']}
+            )
         user = User.objects.filter(email=email).first()
         if user:
             token_generator = PasswordResetTokenGenerator()
@@ -45,53 +52,38 @@ class ForgotPasswordView(APIView):
                 message="Password reset link sent.",
             ).to_dict(), status=status.HTTP_202_ACCEPTED
         )
-    
+
 
 class ResetPasswordConfirmView(APIView):
-    """
-    Confirms the password reset link and resets the password.
-    """
     authentication_classes = []
-
+    
     @extend_schema(**reset_password_confirm_schema)
     def post(self, request):
-        uid = request.query_params.get('uid')
-        token = request.query_params.get('token')
-        new_password = request.data.get('new_password')
-        confirm_password = request.data.get('confirm_password')
-        exc = ErrorException(
-            detail='Password reset failed.',
-            code='reset_failed',
-            errors = {'link': ['Invalid or expired password reset link.']}
+        serializer = ResetPasswordConfirmSerializer(
+            data=request.data,
+            context = {'request': request}
         )
-        if not uid or not token:
-            raise exc
-        if not new_password or not confirm_password:
-            exc.errors = {'password': ['Password and confirm password fields are required.']}
-            raise exc
-        if new_password != confirm_password:
-            exc.errors =  {'confirm_password': ['Passwords do not match.']}
-            raise exc
         try:
-            email = force_str(urlsafe_base64_decode(uid))
-            user = User.objects.get(email=email)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            raise exc
-        token_generator = PasswordResetTokenGenerator()
-        if not token_generator.check_token(user, token):
-            raise exc
-        user.set_password(new_password)
-        user.save()
-        return Response(
-            SuccessAPIResponse(
-                message="Password reset successfully."
-            ).to_dict(), status=status.HTTP_200_OK
-        )
-      
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        except ValidationError as e:
+            raise ErrorException(
+                detail="Invalid or missing input data.",
+                code='validation_error',
+                errors=e.detail
+            )
+        except ErrorException as ee:
+            raise ee
         
+        return Response(SuccessAPIResponse(
+            message="Password has been reset successfully."
+        ).to_dict(), status=status.HTTP_200_OK)
+
+
 class UpdatePasswordView(APIView):
     permission_classes = [IsAuthenticated]
     
+    @extend_schema(**update_password_schema)
     def patch(self, request):
         serializer = PasswordUpdateSerializer(
             data=request.data,
@@ -114,6 +106,7 @@ class UpdatePasswordView(APIView):
 class UpdateStaffPasswordByShopOwnerView(APIView):
     permission_classes = [IsShopOwner]
     
+    @extend_schema(**update_staff_password_by_shopowner_schema)
     def patch(self, request, shop_id, staff_id):
         validate_id(shop_id, 'shop')
         validate_id(staff_id, 'staff')
@@ -121,14 +114,14 @@ class UpdateStaffPasswordByShopOwnerView(APIView):
         user = request.user
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop code.",
+                detail="No shop matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
         staff = shop.get_staff_member(staff_id)
         if not staff:
             raise ErrorException(
-                detail="No staff member found with the given ID.",
+                detail="No staff member matching given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )

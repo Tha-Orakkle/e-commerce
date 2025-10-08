@@ -5,14 +5,12 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.cores.validators import validate_id
 from common.exceptions import ErrorException
 from common.permissions import IsStaff, IsShopOwner
-from common.cores.validators import validate_id
-from common.permissions import IsShopOwner
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.pagination import Pagination
 from shop.models import Shop
-from user.models import User
 from user.api.v1.serializers import (
     UserSerializer,
     ShopStaffCreationSerializer,

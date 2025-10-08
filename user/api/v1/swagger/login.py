@@ -1,23 +1,20 @@
 from rest_framework import serializers
 
 from common.swagger import (
-    get_error_response_for_post_requests,
-    get_success_response
+    make_error_schema_response_with_errors_field,
+    make_success_schema_response,
 )
 from user.api.v1.serializers import UserSerializer
 
 
-# SWAGGER SCHEMAS FOR ADMIN USERS
-
-class AdminLoginRequestData(serializers.Serializer):
+class StaffLogInRequestData(serializers.Serializer):
     """
     Serializer for admin user login request.
     """
-    shop_code = serializers.CharField()
+    shop_code = serializers.CharField(default='SH12345')
     staff_handle = serializers.CharField()
     password = serializers.CharField()
     remember_me = serializers.BooleanField()
-
 
 
 class CustomerLoginRequestData(serializers.Serializer):
@@ -29,16 +26,16 @@ class CustomerLoginRequestData(serializers.Serializer):
     remember_me = serializers.BooleanField()
 
 
-
-# error_fields
-
 invalid_credentials = {'non_field_errors': ['Invalid credentials matching any customer.']}
 email = ['This field is required',]
 staff_handle = ['This field is required']
 shop_code = ['This field is required']
 password = ['This field is required']
 
-admin_login_errors = {
+
+# STAFF LOGIN SCHEMA
+
+staff_login_errors = {
     'invalid_credentials': invalid_credentials,
     'validation_error': {
         'shop_code': shop_code,
@@ -46,6 +43,28 @@ admin_login_errors = {
         'password': password
     }
 }
+
+staff_login_schema = {
+    'summary': 'Log a shop owner or staff in',
+    'description': 'Takes the shop_code, staff_handle \
+        and password. Returns access and refresh token as cookies.',
+    'tags': ['Auth'],
+    'operation_id': 'staff_login',
+    'request': StaffLogInRequestData,
+    'responses': {
+        200: make_success_schema_response(
+            "Log in successful.",
+            UserSerializer
+        ),
+        400: make_error_schema_response_with_errors_field(
+            message="Log in failed.",
+            errors=staff_login_errors
+        )
+    }
+}
+
+
+# CUSTOMER LOGIN SCHEMA
 
 customer_login_errors = {
     'invalid_credentials': invalid_credentials,
@@ -55,44 +74,21 @@ customer_login_errors = {
     }
 }
 
-# schemas
-admin_login_schema = {
-    'summary': 'Admin user login',
-    'description': 'Login an admin with the shop_code, staff_handle \
-        and password. Returns access and refresh token as cookies. \
-        Only an admin user can login.',
-    'tags': ['Auth'],
-    'operation_id': 'admin_login',
-    'request': AdminLoginRequestData,
-    'responses': {
-        200: get_success_response(
-            message='Admin user logged in successfully.',
-            data_serializer=UserSerializer()
-        ),
-        400: get_error_response_for_post_requests(
-            message="Admin login failed.",
-            errors=admin_login_errors
-        )
-    }
-}
-
 customer_login_schema = {
-    'summary': 'Customer login',
-    'description': 'Login a customer with the email  \
-        and password. Returns access and refresh token as cookies. \
-        Only a customer can login.',
+    'summary': 'Log a customer in',
+    'description': 'Takes the email and password. \
+        Returns access and refresh token as cookies.',
     'tags': ['Auth'],
     'operation_id': 'customer_login',
     'request': CustomerLoginRequestData,
     'responses': {
-        200: get_success_response(
-            message='Customer login successful.',
-            data_serializer=UserSerializer()
+        200: make_success_schema_response(
+            "Log in successful.",
+            UserSerializer
         ),
-        400: get_error_response_for_post_requests(
-            message="Customer login failed.",
+        400: make_error_schema_response_with_errors_field(
+            message="Log in failed.",
             errors=customer_login_errors
         )
     }
 }
-
