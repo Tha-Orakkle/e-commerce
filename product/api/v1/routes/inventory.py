@@ -25,7 +25,7 @@ class InventoryUpdateView(APIView):
         product = Product.objects.select_related('inventory').filter(id=product_id).first()
         if not product:
             raise ErrorException(
-                detail="Product not found.",
+                detail="No product matching given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
             
@@ -52,6 +52,8 @@ class InventoryUpdateView(APIView):
                 inventory = product.inventory.add(quantity, request.user.staff_handle)
             elif action == 'subtract':
                 inventory = product.inventory.substract(quantity, request.user.staff_handle)
+            else:
+                raise ErrorException()
         except ValueError as ve:
             raise ErrorException(
                 detail=str(ve),

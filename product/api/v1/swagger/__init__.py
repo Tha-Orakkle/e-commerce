@@ -7,10 +7,11 @@ from .category import (
 )
 from .inventory import update_inventory_schema
 from .product import (
-    create_product_schema,
+    create_shop_product_schema,
     delete_product_schema,
     get_product_schema,
     get_products_schema,
+    get_shop_products_schema,
     update_product_schema,
     product_category_add_or_remove_schema
 )
@@ -23,10 +24,11 @@ from .product_image import (
 
 __all__ = [
     # product schemas
-    'create_product_schema',
+    'create_shop_product_schema',
     'delete_product_schema',
     'get_product_schema',
     'get_products_schema',
+    'get_shop_products_schema',
     'update_product_schema',
 
     # product image schemas

@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_filters',
     'django_celery_beat',
-    # 'drf_spectacular_sidecar',
+    # 'drf_spectacular_sidecar',    
 
 
     # 'rest_framework.authtoken',
@@ -207,9 +207,6 @@ AUTHENTICATION_BACKENDS = [
     'common.authentication.backends.AdminUserBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
-
-
-# your_project/settings.py
 
 # Celery Broker settings
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')

@@ -33,7 +33,7 @@ class ProductImageListCreateView(APIView):
         product = Product.objects.filter(id=product_id).first()
         if not product:
             raise ErrorException(
-                detail="No product found matching the given product ID.",
+                detail="No product matching the given product ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
 
@@ -41,7 +41,7 @@ class ProductImageListCreateView(APIView):
         serializers = ProductImageSerializer(queryset, many=True, context={'request': request})
         return Response(
             SuccessAPIResponse(
-                message=f"Product {product.name} images retrieved.",
+                message=f"Product images retrieved successfully.",
                 data=serializers.data
             ).to_dict(), status=status.HTTP_200_OK
         )
@@ -55,7 +55,7 @@ class ProductImageListCreateView(APIView):
         product = Product.objects.filter(id=product_id).first()
         if not product:
             raise ErrorException(
-                detail="No product found matching the given product ID.",
+                detail="No product matching the given product ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -64,19 +64,19 @@ class ProductImageListCreateView(APIView):
         if product.images.count() == 8:
             raise ErrorException(
                 detail="Product images cannot exceed 8. Cannot add more images.",
-                code='limit_exceeded'
+                code='image_limit_exceeded'
             )
         images = request.FILES.getlist('images', [])
         if images:
             product.add_images(images)
         else:
             raise ErrorException(
-                detail="No images were provided.",
+                detail="No image was provided.",
                 code='no_images'
             )
         return Response(
             SuccessAPIResponse(
-                message="Product image added successfully."
+                message="Product images added successfully."
             ).to_dict(), status=status.HTTP_201_CREATED
         )
 
@@ -96,19 +96,19 @@ class ProductImageDetailView(APIView):
         product = Product.objects.filter(id=product_id).first()
         if not product:
             raise ErrorException(
-                detail="No product found matching the given product ID.",
+                detail="No product matching the given product ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
         product_image = product.images.filter(id=image_id).first()
         if not product_image:
             raise ErrorException(
-                detail="No product image found matching the given image ID.",
+                detail="No product image matching the given image ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
         serializer = ProductImageSerializer(product_image, context={'request': request})
         return Response(
             SuccessAPIResponse(
-                message=f"Product {product.name} image retrieved.",
+                message=f"Product image retrieved successfully.",
                 data=serializer.data
             ).to_dict(), status=status.HTTP_200_OK
         )
@@ -123,7 +123,7 @@ class ProductImageDetailView(APIView):
         product = Product.objects.filter(id=product_id).first()
         if not product:
             raise ErrorException(
-                detail="No product found matching the given product ID.",
+                detail="No product matching the given product ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
         if not request.user.can_manage_product(product):
@@ -131,7 +131,7 @@ class ProductImageDetailView(APIView):
         image = product.images.filter(id=image_id).first()
         if not image:
             raise ErrorException(
-                detail="No product image found matching the given image ID.",
+                detail="No product image matching the given image ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
         image.delete()

@@ -16,10 +16,11 @@ from product.api.v1.serializers import (
     ProductSerializer
 ) 
 from product.api.v1.swagger import (
-    create_product_schema,
+    create_shop_product_schema,
     delete_product_schema,
-    get_products_schema,
     get_product_schema,
+    get_products_schema,
+    get_shop_products_schema,
     product_category_add_or_remove_schema,
     update_product_schema
 )
@@ -33,7 +34,7 @@ class ShopProductListCreateView(APIView):
             return [IsStaff()]
         return [IsAuthenticated()]
 
-    @extend_schema(**get_products_schema)
+    @extend_schema(**get_shop_products_schema)
     def get(self, request, shop_id):
         """
         Gets all products.
@@ -42,7 +43,7 @@ class ShopProductListCreateView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop ID.",
+                detail="No shop matching the given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -60,7 +61,7 @@ class ShopProductListCreateView(APIView):
             data=data
         ).to_dict(), status=status.HTTP_200_OK)
 
-    @extend_schema(**create_product_schema)
+    @extend_schema(**create_shop_product_schema)
     def post(self, request, shop_id):
         """
         Create a new product.
@@ -69,7 +70,7 @@ class ShopProductListCreateView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop ID.",
+                detail="No shop matching the given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -145,7 +146,7 @@ class ProductDetailView(APIView):
         product = self.get_object(product_id)
         if not product:
             raise ErrorException(
-                detail="Product not found.",
+                detail="No product matching the given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -239,7 +240,7 @@ class ProductCategoryUpdateView(APIView):
         if 'categories' not in request.data:
             raise ErrorException(
                 detail="Please provide a list of categories in the 'categories' field.",
-                code='missing_categories',
+                code='missing_field',
                 status_code=status.HTTP_400_BAD_REQUEST
             )
 

@@ -180,7 +180,7 @@ def make_unauthorized_error_schema_response():
 
 # for not found errors 404
 def build_not_found_error_message(obj):
-    return f'No {obj.lower()} matching the given id found.'
+    return f'No {obj.lower()} matching the given ID found.'
 
 def make_not_found_error_schema_response(objs):
     errors = {obj: build_not_found_error_message(obj) for obj in objs}

@@ -84,7 +84,7 @@ class CategoryDetailView(APIView):
         category = Category.objects.filter(id=category_id).first()
         if not category:
             raise ErrorException(
-                detail="Category not found.",
+                detail="No category matching given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
         serializer = CategorySerializer(category)
@@ -104,7 +104,7 @@ class CategoryDetailView(APIView):
         category = Category.objects.filter(id=category_id).first()
         if not category:
             raise ErrorException(
-                detail="Category not found.",
+                detail="No category matching given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
 
@@ -135,7 +135,7 @@ class CategoryDetailView(APIView):
         category = Category.objects.filter(id=category_id).first()
         if not category:
             raise ErrorException(
-                detail="Category not found.",
+                detail="No category matching given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
         

@@ -2,10 +2,12 @@ from rest_framework import serializers
 
 from product.api.v1.serializers import ProductImageSerializer
 from common.swagger import (
-    get_success_response,
-    get_error_response,
-    get_error_response_with_examples,
+    build_invalid_id_error,
     ForbiddenSerializer,
+    make_success_schema_response,
+    make_error_schema_response,
+    make_not_found_error_schema_response,
+    make_unauthorized_error_schema_response
 )
 
 
@@ -18,54 +20,74 @@ class ProductImageDataRequest(serializers.Serializer):
 
 
 # schemas
+invalid_id_error = build_invalid_id_error('product')
+invalid_id_errors = {
+    **invalid_id_error,
+    **build_invalid_id_error('product image')
+}
+
+
 get_product_images_schema = {
     'summary': 'Get all images of a product',
-    'description': 'Takes a product id as part of url string \
+    'description': 'Takes a product id as part of url \
         and returns the urls to product images.',
     'tags': ['Product-Image'],
     'operation_id': 'get_product_images',
     'request': None,
     'responses': {
-        200: get_success_response("Product <product.name> images retrieved.", 200, ProductImageSerializer(many=True)),
-        400: get_error_response("Invalid product id.", 400),
-        401: get_error_response_with_examples(code=401),
-        404: get_error_response("Product not found.", 404)
+        200: make_success_schema_response(
+            "Product images retrieved successfully.",
+            ProductImageSerializer,
+            many=True),
+        400: make_error_schema_response(errors=invalid_id_error),
+        401: make_unauthorized_error_schema_response(),
+        404: make_not_found_error_schema_response(['product'])
     }
 }
 
+
 get_product_image_schema = {
     'summary': 'Get a specific image of a product',
-    'description': 'Takes a product id and image_id as part of url string \
-        and returns the url to the product image.',
+    'description': 'Takes a product id and image_id as part of url \
+        and return the url to the product image.',
     'tags': ['Product-Image'],
     'operation_id': 'get_product_image',
     'request': None,
     'responses': {
-        200: get_success_response("Product <product.name> image retrieved.", 200, ProductImageSerializer()),
-        400: get_error_response("Invalid product image id.", 400),
-        401: get_error_response_with_examples(code=401),
-        404: get_error_response("Product image not found.", 404)
+        200: make_success_schema_response(
+            "Product image retrieved successfully.",
+            ProductImageSerializer),
+        400: make_error_schema_response(errors=invalid_id_errors),
+        401: make_unauthorized_error_schema_response(),
+        404: make_not_found_error_schema_response(['product', 'product image']),
     }
+}
+
+create_image_errors = {
+    **invalid_id_error,
+    'no_image': 'No image was provided.',
+    'image_limit_exceeded': 'Product images cannot exceed 8. Cannot add more images.',
+    
 }
 
 create_product_image_schema = {
     'summary': 'Create new image(s) for a product',
-    'description': 'Takes a product id as part of url string, \
+    'description': 'Takes a product id as part of url, \
         accepts an image data and returns a success message.',
     'tags': ['Product-Image'],
     'operation_id': 'create_product_image',
     'request': ProductImageDataRequest,
     'responses': {
-        201: get_success_response("Product images added successfully.", 201),
-        400: get_error_response("Invalid product id.", 400),
-        401: get_error_response_with_examples(code=401),
+        201: make_success_schema_response("Product images added successfully."),
+        400: make_error_schema_response(errors=create_image_errors),
+        401: make_unauthorized_error_schema_response(),
         403: ForbiddenSerializer,
-        404: get_error_response("Product not found.", 404)
-    }   
+        404: make_not_found_error_schema_response(['product'])
+    }
 }
 
 delete_product_image_schema = {
-    'summary': 'Create a new image for a product',
+    'summary': 'Delete a product image',
     'description': 'Takes a product_id and image_id as part of url string, \
         and deletes products images matching the image id.',
     'tags': ['Product-Image'],
@@ -73,9 +95,9 @@ delete_product_image_schema = {
     'request': None,
     'responses': {
         204: {},
-        400: get_error_response("Invalid product image id.", 400),
-        401: get_error_response_with_examples(code=401),
+        400: make_error_schema_response(errors=invalid_id_errors),
+        401: make_unauthorized_error_schema_response(),
         403: ForbiddenSerializer,
-        404: get_error_response("Product image not found.", 404)
+        404: make_not_found_error_schema_response(['product', 'product image']),
     }
 }
