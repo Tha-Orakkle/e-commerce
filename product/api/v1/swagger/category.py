@@ -14,24 +14,6 @@ from common.swagger import (
 )
 from product.api.v1.serializers.category import CategorySerializer
 
-# # SWAGGER SCHEMAS FOR CATEGORY
-# class CategoryDataRequest(serializers.Serializer):
-#     """
-#     Serializer for the request data to create or update a category.
-#     """
-#     name = serializers.CharField(required=True, max_length=120)
-
-# class CategoryDataError(serializers.Serializer):
-#     """
-#     Serializer for the error response when creating or updating a category.
-#     """
-#     name = serializers.ListField(child=serializers.CharField(), required=False)
-
-# class CategoryListResponse(BasePaginatedResponse):
-#     """
-#     Serializer for the response of a list of categories.
-#     """
-#     results = CategorySerializer(many=True)
 
 # CATEGORY SCHEMAS
 # errors

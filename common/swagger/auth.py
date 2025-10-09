@@ -1,6 +1,4 @@
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
-from common.authentication.backends import CookieJWTAuthentication
-
 
 
 class CookieJWTAuthenticationScheme(OpenApiAuthenticationExtension):

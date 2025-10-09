@@ -2,9 +2,6 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 from rest_framework import serializers
 
 from common.swagger import (
-    get_error_response,
-    get_error_response_with_examples,
-    get_success_response,
     ForbiddenSerializer,
     build_invalid_id_error,
     make_success_schema_response,
