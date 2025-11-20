@@ -1,11 +1,13 @@
 from django.db import models
+from django.contrib.auth import get_user_model
 from phonenumber_field.modelfields import PhoneNumberField
 
 import uuid
 import pycountry
 
 from common.exceptions import ErrorException
-from user.models import User
+
+User = get_user_model()
 
 
 class Country(models.Model):

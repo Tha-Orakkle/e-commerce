@@ -1,13 +1,14 @@
 from decimal import Decimal
 from django.db import models
-
+from django.contrib.auth import get_user_model
 
 import uuid
 
 from address.models import ShippingAddress
 from product.models import Product
-from user.models import User
 from shop.models import Shop
+
+User = get_user_model()
 
 
 class OrderGroupStatus(models.TextChoices):

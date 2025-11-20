@@ -1,6 +1,7 @@
+from django.contrib.auth import get_user_model
 from django.core import signing
 
-from user.models import User
+User = get_user_model()
 
 
 def generate_email_verification_token(user_id):

@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -16,7 +17,8 @@ from user.api.v1.swagger import (
     get_customer_schema,
     get_customers_schema,
 )
-from user.models import User
+
+User = get_user_model()
 
 
 class CustomerListView(APIView):

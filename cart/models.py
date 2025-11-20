@@ -1,11 +1,12 @@
 from django.db import models
-from django.dispatch import receiver
+from django.contrib.auth import get_user_model
 
 import uuid
 
 from common.exceptions import ErrorException
-from user.models import User
 from product.models import Product
+
+User = get_user_model()
 
 
 class Cart(models.Model):

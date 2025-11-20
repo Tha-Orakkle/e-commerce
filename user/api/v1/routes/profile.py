@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -7,12 +8,13 @@ from rest_framework.response import Response
 from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
-from user.models import User
 from user.api.v1.serializers import UserProfileSerializer
 from user.api.v1.swagger import (
     update_user_profile_schema,
     update_user_preferred_category_schema
 )
+
+User = get_user_model()
 
 
 class UserProfileView(APIView):

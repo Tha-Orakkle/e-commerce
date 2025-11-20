@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
@@ -13,7 +14,6 @@ from common.exceptions import ErrorException
 from common.permissions import IsShopOwner
 from common.cores.validators import validate_id
 from shop.models import Shop
-from user.models import User
 from user.api.v1.serializers import PasswordUpdateSerializer, ResetPasswordConfirmSerializer
 from user.api.v1.swagger import (
     forgot_password_schema,
@@ -22,6 +22,9 @@ from user.api.v1.swagger import (
     update_staff_password_by_shopowner_schema
 )
 from user.tasks import send_password_reset_mail_task
+
+User = get_user_model()
+
 
 class ForgotPasswordView(APIView):
     """
