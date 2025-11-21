@@ -99,7 +99,7 @@ class CustomerLoginView(APIView):
         
         if errors:
             raise ErrorException(
-                detail="Logi n failed.",
+                detail="Log in failed.",
                 code="validation_error",
                 errors=errors
             )    
