@@ -30,8 +30,8 @@ def test_staff_login_as_shopowner(client, shopowner):
     assert res.data['message'] == "Log in successful."
     assert res.data['data'] is not None
     assert res.data['data']['id'] == str(shopowner.id)
-    assert res.cookies['access_token'] is not None
-    assert res.cookies['refresh_token'] is not None
+    assert res.cookies.get('access_token') is not None
+    assert res.cookies.get('refresh_token') is not None
     assert res.cookies['refresh_token']['max-age'] == 604800
 
 def test_staff_login_as_shop_staff(client, shop_staff):
@@ -51,8 +51,8 @@ def test_staff_login_as_shop_staff(client, shop_staff):
     assert res.data['message'] == "Log in successful."
     assert res.data['data'] is not None
     assert res.data['data']['id'] == str(shop_staff.id)
-    assert res.cookies['access_token'] is not None
-    assert res.cookies['refresh_token'] is not None
+    assert res.cookies.get('access_token') is not None
+    assert res.cookies.get('refresh_token') is not None
     assert res.cookies['refresh_token']['max-age'] == 604800
 
 def test_staff_login_false_remember_me(client, shop_staff):
@@ -72,8 +72,8 @@ def test_staff_login_false_remember_me(client, shop_staff):
     assert res.data['status'] == "success"
     assert res.data['message'] == "Log in successful."
     assert res.data['data'] is not None
-    assert res.cookies['access_token'] is not None
-    assert res.cookies['refresh_token'] is not None
+    assert res.cookies.get('access_token') is not None
+    assert res.cookies.get('refresh_token') is not None
     assert res.cookies['refresh_token']['max-age'] == 86400
 
 def test_staff_login_with_invalid_shop_code(client, shop_staff):
@@ -88,14 +88,14 @@ def test_staff_login_with_invalid_shop_code(client, shop_staff):
     }
     res = client.post(STAFF_LOGIN_URL, data, format='json')
 
-    assert res.status_code == status.HTTP_200_OK
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['status'] == "error"
     assert res.data['message'] == "Log in failed."
     assert res.data['code'] == "invalid_credentials"
     assert res.data['errors'] is not None
     assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
-    assert res.cookies['access_token'] is None
-    assert res.cookies['refresh_token'] is None
+    assert res.cookies.get('access_token') is None
+    assert res.cookies.get('refresh_token') is None
 
 def test_staff_login_with_invalid_staff_handle(client, shop_staff):
     """
@@ -115,8 +115,8 @@ def test_staff_login_with_invalid_staff_handle(client, shop_staff):
     assert res.data['code'] == "invalid_credentials"
     assert res.data['errors'] is not None
     assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
-    assert res.cookies['access_token'] is None
-    assert res.cookies['refresh_token'] is None
+    assert res.cookies.get('access_token') is None
+    assert res.cookies.get('refresh_token') is None
 
 def test_staff_login_with_invalid_password(client, shop_staff):
     """
@@ -130,14 +130,14 @@ def test_staff_login_with_invalid_password(client, shop_staff):
     }
     res = client.post(STAFF_LOGIN_URL, data, format='json')
 
-    assert res.status_code == status.HTTP_200_OK
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['status'] == "error"
     assert res.data['message'] == "Log in failed."
     assert res.data['code'] == "invalid_credentials"
     assert res.data['errors'] is not None
     assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
-    assert res.cookies['access_token'] is None
-    assert res.cookies['refresh_token'] is None
+    assert res.cookies.get('access_token') is None
+    assert res.cookies.get('refresh_token') is None
 
 def test_staff_login_with_missing_shop_code(client, shop_staff):
     """
@@ -150,14 +150,14 @@ def test_staff_login_with_missing_shop_code(client, shop_staff):
     }
     res = client.post(STAFF_LOGIN_URL, data, format='json')
 
-    assert res.status_code == status.HTTP_200_OK
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['status'] == "error"
     assert res.data['message'] == "Log in failed."
     assert res.data['code'] == "validation_error"
     assert res.data['errors'] is not None
     assert res.data['errors']['shop_code'] == ["This field is required."]
-    assert res.cookies['access_token'] is None
-    assert res.cookies['refresh_token'] is None    
+    assert res.cookies.get('access_token') is None
+    assert res.cookies.get('refresh_token') is None    
 
 def test_staff_login_with_missing_staff_handle(client, shop_staff):
     """
@@ -176,8 +176,8 @@ def test_staff_login_with_missing_staff_handle(client, shop_staff):
     assert res.data['code'] == "validation_error"
     assert res.data['errors'] is not None
     assert res.data['errors']['staff_handle'] == ["This field is required."]
-    assert res.cookies['access_token'] is None
-    assert res.cookies['refresh_token'] is None
+    assert res.cookies.get('access_token') is None
+    assert res.cookies.get('refresh_token') is None
 
 def test_staff_login_with_missing_password(client, shop_staff):
     """
@@ -190,11 +190,11 @@ def test_staff_login_with_missing_password(client, shop_staff):
     }
     res = client.post(STAFF_LOGIN_URL, data, format='json')
 
-    assert res.status_code == status.HTTP_200_OK
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['status'] == "error"
     assert res.data['message'] == "Log in failed."
     assert res.data['code'] == "validation_error"
     assert res.data['errors'] is not None
     assert res.data['errors']['password'] == ["This field is required."]
-    assert res.cookies['access_token'] is None
-    assert res.cookies['refresh_token'] is None
+    assert res.cookies.get('access_token') is None
+    assert res.cookies.get('refresh_token') is None
