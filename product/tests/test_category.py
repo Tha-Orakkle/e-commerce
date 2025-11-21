@@ -9,7 +9,7 @@ from product.models import Category
 # =============================================================================
 # TEST GET CATGEORIES
 # =============================================================================
-category_url = reverse('categories')
+category_url = reverse('category-list-create')
 
 def test_get_categories(client, category, signed_in_user):
     """
@@ -53,7 +53,7 @@ def test_get_category(client, category, signed_in_user):
     """
     Test get category by its id.
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
     client.cookies['access_token'] = signed_in_user['access_token']
 
     response = client.get(url)
@@ -67,7 +67,7 @@ def test_get_category_while_unauthenticated(client, category):
     Test get category by its id while unauthenticated.
     (without access token or with invalid token).
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
 
     response = client.get(url)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -86,7 +86,7 @@ def test_get_category_with_invalid_id(client, signed_in_user):
     """
     Test get category with invalid id.
     """
-    url = reverse('category', kwargs={'category_id': 'invalid_id'})
+    url = reverse('category-detail', kwargs={'category_id': 'invalid_id'})
     client.cookies['access_token'] = signed_in_user['access_token']
 
     response = client.get(url)
@@ -99,7 +99,7 @@ def test_get_category_with_non_existent_id(client, signed_in_user):
     """
     Test get category with non-existent id.
     """
-    url = reverse('category', kwargs={'category_id': uuid.uuid4()})
+    url = reverse('category-detail', kwargs={'category_id': uuid.uuid4()})
     client.cookies['access_token'] = signed_in_user['access_token']
 
     response = client.get(url)
@@ -232,7 +232,7 @@ def test_update_category(client, category, signed_in_admin):
     """
     Test update an existing category.
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     data = {"name": "Updated Category"}
@@ -250,7 +250,7 @@ def test_update_category_while_unauthenticated(client, category):
     Test update an existing category while unauthenticated.
     (without access token or with invalid token).
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
 
     data = {"name": "Updated Category"}
 
@@ -270,7 +270,7 @@ def test_update_category_with_invalid_data(client, category, signed_in_admin):
     """
     Test update an existing category with invalid data.
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     data = {"name": ""}  # Invalid name
@@ -285,7 +285,7 @@ def test_update_category_without_permission(client, category, signed_in_user):
     """
     Test update an existing category without permission.
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     
     data = {"name": "Updated Category"}
@@ -299,7 +299,7 @@ def test_update_category_with_non_existent_id(client, signed_in_admin):
     """
     Test update a category with a non-existent id.
     """
-    url = reverse('category', kwargs={'category_id': uuid.uuid4()})
+    url = reverse('category-detail', kwargs={'category_id': uuid.uuid4()})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     data = {"name": "Updated Category"}
@@ -313,7 +313,7 @@ def test_update_category_with_invalid_id(client, signed_in_admin):
     """
     Test update a category with an invalid id.
     """
-    url = reverse('category', kwargs={'category_id': 'invalid_id'})
+    url = reverse('category-detail', kwargs={'category_id': 'invalid_id'})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     data = {"name": "Updated Category"}
@@ -327,7 +327,7 @@ def test_update_category_with_duplicate_name(client, category, signed_in_admin):
     """
     Test update a category with a duplicate name.
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     # Create another category with the same name
@@ -345,7 +345,7 @@ def test_update_category_with_long_name(client, category, signed_in_admin):
     """
     Test update a category with a name that is too long.
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     data = {"name": "a" * 256}  # Name longer than allowed
@@ -363,7 +363,7 @@ def test_delete_category(client, category, signed_in_admin):
     """
     Test delete an existing category.
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     assert Category.objects.count() == 1
@@ -378,7 +378,7 @@ def test_delete_category_while_unauthenticated(client, category):
     Test delete an existing category while unauthenticated.
     (without access token or with invalid token).
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
 
     response = client.delete(url)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -397,7 +397,7 @@ def test_delete_category_without_permission(client, category, signed_in_user):
     """
     Test delete an existing category without permission.
     """
-    url = reverse('category', kwargs={'category_id': category.id})
+    url = reverse('category-detail', kwargs={'category_id': category.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     
     response = client.delete(url)
@@ -409,7 +409,7 @@ def test_delete_category_with_non_existent_id(client, signed_in_admin):
     """
     Test delete a category with a non-existent id.
     """
-    url = reverse('category', kwargs={'category_id': uuid.uuid4()})
+    url = reverse('category-detail', kwargs={'category_id': uuid.uuid4()})
     client.cookies['access_token'] = signed_in_admin['access_token']
 
     response = client.delete(url)
@@ -422,7 +422,7 @@ def test_delete_category_with_invalid_id(client, signed_in_admin):
     """
     Test delete a category with an invalid id.
     """
-    url = reverse('category', kwargs={'category_id': 'invalid_id'})
+    url = reverse('category-detail', kwargs={'category_id': 'invalid_id'})
     client.cookies['access_token'] = signed_in_admin['access_token']
 
     response = client.delete(url)

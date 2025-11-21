@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 
 
-admin_login_url = reverse('admin-login')
+admin_login_url = reverse('staff-login')
 
 def test_admin_user_login(client, admin_user):
     """

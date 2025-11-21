@@ -10,7 +10,7 @@ from .conftest import create_fake_images
 # TEST GET PRODUCTS
 # =============================================================================
 
-products_url = reverse('products')
+products_url = reverse('product-list')
 
 def test_get_products(client, signed_in_user, product):
     """
@@ -55,7 +55,7 @@ def test_get_product_with_id(client, product, signed_in_user):
     """
     Test get specific product with associated id.
     """
-    url = reverse('product', kwargs={'product_id': product.id})
+    url = reverse('product-detail', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.get(url)
 
@@ -70,7 +70,7 @@ def test_get_product_with_invalid_id(client, signed_in_user):
     """
     Test get specific product with invalid product id.
     """
-    url = reverse('product', kwargs={'product_id': 'InvalidID123'})
+    url = reverse('product-detail', kwargs={'product_id': 'InvalidID123'})
     client.cookies['access_token'] = signed_in_user['access_token']
     
     response = client.get(url)
@@ -84,7 +84,7 @@ def test_put_product_with_non_existent_id(client, signed_in_user):
     """
     Test update specific product with non-existent product id.
     """
-    url = reverse('product', kwargs={'product_id': uuid.uuid4()})
+    url = reverse('product-detail', kwargs={'product_id': uuid.uuid4()})
     client.cookies['access_token'] = signed_in_user['access_token']
     response = client.get(url)
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -97,7 +97,7 @@ def test_get_product_unaunthenticated(client, product):
     Test get specific product while unauthenticated.
     (without access token or with invalid token).
     """
-    url = reverse('product', kwargs={'product_id': product.id})   
+    url = reverse('product-detail', kwargs={'product_id': product.id})   
     response = client.get(url)
     
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -121,7 +121,7 @@ def test_delete_product_with_id(client, signed_in_admin, product):
     """
     Test delete a specific product with id by admin user.
     """
-    url = reverse('product', kwargs={'product_id': product.id})
+    url = reverse('product-detail', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     assert Product.objects.count() == 1
@@ -136,7 +136,7 @@ def test_delete_product_with_invalid_id(client, signed_in_admin, product):
     """
     Test delete a specific product with an invalid id.
     """
-    url = reverse('product', kwargs={'product_id': 'InvalidID123'})
+    url = reverse('product-detail', kwargs={'product_id': 'InvalidID123'})
     client.cookies['access_token'] = signed_in_admin['access_token']
     
     response = client.delete(url)
@@ -150,7 +150,7 @@ def test_delete_product_with_non_existent_id(client, signed_in_admin, product):
     """
     Test delete specific product with non-existent product id.
     """
-    url = reverse('product', kwargs={'product_id': uuid.uuid4()})
+    url = reverse('product-detail', kwargs={'product_id': uuid.uuid4()})
     client.cookies['access_token'] = signed_in_admin['access_token']
     response = client.delete(url)
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -162,7 +162,7 @@ def test_delete_product_by_non_admin_user(client, signed_in_user, product):
     """
     Test delete specific product by non-admin user.
     """
-    url = reverse('product', kwargs={'product_id': product.id})
+    url = reverse('product-detail', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_user['access_token']
     
     response = client.delete(url)
@@ -177,7 +177,7 @@ def test_delete_product_unauthenticated(client, product):
     Test delete a specific product while unauthenticated.
     (without access token or with invalid token)
     """
-    url = reverse('product', kwargs={'product_id': product.id})
+    url = reverse('product-detail', kwargs={'product_id': product.id})
     response = client.delete(url)
     
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -358,7 +358,7 @@ def test_put_product(client, product, product_image, signed_in_admin):
         'price': 20.00,
         'images': create_fake_images(2)
     }
-    url = reverse('product', kwargs={'product_id': product.id})
+    url = reverse('product-detail', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_admin['access_token']
 
     response = client.put(url, data, format='multipart')
@@ -381,7 +381,7 @@ def test_put_products_with_negative_price(client, product, signed_in_admin):
     Negative numbers will resolve to 0.00
     """
     data = {'price': -9.99}
-    url = reverse('product', kwargs={'product_id': product.id})
+    url = reverse('product-detail', kwargs={'product_id': product.id})
     client.cookies['access_token'] == signed_in_admin['access_token']
 
     response = client.put(url, data, format='multipart')
@@ -395,7 +395,7 @@ def test_put_product_with_more_than_8_images(client, product, signed_in_admin):
     Test update product with more than 8 images.
     NB: products can not have more than 8 images.
     """
-    url = reverse('product', kwargs={'product_id': product.id})
+    url = reverse('product-detail', kwargs={'product_id': product.id})
     data = {'images': create_fake_images(12)}
     client.cookies['access_token'] == signed_in_admin['access_token']
     response = client.put(url, data, format='multipart')
@@ -415,7 +415,7 @@ def test_put_product_by_non_admin(client, product, signed_in_user):
         'description:': 'An OX standing fan',
         'price': 20.00
     }
-    url = reverse('product', kwargs={'product_id': product.id})
+    url = reverse('product-detail', kwargs={'product_id': product.id})
     client.cookies['access_token'] = signed_in_user['access_token']
 
     response = client.put(url, data, format='multipart')
@@ -428,7 +428,7 @@ def test_put_product_with_invalid_id(client, signed_in_admin,  product):
     """
     Test update specific product with invalid product id.
     """
-    url = reverse('product', kwargs={'product_id': "Invalid_product_id"})
+    url = reverse('product-detail', kwargs={'product_id': "Invalid_product_id"})
 
     client.cookies['access_token'] = signed_in_admin['access_token']
     response = client.put(url)
@@ -440,7 +440,7 @@ def test_put_product_with_non_existent_id(client, signed_in_admin, product):
     """
     Test update specific product with non-existent product id.
     """
-    url = reverse('product', kwargs={'product_id': uuid.uuid4()})
+    url = reverse('product-detail', kwargs={'product_id': uuid.uuid4()})
     client.cookies['access_token'] = signed_in_admin['access_token']
     response = client.put(url)
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -452,7 +452,7 @@ def test_put_product_unaunthenticted(client, product):
     Test delete a specific product while unauthenticated.
     (without access token or with invalid token)
     """
-    url = reverse('product', kwargs={'product_id': product.id})
+    url = reverse('product-detail', kwargs={'product_id': product.id})
     response = client.put(url)
     
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
