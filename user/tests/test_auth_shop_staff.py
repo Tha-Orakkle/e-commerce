@@ -5,7 +5,46 @@ from rest_framework import status
 # SHOP STFF CREATION TESTS
 # ==========================================================
 
+# test_creation_by_shopowner
+# test_creation_by_customer
+# test_creation_by_shop_staf_without permission
+# test staff creation by unauthenticated shop owner
+# test staff creation with invalid 
+#  + data (staff_handle, password, confirm password, first_name, last name, telephone )
+# test staff creation with missing data
+# test staff creation with existing staff handle
 
+
+def test_shop_staff_creation_by_shop_owner(client, request, shopowner):
+    """
+    Test shop staff creation by shop owner.
+    """
+    tokens = request.getfixturevalue('signed_in_shopowner')
+    url = reverse(
+        'shop-staff-list-create',
+        kwargs={'shop_id': shopowner.owned_shop.id}
+    )
+    data = {
+        'first_name': 'Jane',
+        'last_name': 'Doe',
+        'telephone': '0812111999',
+        'staff_handle': 'staff1',
+        'password': 'Password123#',
+        'confirm_password': 'Password123#'        
+    }
+    client.cookies['access_token']  = tokens['access_token']
+    res = client.post(url, data, format='json')
+    
+    assert res.status_code == status.HTTP_201_CREATED
+    assert res.data['message'] == "Shop staff member creation successful."
+    assert res.data['data'] is not None
+    assert res.data['data']['staff_handle'] == data['staff_handle']
+    assert res.data['data']['is_staff'] == True
+    assert res.data['data']['profile']['first_name'] == data['first_name']
+    assert res.data['data']['profile']['last_name'] == data['last_name']
+
+
+    
 
 # ==========================================================
 # SHOP OWNER AND STFF LOGIN TESTS
