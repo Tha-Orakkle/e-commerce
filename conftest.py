@@ -162,7 +162,7 @@ def signed_in_shopowner(client, shopowner):
     url = reverse('staff-login')
     data = {
         'shop_code': shopowner.owned_shop.code,
-        'staff_handle': shopowner.handle,
+        'staff_handle': shopowner.staff_handle,
         'password': 'Password123#'
     }
     response = client.post(url, data, format='json')
@@ -183,7 +183,7 @@ def signed_in_staff(client, shop_staff):
     url = reverse('staff-login')
     data = {
         'shop_code': shop_staff.shop.code,
-        'staff_handle': shop_staff.handle,
+        'staff_handle': shop_staff.staff_handle,
         'password': 'Password123#'
     }
     response = client.post(url, data, format='json')
