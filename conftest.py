@@ -106,6 +106,28 @@ def inactive_user(db):
         is_active=False,
     )
 
+@pytest.fixture
+def dummy_user(db):
+    """
+    Create a dummy user.
+    """
+    user = User.objects.create_user(
+        email="dummyuser@email.com",
+        password="Password123#",
+    )
+    create_dummy_profile(user)
+    return user
+
+@pytest.fixture
+def dummy_shop(db, dummy_user):
+    """
+    Create a dummy shop.
+    """
+    return Shop.objects.create(
+        name="Dummy Shop",
+        description="This is a dummy shop for testing.",
+        owner=dummy_user
+    )
 
 # to be removed start
 @pytest.fixture
@@ -117,6 +139,7 @@ def admin_user(db):
         staff_handle='staff',
         password='Password123#'
     )
+
 @pytest.fixture
 def user(db):
     """
