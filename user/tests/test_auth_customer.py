@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 
+import pytest
+
 User = get_user_model()
 
 # ==========================================================
@@ -20,13 +22,14 @@ REG_DATA = {
     'already_shopowner': False
 }
 
+@pytest.mark.django_db(transaction=True)
 def test_customer_registration(mock_verification_email_task,  client, db_access):
     """"
     Test the customer registration process.
     """ 
     data = REG_DATA
     response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    mock_verification_email_task.assert_called_once
+    mock_verification_email_task.assert_called_once()
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data['status'] == "success"
     assert response.data['message'] == "Customer registration successful."
@@ -36,13 +39,14 @@ def test_customer_registration(mock_verification_email_task,  client, db_access)
     assert response.data['data']['profile']['first_name'] == data['first_name']
     assert response.data['data']['profile']['last_name'] == data['last_name']
 
+@pytest.mark.django_db(transaction=True)
 def test_customer_registration_for_shopowner(mock_verification_email_task, client, shopowner):
     """
     Test the customer registration process for an existing shop owner.
     """
     data = {**REG_DATA, 'email': shopowner.email, 'already_shopowner': True}
     response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    mock_verification_email_task.assert_called_once
+    mock_verification_email_task.assert_called_once()
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data['status'] == "success"
     assert response.data['message'] == "Customer registration successful."
