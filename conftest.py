@@ -11,6 +11,7 @@ from user.models import UserProfile
 
 User = get_user_model()
 
+# dummy fixtures
 def create_dummy_profile(user):
     """
     Create a dummy user profile.
@@ -21,6 +22,31 @@ def create_dummy_profile(user):
         last_name='Doe',
         telephone='08112221111'
     )
+
+@pytest.fixture
+def dummy_user(db):
+    """
+    Create a dummy user.
+    """
+    user = User.objects.create_user(
+        email="dummyuser@email.com",
+        password="Password123#",
+    )
+    create_dummy_profile(user)
+    return user
+
+@pytest.fixture
+def dummy_shop(db, dummy_user):
+    """
+    Create a dummy shop.
+    """
+    return Shop.objects.create(
+        name="Dummy Shop",
+        description="This is a dummy shop for testing.",
+        owner=dummy_user
+    )
+
+
 
 # CLIENT
 @pytest.fixture
@@ -35,7 +61,6 @@ def db_access(db):
     Enable database access for tests that require it.
     """
     pass
-
 
 
 # USERS (SUPER USER, SHOP OWNER, SHOP STAFF AND CUSTOMER)
@@ -104,29 +129,6 @@ def inactive_user(db):
         email="inactiveuser@email.com",
         password="Password123#",
         is_active=False,
-    )
-
-@pytest.fixture
-def dummy_user(db):
-    """
-    Create a dummy user.
-    """
-    user = User.objects.create_user(
-        email="dummyuser@email.com",
-        password="Password123#",
-    )
-    create_dummy_profile(user)
-    return user
-
-@pytest.fixture
-def dummy_shop(db, dummy_user):
-    """
-    Create a dummy shop.
-    """
-    return Shop.objects.create(
-        name="Dummy Shop",
-        description="This is a dummy shop for testing.",
-        owner=dummy_user
     )
 
 # to be removed start
