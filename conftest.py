@@ -166,7 +166,7 @@ def signed_in_superuser(client, super_user):
     """
     url = reverse('customer-login')
     data = {
-        'staff_handle': super_user.email,
+        'email': super_user.email,
         'password': 'Password123#'
     }
     response = client.post(url, data, format='json')
