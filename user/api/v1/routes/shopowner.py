@@ -55,7 +55,7 @@ class ShopOwnerDetailView(APIView):
             id=shopowner_id, is_shopowner=True).first()
         if not shop_owner:
             raise ErrorException(
-                detail="No shop owner found with the given ID.",
+                detail="No shop owner matching the given given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -63,7 +63,7 @@ class ShopOwnerDetailView(APIView):
             raise PermissionDenied()
         return Response(
             SuccessAPIResponse(
-                message="Shop owner retrived successfully.",
+                message="Shop owner retrieved successfully.",
                 data=UserSerializer(shop_owner).data
             ).to_dict(),
             status=status.HTTP_200_OK
