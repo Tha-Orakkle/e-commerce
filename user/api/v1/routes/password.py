@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
+from django.utils.encoding import force_bytes
 from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -14,7 +14,11 @@ from common.exceptions import ErrorException
 from common.permissions import IsShopOwner
 from common.cores.validators import validate_id
 from shop.models import Shop
-from user.api.v1.serializers import PasswordUpdateSerializer, ResetPasswordConfirmSerializer
+from user.api.v1.serializers import (
+    ForgotPasswordSerializer,
+    PasswordUpdateSerializer,
+    ResetPasswordConfirmSerializer
+)
 from user.api.v1.swagger import (
     forgot_password_schema,
     reset_password_confirm_schema,
@@ -34,14 +38,17 @@ class ForgotPasswordView(APIView):
 
     @extend_schema(**forgot_password_schema)
     def post(self, request):
-        # Logic for handling password reset
-        email = request.data.get('email')
-        if not email:
+        serializer = ForgotPasswordSerializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            email = serializer.validated_data['email']
+        except ValidationError as e:
             raise ErrorException(
                 detail="Could not generate password reset link.",
                 code='validation_error',
-                errors={'email': ['This field is required.']}
+                errors=e.detail
             )
+        
         user = User.objects.filter(email=email).first()
         if user:
             token_generator = PasswordResetTokenGenerator()
