@@ -4,10 +4,16 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
-import html
-
 from common.exceptions import ErrorException
 from user.cores.validators import validate_password
+
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.strip().lower()
 
 
 class PasswordUpdateSerializer(serializers.Serializer):

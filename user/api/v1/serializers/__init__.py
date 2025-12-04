@@ -1,7 +1,11 @@
 from .base import BaseUserCreationSerializer
 from .staff import ShopStaffCreationSerializer, StaffUpdateSerializer
 from .profile import UserProfileSerializer
-from .password import PasswordUpdateSerializer, ResetPasswordConfirmSerializer
+from .password import (
+    ForgotPasswordSerializer,
+    PasswordUpdateSerializer,
+    ResetPasswordConfirmSerializer
+)
 from .registration import (
     ShopOwnerRegistrationSerializer,
     CustomerRegistrationSerializer
@@ -27,5 +31,7 @@ __all__ = [
     'UserSerializer',
 
     # password
+    'ForgotPasswordSerializer',
     'PasswordUpdateSerializer',
+    'ResetPasswordConfirmSerializer'
 ]
