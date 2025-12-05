@@ -131,6 +131,19 @@ def inactive_user(db):
         is_active=False,
     )
 
+@pytest.fixture
+def all_users(super_user, shopowner, shop_staff, customer, inactive_user):
+    """
+    Returns all user types as a dict.
+    """
+    return {
+        'super_user': super_user,
+        'shopowner': shopowner,
+        'shop_staff': shop_staff,
+        'customer': customer,
+        'inactive_user': inactive_user
+    }
+
 # to be removed start
 @pytest.fixture
 def admin_user(db):
