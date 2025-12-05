@@ -64,6 +64,8 @@ password_errors = {
         'confirm_password': [
             'This field is required.',
             'This field may not be blank.',
+        ],
+        'non_field_error': [
             'Passwords do not match.'
         ]
     }
@@ -120,7 +122,8 @@ update_password_errors.get('validation_error')['old_password'] = [
 
 update_password_schema = {
     'summary': 'Change password',
-    'description': 'Update a user password. The target user is the authenticated user.',
+    'description': 'Update a user password. This endpoint is open to users of all types. \
+        The target user is the authenticated user.',
     'tags': ['Password'],
     'operation_id': 'update_password',
     'request': PasswordUpdateSerializer,
