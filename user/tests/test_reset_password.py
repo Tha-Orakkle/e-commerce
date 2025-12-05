@@ -156,4 +156,18 @@ def test_reset_password_with_blank_passwords(client, customer):
     assert res.data['errors']['new_password'] == ["This field may not be blank."]
     assert res.data['errors']['confirm_password'] == ["This field may not be blank."]
 
-
+def test_reset_password_with_weak_password(client, customer):
+    """
+    Test the reset password functionality with a weak password.
+    """
+    url = generate_reset_link(customer)
+    res = client.post(url, data={
+        'new_password': 'weakpwd',
+        'confirm_password': 'weakpwd'
+    }, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Password reset failed."
+    assert 'new_password' in res.data['errors']
+    assert len(res.data['errors']['new_password']) > 0
