@@ -1,5 +1,6 @@
 from rest_framework.exceptions import ValidationError
 
+import re
 
 def validate_password(password):
     """Checks the strength of the password"""
@@ -16,7 +17,7 @@ def validate_password(password):
         errors.append("Password must contain at least one uppercase letter.")
     if password and not any(char.islower() for char in password):
         errors.append("Password must contain at least one lowercase letter.")
-    if password and not any(char in ['@', '#', '$', '%', '^', '&', '*'] for char in password):
+    if password and not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
         errors.append("Password must contain at least one special character.")
     if errors:
         raise ValidationError(errors)
