@@ -80,16 +80,17 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
 
         if not self.request:
             raise AssertionError("ResetPasswordConfirmSerializer requires request to be passed to context.")
-
-
-    def validate_confirm_password(self, value):
-        pwd = self.initial_data.get('new_password', '')
-        value = value.strip()
-        if pwd != value:
-            raise serializers.ValidationError("Passwords do not match.")
-        return value
+    
+    def _validate_passwords(self, pwd, c_pwd):
+        if pwd != c_pwd:
+            raise serializers.ValidationError({'non_field_error': 'Passwords do not match.'})
+        return c_pwd
     
     def validate(self, attrs):
+        self._validate_passwords(
+            pwd=attrs.get('new_password', '').strip(),
+            c_pwd=attrs.get('confirm_password', '').strip()
+        )
         if not all(param in self.request.query_params for param in ['uid', 'token']):
             raise ErrorException(
                 detail="Invalid or expired password reset link.",
@@ -109,7 +110,6 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
             User = get_user_model()
             user = User.objects.get(email=email)
             if not token_gen.check_token(user, token):
-                print("EXPIRED")
                 raise ValueError()
         except:
             raise ErrorException(
