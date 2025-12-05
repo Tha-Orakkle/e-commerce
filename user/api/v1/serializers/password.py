@@ -32,17 +32,20 @@ class PasswordUpdateSerializer(serializers.Serializer):
         self._actor_user = request.user if request else None
         self._target_user = self.context.get('user') or self._actor_user
 
-    def validate_confirm_password(self, value):
-        pwd = self.initial_data.get('new_password', '').strip()
-        if pwd != value.strip():
-            raise serializers.ValidationError("Passwords do not match.")
-        return value
+    def _validate_passwords(self, pwd, c_pwd):
+        if pwd != c_pwd:
+            raise serializers.ValidationError({'non_field_error': 'Passwords do not match.'})
+        return c_pwd
     
     def validate(self, attrs):
         """
         Require old_password unless the actor is a shopowner resetting a staff password.
         Return attrs unchanged if validation passes.
         """
+        self._validate_passwords(
+            pwd=attrs.get('new_password', ''),
+            c_pwd=attrs.get('confirm_password', '')
+        )
         is_reset_by_shopowner = (
             self._actor_user
             and getattr(self._actor_user, 'is_shopowner', False)
