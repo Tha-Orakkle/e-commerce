@@ -103,7 +103,7 @@ reset_password_confirm_schema = {
             examples=[
                 *build_error_schema_examples(errors=reset_password_errors),
                 *build_error_schema_examples_with_errors_field(
-                    message="Invalid or missing input data.",
+                    message="Passeord reset failed.",
                     errors=password_errors)
             ]
         ),

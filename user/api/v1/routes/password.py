@@ -78,7 +78,7 @@ class ResetPasswordConfirmView(APIView):
             serializer.save()
         except ValidationError as e:
             raise ErrorException(
-                detail="Invalid or missing input data.",
+                detail="Password reset failed.",
                 code='validation_error',
                 errors=e.detail
             )
