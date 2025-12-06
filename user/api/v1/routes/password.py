@@ -152,7 +152,7 @@ class UpdateStaffPasswordByShopOwnerView(APIView):
             serializer.save()
         except ValidationError as e:
             raise ErrorException(
-                detail="Staff password change failed",
+                detail="Staff password change failed.",
                 code='validation_error',
                 errors=e.detail
             )
