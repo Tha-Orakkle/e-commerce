@@ -213,7 +213,6 @@ STAFF_PASSWORD_UPDATE_DATA = {
         'confirm_password': 'NewStaffPassword123!'
 }
 
-
 def test_shopowner_can_update_staff_password(client, shopowner, shop_staff_factory):
     """
     Test that a shop owner can update a staff member's password.
