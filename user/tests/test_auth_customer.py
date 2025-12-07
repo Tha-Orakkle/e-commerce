@@ -319,12 +319,12 @@ def test_customer_login_missing_password(client):
     assert response.data['errors'] is not None
     assert response.data['errors']['password'] == ['This field is required.']
 
-def test_customer_login_invalid_password(client, user):
+def test_customer_login_invalid_password(client, customer):
     """
     Test customer login process with invalid password.
     """
     data = {
-        'email': user.email,
+        'email': customer.email,
         'password': 'wrong_password',
         'remember_me': False
     }
