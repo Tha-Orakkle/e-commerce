@@ -137,18 +137,7 @@ def shopowner(shopowner_factory):
     Creates a shop owner.
     """
     return shopowner_factory()
-    # owner = User.objects.create_shopowner(
-    #     email='shopowner@email.com',
-    #     staff_handle='shopowner',
-    #     password='Password123#'
-    # )
-    # create_dummy_profile(owner)
-    # Shop.objects.create(
-    #     name="Playground",
-    #     description="Showcase you talents without fear of being judged.",
-    #     owner=owner
-    # )
-    # return owner
+
 
 @pytest.fixture
 def shop_staff(db, shopowner, shop_staff_factory):
@@ -156,13 +145,7 @@ def shop_staff(db, shopowner, shop_staff_factory):
     Create a staff for a shop.
     """
     return shop_staff_factory(shopowner=shopowner)
-    # staff = User.objects.create_staff(
-    #     shop=shopowner.owned_shop,
-    #     staff_handle='staff',
-    #     password='Password123#'
-    # )
-    # create_dummy_profile(staff)
-    # return staff
+
 
 @pytest.fixture
 def customer(customer_factory):
@@ -170,14 +153,6 @@ def customer(customer_factory):
     Creates a customer.
     """
     return customer_factory()
-    # customer = User.objects.create_user(
-    #     email="customer@email.com",
-    #     password="Password123#", 
-    # )
-    # create_dummy_profile(customer)
-    # Cart.objects.create(user=customer)
-
-    # return customer
 
 @pytest.fixture
 def all_users(super_user, shopowner, shop_staff, customer):
