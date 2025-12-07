@@ -4,72 +4,127 @@ These tests cover the User and UserProfile models.
 """
 from django.contrib.auth import get_user_model
 
+import pytest
+
 from user.models import UserProfile
 
 
 User = get_user_model()
 
-def test_user_creation(user):
+def test_customer_creation(customer):
     """
-    Test the creation of a user.
+    Test customer creation.
     """
-    assert user.id is not None
-    assert type(user.id).__name__ == "UUID"
-    assert user.is_active == True
-    assert user.is_staff == False
-    assert user.is_verified == False
-    assert user.is_superuser == False
-    assert user.email == "user@email.com"
-    assert user.password != "Password123#"
-    assert user.check_password("Password123#")
-
-def test_admin_user_creation(admin_user):
-    """
-    Test the creation of an admin user.
-    """
-    assert admin_user.id is not None
-    assert type(admin_user.id).__name__ == "UUID"
-    assert admin_user.is_active == True
-    assert admin_user.is_staff == True
-    assert admin_user.is_verified == True
-    assert admin_user.is_superuser == False
-    assert admin_user.staff_handle == "admin-user"
-    assert admin_user.password != "Password123#"
-    assert admin_user.check_password("Password123#")
+    assert customer.id is not None
+    assert type(customer.id).__name__ == "UUID"
+    assert customer.is_active == True
+    assert customer.is_customer == True
+    assert customer.is_staff == False
+    assert customer.is_verified == False
+    assert customer.is_superuser == False
+    assert customer.email == "customer1@email.com"
+    assert customer.password != "Password123#"
+    assert customer.check_password("Password123#")
 
 
-def test_user_str(user):
+def test_shop_owner_creation(shopowner):
+    """
+    Test shop owner creation.
+    """
+    assert shopowner.id is not None
+    assert type(shopowner.id).__name__ == "UUID"
+    assert shopowner.is_active == True
+    assert shopowner.is_customer == False
+    assert shopowner.is_shopowner == True
+    assert shopowner.is_staff == True
+    assert shopowner.is_verified == False
+    assert shopowner.is_superuser == False
+    assert shopowner.email == "shopowner1@email.com"
+    assert shopowner.staff_handle == "shopowner1"
+    assert shopowner.password != "Password123#"
+    assert shopowner.check_password("Password123#")
+
+
+def test_shop_staff_creation(shop_staff):
+    """
+    Test shop staff creation.
+    """
+    assert shop_staff.id is not None
+    assert type(shop_staff.id).__name__ == "UUID"
+    assert shop_staff.is_active == True
+    assert shop_staff.is_customer == False
+    assert shop_staff.is_shopowner == False
+    assert shop_staff.is_staff == True
+    assert shop_staff.is_verified == True
+    assert shop_staff.is_superuser == False
+    assert shop_staff.email == None
+    assert shop_staff.staff_handle is not None
+    assert shop_staff.staff_handle != ""
+    assert shop_staff.password != "Password123#"
+    assert shop_staff.check_password("Password123#")
+
+
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'shop_staff', 'customer'],
+    ids=['shopowner', 'shop_staff', 'customer']
+)
+def test_user_str_representation(all_users, user_type):
     """
     Test the string representation of a user.
     """
-    assert str(user) == f"<User: {user.id}> {user.email}"
+    user = all_users[user_type]
+    assert str(user) == f"<User: {user.id}> {user.email or user.staff_handle} ({user_type.capitalize()})"
 
 
-def test_user_profile_creation(user):
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'shop_staff', 'customer'],
+    ids=['shopowner', 'shop_staff', 'customer']
+)
+def test_user_profile_creation(all_users, user_type):
     """
-    Test the creation of a user profile.
+    Test that user profile is created.
     """
+    user = all_users[user_type]
     assert user.profile is not None
-    assert user.profile.first_name == ""
-    assert user.profile.last_name == ""
-    assert user.profile.telephone == ""
-    assert user.profile.user == user
 
 
-def test_user_profile_str(user):
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'shop_staff', 'customer'],
+    ids=['shopowner', 'shop_staff', 'customer']
+)
+def test_user_profile_str_representation(all_users, user_type):
     """
     Test the string representation of a user profile.
     """
-    assert str(user.profile) == f"<UserProfile: {user.profile.id}> {user.email}"
+    user = all_users[user_type]
+    profile = user.profile
+    assert str(profile) == f"<UserProfile: {profile.id}> \n\t FIRST NAME: {profile.first_name} \n\t LAST NAME: {profile.last_name} \n\t TELEPHONE: {profile.telephone}"
 
 
-def test_user_profile_deletes_when_user_is_deleted(user):
+@pytest.mark.parametrize(
+    'factory_name',
+    ['shop_staff_factory', 'shopowner_factory', 'customer_factory'],
+    ids=['shop_staff', 'shopowner', 'customer']
+)
+def test_user_profile_deletes_when_user_is_deleted(request, factory_name):
     """
     Tests that the user profile associated with a user is deleted
     when the user is deleted.
     """
-    assert User.objects.count() == 1
-    assert UserProfile.objects.count() == 1
+    factory = request.getfixturevalue(factory_name)
+    
+    if factory_name == 'shop_staff_factory':
+        shopowner = request.getfixturevalue('shopowner')
+        user = factory(shopowner=shopowner)
+    else:
+        user = factory()
+
+    user_count = User.objects.count()
+    profile_count = UserProfile.objects.count()
+    
     user.delete()
-    assert User.objects.count() == 0
-    assert UserProfile.objects.count() == 0
+    assert User.objects.count() == (user_count - 1)
+    assert UserProfile.objects.count() == (profile_count - 1)
