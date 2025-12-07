@@ -3,15 +3,22 @@ from django.utils.encoding import force_bytes
 from rest_framework import status
 from unittest.mock import patch
 
+import pytest
+
 # ==========================================================
 # FORGOT PASSWORD TESTS
 # ==========================================================
 FORGOT_PASSWORD_URL = reverse('forgot-password')
 
 
-def test_forgot_password_by_existing_user(client, dummy_user):
+@pytest.mark.parametrize(
+    "user_type",
+    ['shopowner', 'customer'],
+    ids=['shopowner', 'customer']
+)
+def test_forgot_password_by_existing_user(client, user_type, all_users):
     """
-    Test forgot password for an existing user.
+    Test forgot password for existing users (shopowners and customers).
     Test all the way to the task being called.
     """
     with patch(
@@ -20,17 +27,17 @@ def test_forgot_password_by_existing_user(client, dummy_user):
         patch('user.api.v1.routes.password.urlsafe_base64_encode',
               return_value='encoded-email') as mock_encode, \
         patch('user.api.v1.routes.password.send_password_reset_mail_task.delay') as mock_send:
-            
-        res = client.post(FORGOT_PASSWORD_URL, data={'email': dummy_user.email}, format='json')
+        user = all_users[user_type]
+        res = client.post(FORGOT_PASSWORD_URL, data={'email': user.email}, format='json')
         
         assert res.status_code == status.HTTP_202_ACCEPTED
         assert res.data['status'] == "success"
         assert res.data['message'] == "Password reset link sent."
-        mock_make_token.assert_called_once_with(dummy_user)
-        mock_encode.assert_called_once_with(force_bytes(dummy_user.email))
+        mock_make_token.assert_called_once_with(user)
+        mock_encode.assert_called_once_with(force_bytes(user.email))
         mock_send.assert_called_once()
         called_email, called_link = mock_send.call_args[0]
-        assert called_email == dummy_user.email
+        assert called_email == user.email
         assert 'fixed-token' in called_link
         assert 'encoded-email' in called_link
         
