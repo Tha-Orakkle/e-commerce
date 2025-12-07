@@ -25,9 +25,8 @@ def test_shop_staff_creation_by_shop_owner(request, client, shopowner):
     """
     Test shop staff creation by shop owner.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(shopowner.owned_shop.id)
-    client.cookies['access_token']  = tokens['access_token']
     data = STAFF_CREATION_DATA
     res = client.post(url, data, format='json')
     
@@ -67,13 +66,12 @@ def test_shop_staff_creation_by_shop_owner_wit_invalid_access_token(client, shop
     print(res.data['message'])
     assert res.data['message'] == "Token is invalid or expired"
 
-def test_shop_staff_creation_by_customer(request, client, dummy_shop):
+def test_shop_staff_creation_by_customer(client, customer, dummy_shop):
     """
     Test shop staff creation by a customer.
     """
-    tokens = request.getfixturevalue('signed_in_customer')
+    client.force_authenticate(user=customer)
     url = get_staff_creation_url(dummy_shop.id)
-    client.cookies['access_token'] = tokens['access_token']
 
     res = client.post(url, STAFF_CREATION_DATA, format='json')
 
@@ -82,13 +80,12 @@ def test_shop_staff_creation_by_customer(request, client, dummy_shop):
     assert res.data['code'] == "forbidden"
     assert res.data['message'] == "You do not have permission to perform this action."
 
-def test_shop_staff_creation_by_non_owner_shop(request, client, dummy_shop):
+def test_shop_staff_creation_by_non_owner_shop(client, dummy_shop, shopowner):
     """
     Test shop staff creation by a shop owner whose shop is different.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(dummy_shop.id)
-    client.cookies['access_token'] = tokens['access_token']
 
     res = client.post(url, STAFF_CREATION_DATA, format='json')
 
@@ -97,13 +94,12 @@ def test_shop_staff_creation_by_non_owner_shop(request, client, dummy_shop):
     assert res.data['code'] == "forbidden"
     assert res.data['message'] == "You do not have permission to perform this action."
 
-def test_shop_staff_creation_with_non_existing_shop_id(request, client):
+def test_shop_staff_creation_with_non_existing_shop_id(client, shopowner):
     """
     Test shop staff creation with non-existing shop ID.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(uuid.uuid4())
-    client.cookies['access_token'] = tokens['access_token']
 
     res = client.post(url, STAFF_CREATION_DATA, format='json')
 
@@ -112,13 +108,12 @@ def test_shop_staff_creation_with_non_existing_shop_id(request, client):
     assert res.data['code'] == "not_found"
     assert res.data['message'] == "No shop matching the given ID found."
 
-def test_shop_staff_creation_with_invalid_shop_uuid(request, client, shopowner):
+def test_shop_staff_creation_with_invalid_shop_uuid(client, shopowner):
     """
     Test shop staff creation with invalid shop UUID.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url('invalid-uuid')
-    client.cookies['access_token'] = tokens['access_token']
 
     res = client.post(url, STAFF_CREATION_DATA, format='json')
 
@@ -127,13 +122,12 @@ def test_shop_staff_creation_with_invalid_shop_uuid(request, client, shopowner):
     assert res.data['code'] == "invalid_uuid"
     assert res.data['message'] == "Invalid shop id."
 
-def test_shop_staff_creation_by_shop_staff(request, client, shop_staff):
+def test_shop_staff_creation_by_shop_staff(client, shop_staff):
     """
     Test shop staff creation by a shop staff.
     """
-    tokens = request.getfixturevalue('signed_in_staff')
+    client.force_authenticate(user=shop_staff)
     url = get_staff_creation_url(shop_staff.shop.id)
-    client.cookies['access_token'] = tokens['access_token']
 
     res = client.post(url, STAFF_CREATION_DATA, format='json')
 
@@ -142,13 +136,12 @@ def test_shop_staff_creation_by_shop_staff(request, client, shop_staff):
     assert res.data['code'] == "forbidden"
     assert res.data['message'] == "You do not have permission to perform this action."
 
-def test_shop_staff_creation_with_existing_staff_handle(request, client, shopowner):
+def test_shop_staff_creation_with_existing_staff_handle(client, shopowner):
     """
     Test shop staff creation with existing staff handle.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(shopowner.owned_shop.id)
-    client.cookies['access_token'] = tokens['access_token']
     existing_staff_data = STAFF_CREATION_DATA
     # create the first staff member
     res1 = client.post(url, existing_staff_data, format='json')
@@ -164,13 +157,12 @@ def test_shop_staff_creation_with_existing_staff_handle(request, client, shopown
     assert res2.data['errors'] is not None
     assert res2.data['errors']['staff_handle'] == ["Staff member with handle already exists."]
 
-def test_shop_staff_creation_with_invalid_staff_handle(request, client, shopowner):
+def test_shop_staff_creation_with_invalid_staff_handle(client, shopowner):
     """
     Test shop staff creation with invalid staff handle.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(shopowner.owned_shop.id)
-    client.cookies['access_token'] = tokens['access_token']
     invalid_data = STAFF_CREATION_DATA.copy()
     invalid_data['staff_handle'] = 'ab'  # too short
 
@@ -188,13 +180,12 @@ def test_shop_staff_creation_with_invalid_staff_handle(request, client, shopowne
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['errors']['staff_handle'] == ["Ensure this field has no more than 20 characters."]
 
-def test_shop_staff_creation_with_missing_data(request, client, shopowner):
+def test_shop_staff_creation_with_missing_data(client, shopowner):
     """
     Test shop staff creation with missing data.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(shopowner.owned_shop.id)
-    client.cookies['access_token'] = tokens['access_token']
     incomplete_data = {} 
 
     res = client.post(url, incomplete_data, format='json')
@@ -211,13 +202,12 @@ def test_shop_staff_creation_with_missing_data(request, client, shopowner):
     assert res.data['errors']['telephone'] == ["This field is required."]
     assert res.data['errors']['staff_handle'] == ["This field is required."]
 
-def test_shop_staff_creation_with_invalid_first_and_last_name(request, client, shopowner):
+def test_shop_staff_creation_with_invalid_first_and_last_name(client, shopowner):
     """
     Test shop staff creation with invalid first name and last name.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(shopowner.owned_shop.id)
-    client.cookies['access_token'] = tokens['access_token']
     invalid_data = STAFF_CREATION_DATA.copy()
     invalid_data['first_name'] = 'J'  # too short
     invalid_data['last_name'] = 'D'   # too short
@@ -239,13 +229,12 @@ def test_shop_staff_creation_with_invalid_first_and_last_name(request, client, s
     assert res.data['errors']['first_name'] == ["Ensure this field has no more than 30 characters."]
     assert res.data['errors']['last_name'] == ["Ensure this field has no more than 30 characters."]
 
-def test_shop_staff_creation_with_invalid_telephone(request, client, shopowner):
+def test_shop_staff_creation_with_invalid_telephone(client, shopowner):
     """
     Test shop staff creation with invalid telephone number.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(shopowner.owned_shop.id)
-    client.cookies['access_token'] = tokens['access_token']
     invalid_data = STAFF_CREATION_DATA.copy()
     invalid_data['telephone'] = 'invalid_phone'
 
@@ -258,13 +247,12 @@ def test_shop_staff_creation_with_invalid_telephone(request, client, shopowner):
     assert res.data['errors'] is not None
     assert res.data['errors']['telephone'] == ["Enter a valid phone number."]
 
-def test_shop_staff_creation_with_invalid_passwords(request, client, shopowner):
+def test_shop_staff_creation_with_invalid_passwords(client, shopowner):
     """
     Test shop staff creation with invalid passwords.
     """
-    tokens = request.getfixturevalue('signed_in_shopowner')
+    client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(shopowner.owned_shop.id)
-    client.cookies['access_token'] = tokens['access_token']
     invalid_data = STAFF_CREATION_DATA.copy()
     invalid_data['password'] = 'short'
     invalid_data['confirm_password'] = 'short'
