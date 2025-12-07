@@ -50,7 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         Returns:
             str: A string in the format "<User: {self.id}> {self.email}".
         """
-        role = 'Shop Owner' if self.is_shopowner else 'Customer' if not self.is_staff else 'Admin'
+        role = 'Shopowner' if self.is_shopowner else 'Customer' if not self.is_staff else 'Shop_staff'
         return f"<User: {self.id}> {self.email or self.staff_handle} ({role})"
     
     def can_manage_product(self, product):
@@ -85,7 +85,7 @@ class UserProfile(models.Model):
         Returns:
             str: A string in the format "<UserProfile: {self.id}> {self.user.email}".
         """
-        return f"<UserProfile: {self.id}> {self.user.email or self.user.staff_handle + ' (Admin)'}"
+        return f"<UserProfile: {self.id}> \n\t FIRST NAME: {self.first_name} \n\t LAST NAME: {self.last_name} \n\t TELEPHONE: {self.telephone}"
     
     
     def add_categories(self, categories):
@@ -122,12 +122,3 @@ class UserProfile(models.Model):
         slugs = [slugify(c) for c in categories]
         found_categories = Category.objects.filter(slug__in=slugs)
         self.preferred_categories.remove(*found_categories)
-
-
-# signal to create a userprofile for a user immediately a
-# user object is created
-# @receiver(sender=User, signal=post_save)
-# def create_user_profile(sender, instance, created, **kwargs):
-#     if created:
-#         UserProfile.objects.create(user=instance)
-
