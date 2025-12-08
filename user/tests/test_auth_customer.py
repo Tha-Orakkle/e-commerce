@@ -28,16 +28,16 @@ def test_customer_registration(mock_verification_email_task,  client, db_access)
     Test the customer registration process.
     """ 
     data = REG_DATA
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
     mock_verification_email_task.assert_called_once()
-    assert response.status_code == status.HTTP_201_CREATED
-    assert response.data['status'] == "success"
-    assert response.data['message'] == "Customer registration successful."
-    assert response.data['data']['is_customer'] == True
-    assert response.data['data']['is_staff'] == False
-    assert response.data['data']['is_shopowner'] == False
-    assert response.data['data']['profile']['first_name'] == data['first_name']
-    assert response.data['data']['profile']['last_name'] == data['last_name']
+    assert res.status_code == status.HTTP_201_CREATED
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Customer registration successful."
+    assert res.data['data']['is_customer'] == True
+    assert res.data['data']['is_staff'] == False
+    assert res.data['data']['is_shopowner'] == False
+    assert res.data['data']['profile']['first_name'] == data['first_name']
+    assert res.data['data']['profile']['last_name'] == data['last_name']
 
 @pytest.mark.django_db(transaction=True)
 def test_customer_registration_for_shopowner(mock_verification_email_task, client, shopowner):
@@ -45,16 +45,16 @@ def test_customer_registration_for_shopowner(mock_verification_email_task, clien
     Test the customer registration process for an existing shop owner.
     """
     data = {**REG_DATA, 'email': shopowner.email, 'already_shopowner': True}
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
     mock_verification_email_task.assert_called_once()
-    assert response.status_code == status.HTTP_201_CREATED
-    assert response.data['status'] == "success"
-    assert response.data['message'] == "Customer registration successful."
-    assert response.data['data']['is_customer'] == True
-    assert response.data['data']['is_shopowner'] == True
-    assert response.data['data']['is_staff'] == True
-    assert response.data['data']['profile']['first_name'] == data['first_name']
-    assert response.data['data']['profile']['last_name'] == data['last_name'] 
+    assert res.status_code == status.HTTP_201_CREATED
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Customer registration successful."
+    assert res.data['data']['is_customer'] == True
+    assert res.data['data']['is_shopowner'] == True
+    assert res.data['data']['is_staff'] == True
+    assert res.data['data']['profile']['first_name'] == data['first_name']
+    assert res.data['data']['profile']['last_name'] == data['last_name'] 
 
 def test_customer_registration_for_shopowner_with_invalid_password(client, shopowner):
     """
@@ -68,12 +68,12 @@ def test_customer_registration_for_shopowner_with_invalid_password(client, shopo
         'confirm_password': 'Password12345#',
         'already_shopowner': True
     }
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "invalid_credentials"
-    assert response.data['message'] == "Customer registration failed."
-    assert response.data['errors']['non_field_errors'] == ['Invalid credentials matching any shop owner.']
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_credentials"
+    assert res.data['message'] == "Customer registration failed."
+    assert res.data['errors']['non_field_errors'] == ['Invalid credentials matching any shop owner.']
 
 def test_customer_registration_for_shopowner_with_invalid_email(client, shopowner):
     """
@@ -85,28 +85,28 @@ def test_customer_registration_for_shopowner_with_invalid_email(client, shopowne
         'email': 'test-shopowner@email.com',
         'already_shopowner': True
     }
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "invalid_credentials"
-    assert response.data['message'] == "Customer registration failed."
-    assert response.data['errors']['non_field_errors'] == ['Invalid credentials matching any shop owner.']
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_credentials"
+    assert res.data['message'] == "Customer registration failed."
+    assert res.data['errors']['non_field_errors'] == ['Invalid credentials matching any shop owner.']
 
 def test_customer_registration_with_missing_data(client):
     """
     Test the customer registration with missing data.
     """
     data = {}
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "validation_error" 
-    assert response.data['message'] == "Customer registration failed."
-    assert response.data['errors']['email'] == ["This field is required."]
-    assert response.data['errors']['first_name'] == ["This field is required."]
-    assert response.data['errors']['last_name'] == ["This field is required."]
-    assert response.data['errors']['password'] == ["This field is required."]
-    assert response.data['errors']['confirm_password'] == ["This field is required."]
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error" 
+    assert res.data['message'] == "Customer registration failed."
+    assert res.data['errors']['email'] == ["This field is required."]
+    assert res.data['errors']['first_name'] == ["This field is required."]
+    assert res.data['errors']['last_name'] == ["This field is required."]
+    assert res.data['errors']['password'] == ["This field is required."]
+    assert res.data['errors']['confirm_password'] == ["This field is required."]
 
 def test_customer_registration_blank_data_values(client):
     """
@@ -120,27 +120,27 @@ def test_customer_registration_blank_data_values(client):
         'password': '',
         'confirm_password': ''
     }
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "validation_error"
-    assert response.data['message'] == "Customer registration failed."
-    assert response.data['errors']['email'] == ["This field may not be blank."]
-    assert response.data['errors']['first_name'] == ["This field may not be blank."]
-    assert response.data['errors']['last_name'] == ["This field may not be blank."]
-    assert response.data['errors']['password'] == ["This field may not be blank."]
-    assert response.data['errors']['confirm_password'] == ["This field may not be blank."]
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Customer registration failed."
+    assert res.data['errors']['email'] == ["This field may not be blank."]
+    assert res.data['errors']['first_name'] == ["This field may not be blank."]
+    assert res.data['errors']['last_name'] == ["This field may not be blank."]
+    assert res.data['errors']['password'] == ["This field may not be blank."]
+    assert res.data['errors']['confirm_password'] == ["This field may not be blank."]
 
 def test_customer_registration_with_invalid_email_address(client):
     """
     Test the customer registration process with invalid email address.
     """
     data = {**REG_DATA, 'email': 'invalid_email'}
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "validation_error"
-    assert response.data['message'] == "Customer registration failed."
-    assert response.data['errors']['email'] == ["Enter a valid email address."]
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Customer registration failed."
+    assert res.data['errors']['email'] == ["Enter a valid email address."]
 
 def test_customer_registration_with_weak_password(client, db_access):
     """
@@ -155,12 +155,12 @@ def test_customer_registration_with_weak_password(client, db_access):
         'Password must contain at least one lowercase letter.',
         'Password must contain at least one special character.'
     ]
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "validation_error"
-    assert response.data['message'] == "Customer registration failed."
-    pwd_errors = response.data['errors']['password']
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Customer registration failed."
+    pwd_errors = res.data['errors']['password']
     assert all(error in errors for error in pwd_errors)
 
 def test_customer_regitration_password_without_letters(client, db_access):
@@ -171,12 +171,12 @@ def test_customer_regitration_password_without_letters(client, db_access):
         'password': '12345678#',
         'confirm_password': '12345678#'
     }
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == 'error'
-    assert response.data['code'] == "validation_error"
-    assert response.data['message'] == "Customer registration failed."
-    pwd_errors = response.data['errors']['password']
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == 'error'
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Customer registration failed."
+    pwd_errors = res.data['errors']['password']
     assert "Password must contain at least one letter." in pwd_errors
 
 def test_customer_registration_with_mismatching_password(client, db_access):
@@ -185,12 +185,12 @@ def test_customer_registration_with_mismatching_password(client, db_access):
     """
     data = {**REG_DATA, 'confirm_password': 'Password123456#'
     }
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "validation_error"
-    assert response.data['message'] == "Customer registration failed."
-    assert response.data['errors']['confirm_password'] == ['Passwords do not match.']
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Customer registration failed."
+    assert res.data['errors']['confirm_password'] == ['Passwords do not match.']
 
 def test_customer_registration_existing_email(client, customer):
     """
@@ -198,12 +198,12 @@ def test_customer_registration_existing_email(client, customer):
     existing customer email.
     """
     data = {**REG_DATA, 'email': customer.email}
-    response = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "validation_error"
-    assert response.data['message'] == "Customer registration failed."
-    assert response.data['errors']['email'] == ["User with email already exists."]
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Customer registration failed."
+    assert res.data['errors']['email'] == ["User with email already exists."]
     assert User.objects.filter(email=customer.email).exists() is True
 
 # ==========================================================
@@ -220,16 +220,16 @@ def test_customer_login(client, customer):
         'password': 'Password123#',
         'remember_me': True
     }
-    response = client.post(CUSTOMER_LOGIN_URL, data, format='json')
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['status'] == "success"
-    assert response.data['message'] == f"Log in successful."
-    assert response.data['data']['id'] == str(customer.id)
-    assert response.data['data']['email'] == customer.email
-    assert response.cookies['access_token']['httponly'] is True
-    assert response.cookies['refresh_token']['httponly'] is True
-    assert response.cookies['refresh_token']['max-age'] is not None
-    assert response.cookies['refresh_token']['max-age'] == 604800
+    res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == f"Log in successful."
+    assert res.data['data']['id'] == str(customer.id)
+    assert res.data['data']['email'] == customer.email
+    assert res.cookies['access_token']['httponly'] is True
+    assert res.cookies['refresh_token']['httponly'] is True
+    assert res.cookies['refresh_token']['max-age'] is not None
+    assert res.cookies['refresh_token']['max-age'] == 604800
 
 def test_customer_login_as_shopowner_and_customer(client, shopowner):
     """
@@ -263,11 +263,11 @@ def test_customer_login_false_remember_me(client, customer):
         'password': 'Password123#',
         'remember_me': False
     }
-    response = client.post(CUSTOMER_LOGIN_URL, data, format='json')
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['status'] == 'success'
-    assert response.cookies['refresh_token'] is not None
-    assert response.cookies['refresh_token']['max-age'] == 86400
+    res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == 'success'
+    assert res.cookies['refresh_token'] is not None
+    assert res.cookies['refresh_token']['max-age'] == 86400
 
 def test_customer_login_as_shopowner(client, shopowner):
     """
@@ -278,13 +278,13 @@ def test_customer_login_as_shopowner(client, shopowner):
         'password': 'Password123#',
         'remember_me': True
     }
-    response = client.post(CUSTOMER_LOGIN_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "invalid_credentials"
-    assert response.data['message'] == "Log in failed."
-    assert response.data['errors'] is not None
-    assert response.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_credentials"
+    assert res.data['message'] == "Log in failed."
+    assert res.data['errors'] is not None
+    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
 
 def test_customer_login_missing_email(client):
     """
@@ -295,13 +295,13 @@ def test_customer_login_missing_email(client):
         'remember_me': True
     }
 
-    response = client.post(CUSTOMER_LOGIN_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "Log in failed."
-    assert response.data['code'] == "validation_error"
-    assert response.data['errors'] is not None
-    assert response.data['errors']['email'] == ['This field is required.']
+    res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['message'] == "Log in failed."
+    assert res.data['code'] == "validation_error"
+    assert res.data['errors'] is not None
+    assert res.data['errors']['email'] == ['This field is required.']
 
 def test_customer_login_missing_password(client):
     """
@@ -311,13 +311,13 @@ def test_customer_login_missing_password(client):
         'email': 'customer@email.com',
         'remember_me': True
     }
-    response = client.post(CUSTOMER_LOGIN_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "Log in failed."
-    assert response.data['code'] == "validation_error"
-    assert response.data['errors'] is not None
-    assert response.data['errors']['password'] == ['This field is required.']
+    res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['message'] == "Log in failed."
+    assert res.data['code'] == "validation_error"
+    assert res.data['errors'] is not None
+    assert res.data['errors']['password'] == ['This field is required.']
 
 def test_customer_login_invalid_password(client, customer):
     """
@@ -328,13 +328,13 @@ def test_customer_login_invalid_password(client, customer):
         'password': 'wrong_password',
         'remember_me': False
     }
-    response = client.post(CUSTOMER_LOGIN_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "invalid_credentials"
-    assert response.data['message'] == "Log in failed."
-    assert response.data['errors'] is not None
-    assert response.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_credentials"
+    assert res.data['message'] == "Log in failed."
+    assert res.data['errors'] is not None
+    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
 
 def test_customer_login_invalid_email(client, db_access):
     """"
@@ -344,13 +344,13 @@ def test_customer_login_invalid_email(client, db_access):
         'email': 'invalid_email',
         'password': 'password123#'
     }
-    response = client.post(CUSTOMER_LOGIN_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "invalid_credentials"
-    assert response.data['message'] == "Log in failed."
-    assert response.data['errors'] is not None
-    assert response.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_credentials"
+    assert res.data['message'] == "Log in failed."
+    assert res.data['errors'] is not None
+    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
 
 def test_customer_login_nonexistent_email(client, db_access):
     """
@@ -360,10 +360,10 @@ def test_customer_login_nonexistent_email(client, db_access):
         'email': 'nonexistent@email.com',
         'password': 'password123#'
     }
-    response = client.post(CUSTOMER_LOGIN_URL, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "invalid_credentials"
-    assert response.data['message'] == "Log in failed."
-    assert response.data['errors'] is not None
-    assert response.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_credentials"
+    assert res.data['message'] == "Log in failed."
+    assert res.data['errors'] is not None
+    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]

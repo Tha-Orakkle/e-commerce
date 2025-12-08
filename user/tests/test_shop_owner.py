@@ -90,11 +90,11 @@ def test_get_shop_owner_by_same_shop_owner(client, shopowner, signed_in_shopowne
     """
     url = reverse('shopowner-detail', kwargs={'shopowner_id': shopowner.id})
     client.cookies['access_token'] == signed_in_shopowner['access_token']
-    response = client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['status'] == "success"
-    assert response.data['message'] == "Shop owner retrieved successfully."
-    assert response.data['data']['id'] == str(shopowner.id)
+    res = client.get(url)
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shop owner retrieved successfully."
+    assert res.data['data']['id'] == str(shopowner.id)
 
 def test_get_shopowner_by_superuser(client, shopowner, signed_in_superuser):
     """
@@ -102,11 +102,11 @@ def test_get_shopowner_by_superuser(client, shopowner, signed_in_superuser):
     """
     url = reverse('shopowner-detail', kwargs={'shopowner_id': shopowner.id})
     client.cookies['access_token'] == signed_in_superuser['access_token']
-    response = client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['status'] == "success"
-    assert response.data['message'] == "Shop owner retrieved successfully."
-    assert response.data['data']['id'] == str(shopowner.id)
+    res = client.get(url)
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shop owner retrieved successfully."
+    assert res.data['data']['id'] == str(shopowner.id)
 
 def test_get_shopowner_by_another_shopowner(client, shopowner, signed_in_shopowner):
     """
@@ -119,11 +119,11 @@ def test_get_shopowner_by_another_shopowner(client, shopowner, signed_in_shopown
     )
     url = reverse('shopowner-detail', kwargs={'shopowner_id': admin.id})
     client.cookies['access_token'] = signed_in_shopowner['access_token']
-    response = client.get(url)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "forbidden"
-    assert response.data['message'] == "You do not have permission to perform this action."
+    res = client.get(url)
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."
 
 def test_get_shopowner_with_invalid_id(client, signed_in_superuser):
     """
@@ -131,11 +131,11 @@ def test_get_shopowner_with_invalid_id(client, signed_in_superuser):
     """
     url = reverse('shopowner-detail', kwargs={'shopowner_id': "123-Invalid-id"})
     client.cookies['access_token'] = signed_in_superuser['access_token']
-    response = client.get(url)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "invalid_uuid"
-    assert response.data['message'] == "Invalid shop owner id."
+    res = client.get(url)
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_uuid"
+    assert res.data['message'] == "Invalid shop owner id."
 
 def test_get_shopowner_with_non_existent_id(client, signed_in_superuser):
     """
@@ -143,11 +143,11 @@ def test_get_shopowner_with_non_existent_id(client, signed_in_superuser):
     """
     url = reverse('shopowner-detail', kwargs={'shopowner_id': uuid.uuid4()})
     client.cookies['access_token'] = signed_in_superuser['access_token']
-    response = client.get(url)
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "not_found"
-    assert response.data['message'] == "No shop owner matching the given given ID found."
+    res = client.get(url)
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "not_found"
+    assert res.data['message'] == "No shop owner matching the given given ID found."
 
 def test_get_shopowner_by_non_shopowner(request, client, shopowner):
     """
@@ -156,16 +156,16 @@ def test_get_shopowner_by_non_shopowner(request, client, shopowner):
     tokens = request.getfixturevalue('signed_in_customer')
     url = reverse('shopowner-detail', kwargs={'shopowner_id': shopowner.id})
     client.cookies['access_token'] == tokens['access_token']
-    response = client.get(url)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "forbidden"
-    assert response.data['message'] == "You do not have permission to perform this action."
+    res = client.get(url)
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."
 
     tokens = request.getfixturevalue('signed_in_staff')
     client.cookies['access_token'] == tokens['access_token']
-    response = client.get(url)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "forbidden"
-    assert response.data['message'] == "You do not have permission to perform this action."
+    res = client.get(url)
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."
