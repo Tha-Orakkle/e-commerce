@@ -4,6 +4,11 @@ from rest_framework import status
 import pytest
 
 
+
+# =============================================================================
+# LOGOUT TESTS
+# =============================================================================
+
 LOGOUT_URL = reverse('logout')
 
 @pytest.mark.parametrize(
