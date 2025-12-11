@@ -9,7 +9,6 @@ import pytest
 # ==========================================================
 # RESET PASSWORD TESTS
 # ==========================================================
-
 RESET_PASSWORD_URL = reverse('reset-password-confirm')
 PASSWORD_RESET_DATA = {
     'new_password': 'NewPassword123#',

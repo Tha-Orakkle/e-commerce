@@ -6,9 +6,7 @@ import pytest
 # ==========================================================
 # UPDATE USER (email/staff handle)
 # ==========================================================
-
 UPDATE_URL = reverse('user-me-update')
-
 
 @pytest.mark.parametrize(
     'user_type',
