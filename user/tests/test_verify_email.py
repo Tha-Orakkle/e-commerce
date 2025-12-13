@@ -6,11 +6,10 @@ import pytest
 
 from user.utils.email_verification import generate_email_verification_token
 
-# test that email verified successfully
-# test that token is not provided in the email verification
-# test that the token has expired
-# test email already verified
 
+# ==========================================================
+# VERIFY EMAIL TESTS
+# ==========================================================
 VERIFY_URL = reverse('verify-email')
 
 def test_verify_email_with_valid_token(client, customer):
