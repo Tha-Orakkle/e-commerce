@@ -8,7 +8,7 @@ def generate_email_verification_token(user_id):
     """
     Generate a token for email verification.
     """
-    return signing.dumps({'user_id': user_id}, salt='email-verification')
+    return signing.dumps({'user_id': str(user_id)}, salt='email-verification')
 
 
 def verify_email_verification_token(token):
