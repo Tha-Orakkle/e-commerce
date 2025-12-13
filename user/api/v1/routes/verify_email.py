@@ -27,7 +27,7 @@ class VerifyEmailView(APIView):
                 code='verification_error'
             )
         user.is_verified = True
-        user.save()
+        user.save(update_fields=['is_verified'])
         return Response(
             SuccessAPIResponse(
                 message='Email verified successfully.'

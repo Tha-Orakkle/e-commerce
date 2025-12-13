@@ -25,11 +25,4 @@ def verify_email_verification_token(token):
     except signing.SignatureExpired:
         return None
     # check that the user ID exists in the database
-    user = User.objects.filter(id=user_id).first()
-    if not user:
-        return None
-    return user
-
-    
-
-
+    return User.objects.filter(id=user_id).first()
