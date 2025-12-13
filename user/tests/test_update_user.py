@@ -109,11 +109,12 @@ def test_update_staff_handle_by_customer(client, request, customer):
     assert customer.staff_handle is None
 
 
-def test_update_email_and_staff_handle_by_customer(client, customer):
+def test_update_email_and_staff_handle_by_customer(request, client, customer):
     """
     Test update a customer's email and staff handle.
     NB: Customers do have staff handle. This will be skipped.
     """
+    mock_verification_mail = request.getfixturevalue('mock_verification_email_task')
     old_email = customer.email
     client.force_authenticate(user=customer)
 
@@ -129,6 +130,7 @@ def test_update_email_and_staff_handle_by_customer(client, customer):
     assert res.data['data']['email'] != old_email
     assert res.data['data']['email'] == data['email']
     assert res.data['data']['staff_handle'] is None
+    mock_verification_mail.assert_called_once()
 
 
 def test_update_email_and_staff_handle_by_shop_staff(client, shop_staff):
