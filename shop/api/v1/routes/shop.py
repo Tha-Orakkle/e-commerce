@@ -21,7 +21,6 @@ from shop.api.v1.swagger import (
 )
 
 
-
 class ShopListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -136,5 +135,5 @@ class ShopDetailView(APIView):
                 user.is_staff = False
                 user.staff_handle = None
                 user.save()
-            
+
         return Response({}, status=status.HTTP_204_NO_CONTENT)
