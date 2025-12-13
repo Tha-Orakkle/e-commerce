@@ -89,5 +89,6 @@ class CustomerDetailView(APIView):
                 user.delete()
             else:
                 user.is_customer = False
+                user.cart.delete()
                 user.save()
         return Response({}, status=status.HTTP_204_NO_CONTENT)
