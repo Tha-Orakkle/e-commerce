@@ -26,10 +26,15 @@ class VerifyEmailView(APIView):
                 detail="Invalid or expired token.",
                 code='verification_error'
             )
-        user.is_verified = True
-        user.save(update_fields=['is_verified'])
+        if not user.is_verified:
+            user.is_verified = True
+            user.save(update_fields=['is_verified'])
+            message = "Email verified successfully."
+        else:
+            message="Email already verified."
+            
         return Response(
             SuccessAPIResponse(
-                message='Email verified successfully.'
+                message=message
             ).to_dict(), status=200
         )
