@@ -3,20 +3,8 @@ from django.urls import reverse
 from rest_framework import status
 
 import pytest
-import random
-import string
-
-from user.models import UserProfile
 
 User = get_user_model()
-
-# test request is from unauthenticated user (not provided and invalid tokens) -- done
-# test user has no profile -- done
-# test user successfully updates profile (customer, staff and shop owner) -- done
-# test profile update with invalid names -- done
-# test profile update with invalid telephone -- done
-# test profile updatw with missing data -- done
-
 
 # =================================================================
 # PROFILE UPDATE TESTS
@@ -28,19 +16,6 @@ UPDATE_PROFILE_DATA = {
     'last_name': 'UpdatedLastName',
     'telephone': '08120002323'
 }
-
-# ----
-long_name = ''.join(random.choices(string.ascii_letters, k=31))
-
-@pytest.fixture
-def updated_user(user):
-    user.profile.first_name = 'Jane'
-    user.profile.last_name = 'Doe'
-    user.profile.telephone = '08129114555'
-    user.save()
-    return user
-# ----
-
 
 
 @pytest.mark.parametrize(
