@@ -39,7 +39,7 @@ class ShopStaffListCreateView(APIView):
         shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop matching the given shop ID found.",
+                detail="No shop matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -145,10 +145,10 @@ class ShopStaffDetailView(APIView):
         """
         validate_id(shop_id, 'shop')
         validate_id(staff_id, "staff")
-        shop = Shop.objects.filter(code=shop_id).first()
+        shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop matching the given shop ID found.",
+                detail="No shop matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
@@ -159,7 +159,7 @@ class ShopStaffDetailView(APIView):
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
-        if not (request.user.owned_shop == shop):
+        if not (request.user.is_superuser or request.user.owned_shop == shop):
             raise PermissionDenied()
 
         serializer = StaffUpdateSerializer(
@@ -195,21 +195,21 @@ class ShopStaffDetailView(APIView):
         """
         validate_id(shop_id, 'shop')
         validate_id(staff_id, "staff")
-        shop = Shop.objects.filter(code=shop_id).first()
+        shop = Shop.objects.filter(id=shop_id).first()
         if not shop:
             raise ErrorException(
-                detail="No shop found with the given shop code.",
+                detail="No shop matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
         staff = shop.get_staff_member(staff_id)
         if not staff:
             raise ErrorException(
-                detail="No staff memnber found with the given ID.",
+                detail="No staff member matching the given ID found.",
                 code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
-        if request.user.owned_shop == shop:
+        if not (request.user.is_superuser or request.user.owned_shop == shop):
             raise PermissionDenied()
 
         staff.delete()
