@@ -33,13 +33,13 @@ class InventoryUpdateView(APIView):
             raise PermissionDenied()
         
         action = request.data.get('action')
-        quantity = request.data.get('quantity')
+        qty = request.data.get('quantity')
         if action not in ['add', 'subtract']:
             raise ErrorException(
                 detail="Provide a valid action: 'add' or 'subtract'.",
                 code='invalid_action')
         try:
-            quantity = int(quantity)
+            qty = int(qty)
         except (TypeError, ValueError):
             raise ErrorException(
                 detail="Provide a valid quantity that is greater than 0.",
@@ -49,9 +49,9 @@ class InventoryUpdateView(APIView):
         inventory = None
         try:
             if action == 'add':
-                inventory = product.inventory.add(quantity, request.user.staff_handle)
+                inventory = product.inventory.add(qty, request.user.staff_handle)
             elif action == 'subtract':
-                inventory = product.inventory.substract(quantity, request.user.staff_handle)
+                inventory = product.inventory.subtract(qty, request.user.staff_handle)
             else:
                 raise ErrorException()
         except ValueError as ve:

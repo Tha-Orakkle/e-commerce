@@ -29,6 +29,8 @@ urlpatterns = [
 
     # product categories
     path('products/<str:product_id>/categories/', ProductCategoryUpdateView.as_view(), name="product-category-update"),
+
+    # product inventory
     path('products/<str:product_id>/inventory/', InventoryUpdateView.as_view(), name='inventory-update'),
 
 ]
