@@ -44,8 +44,8 @@ def create_orders_from_cart(user, shipping_address, fulfillment_method, payment_
                     code='insufficient_stock'
                 )
                 
-            inv.stock -= qty
-            inv.save(update_fields=['stock'])
+                
+            inv.subtract(qty=qty)
             
             shop_id = product.shop.id
             if shop_id not in order_by_shops:
@@ -63,6 +63,8 @@ def create_orders_from_cart(user, shipping_address, fulfillment_method, payment_
             order_items_to_create.append(OrderItem(
                 order=order,
                 product=product,
+                product_name=product.name,
+                product_description=product.description,
                 quantity=qty,
                 price=price
             ))
