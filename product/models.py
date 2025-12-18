@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import F
 from django.utils.text import slugify
 from decimal import Decimal
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
@@ -204,41 +205,66 @@ class ProductImage(models.Model):
 
 class Inventory(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, null=False)
-    stock = models.PositiveIntegerField(default=0)
+    _stock = models.PositiveIntegerField(default=0)
     last_updated_by = models.CharField(max_length=20)
     product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='inventory')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def stock(self):
+        return self._stock
 
     def __str__(self):
         """
         Returns a string representation of the Inventory object.
         """
         return f"<Inventory: {self.id}> {self.product.name} - {self.stock} items"
-    
+
     @transaction.atomic
-    def add(self, value, staff_handle):
-        if value <= 0:
+    def add(self, qty, handle):
+        """
+        Add to the stock.
+        """
+        if qty <= 0:
             raise ValueError("Provide a valid quantity that is greater than 0.")
-        inventory = Inventory.objects.select_for_update().get(id=self.id)
-        inventory.stock += value
-        inventory.last_updated_by = staff_handle
-        inventory.save()
-        return inventory
-    
-    @transaction.atomic
-    def substract(self, value, staff_handle):
-        if value <= 0:
-            raise ValueError("Provide a valid quantity that is greater than 0.")
+        update_kwargs = {
+            '_stock': F('_stock') + qty
+        }
+        if handle:
+            update_kwargs['last_updated_by'] = handle
+            
+        (Inventory.objects
+            .filter(id=self.id)
+            .update(**update_kwargs))
         
-        inventory = Inventory.objects.select_for_update().get(id=self.id)
-        if inventory.stock - value  < 0:
+        self.refresh_from_db(fields=['_stock', 'last_updated_by', 'updated_at'])
+        return self    
+
+
+    @transaction.atomic
+    def subtract(self, qty, handle=None):
+        """
+        Subtract from the stock.
+        """
+        if qty <= 0:
+            raise ValueError("Provide a valid quantity that is greater than 0.")
+        update_kwargs = {
+            '_stock': F('_stock') - qty,
+        }
+        if handle:
+            update_kwargs['last_updated_by'] = handle
+        updated = (
+            Inventory.objects
+                .filter(id=self.id, _stock__gte=qty)
+                .update(**update_kwargs)
+        )
+        self.refresh_from_db(fields=['_stock', 'last_updated_by', 'updated_at'])
+        if updated == 0:
             raise ErrorException(
-                detail=f"Insufficient stock to complete this operation. Only {inventory.stock} left.",
+                detail=f"Insufficient stock to complete this operation. Only {self._stock} left.",
                 code='insufficient_stock'
             )
-        inventory.stock -= value
-        inventory.last_updated_by = staff_handle
-        inventory.save()
-        return inventory
+        return self
 
 
 @receiver(sender=Product, signal=post_save)
