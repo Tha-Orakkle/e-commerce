@@ -42,12 +42,16 @@ class OrderGroup(models.Model):
     """
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_groups')
     status = models.CharField(max_length=20, choices=OrderGroupStatus.choices, default=OrderGroupStatus.PENDING)
     payment_method = models.CharField(max_length=15, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     fulfillment_method = models.CharField(max_length=9, choices=FulFillmentMethod.choices, default=FulFillmentMethod.PICKUP)
     # is_paid = models.BooleanField(default=False)
+    
+    # user data including denormalized data
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='order_groups')
+    email = models.EmailField()
+    full_name = models.CharField(max_length=60)
     
     # shipping address data including denormalized data
     shipping_address = models.ForeignKey(ShippingAddress, on_delete=models.SET_NULL, null=True)
@@ -57,7 +61,7 @@ class OrderGroup(models.Model):
     shipping_city = models.CharField(max_length=52)
     shipping_state = models.CharField(max_length=32)
     shipping_country = models.CharField(max_length=30)
-    shipping_postal_code = models.CharField(max_length=20)
+    shipping_postal_code = models.CharField(max_length=20)    
     
     # dates
     created_at = models.DateTimeField(auto_now_add=True)
@@ -75,7 +79,10 @@ class OrderGroup(models.Model):
         return all(order.is_paid for order in self.orders.all())
     
     
-    def denormalize_shipping_address(self):
+    def _denormalize_shipping_address(self):
+        """
+        Denormalize data in case the Shipping Address object is deleted.
+        """
         if self.shipping_address:
             self.shipping_full_name = self.shipping_address.full_name
             self.shipping_telephone = str(self.shipping_address.telephone)
@@ -85,8 +92,17 @@ class OrderGroup(models.Model):
             self.shipping_country = self.shipping_address.city.state.country.name
             self.shipping_postal_code = self.shipping_address.postal_code
             
+    def _denormalize_user(self):
+        """
+        Denormalize data in case the User  object is deleted.
+        """
+        if self.user:
+            self.email = self.user.email
+            self.full_name = f"{self.user.profile.first_name} {self.user.profile.last_name}"
+        
     def save(self, *args, **kwargs):
-        self.denormalize_shipping_address()
+        self._denormalize_shipping_address()
+        self._denormalize_user()
         super().save(*args, **kwargs)
 
 
@@ -97,10 +113,13 @@ class Order(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
     group = models.ForeignKey(OrderGroup, on_delete=models.CASCADE, related_name='orders')
-    shop = models.ForeignKey(Shop, on_delete=models.SET_NULL, null=True, related_name='orders')
     status = models.CharField(max_length=12, choices=OrderStatus.choices, default=OrderStatus.PENDING)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0.00))
     is_paid = models.BooleanField(default=False)
+    
+    # shop and the denomalized data
+    shop = models.ForeignKey(Shop, on_delete=models.SET_NULL, null=True, related_name='orders')
+    shop_name = models.CharField(max_length=40)
     
     is_delivered = models.BooleanField(default=False)
     is_picked_up = models.BooleanField(default=False)
@@ -119,6 +138,18 @@ class Order(models.Model):
     def __str__(self):
         return f"<Order: {self.id}> - {self.total_amount} - {self.status}"
 
+    def _denormalize_shop(self):
+        """
+        Denormalize data in case the shop object is deleted.
+        """
+        if self.shop:
+            self.shop_name = self.shop.name
+            
+
+    def save(self, *args, **kwargs):
+        self._denormalize_shop()
+        super().save(*args, **kwargs)
+
 
 class OrderItem(models.Model):
     """
@@ -126,10 +157,14 @@ class OrderItem(models.Model):
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
+    product_name = models.CharField(max_length=50)
+    product_description = models.TextField()
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # product
 
     class Meta:
         ordering = ['created_at']
