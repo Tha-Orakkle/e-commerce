@@ -90,5 +90,5 @@ class CustomerDetailView(APIView):
             else:
                 user.is_customer = False
                 user.cart.delete()
-                user.save()
+                user.save(update_fields=['is_customer'])
         return Response({}, status=status.HTTP_204_NO_CONTENT)
