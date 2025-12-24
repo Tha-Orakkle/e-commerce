@@ -2,8 +2,8 @@ from django.db import transaction
 from django.utils.timezone import now 
 
 from common.exceptions import ErrorException
-from order.models import Order, OrderGroup
-from order.tasks import restock_inventory_with_cancelled_order
+from order.models import Order, OrderGroup, OrderGroupStatus, OrderStatus
+from order.tasks import restock_inventory_with_cancelled_order, update_group_status_for_orders
 from order.utils.validators import validate_delivery_date
 
 class OrderStateMachine:
@@ -43,24 +43,39 @@ class OrderStateMachine:
     # }
     
     def __init__(self, order, group, payment_status=False, delivery_date=None):
+        """
+        Initialize the OrderStateMachine.
+        """
         self.order = order
         self.group = group
         self.payment_status = payment_status
         self.delivery_date = delivery_date
 
     def _get_rules(self, new_status):
+        """
+        Get the rules for the new status to be transitioned to.
+        """
         rules = self.ALLOWED_TRANSACTIONS.get(new_status)
         if not rules:
             raise ErrorException(detail="Invalid status provided.", code='invalid_status')
         return rules
 
     def _raise(self, msg, code='invalid_status_transition'):
+        """
+        Raise Error Exceptions.
+        """
         raise ErrorException(detail=msg, code=code)
 
     def _is_self_transition(self, new_status):
+        """
+        Check if transition is being made to the same status.
+        """
         return new_status == self.order.status
     
     def _structural_check(self, new_status, rules):
+        """
+        Check if transition from one status to another is allowed.
+        """
         old = self.order.status
         if new_status == 'COMPLETED':
             allowed = rules.get('from_delivery', []) if self.group.fulfillment_method == 'DELIVERY' else rules.get('from_pickup', [])
@@ -71,7 +86,7 @@ class OrderStateMachine:
             
     def _payment_check(self, new_status, rules):
         if not rules.get('requires_payment'):
-             return
+            return
          
         if self.group.payment_method == 'DIGITAL' and not self.order.is_paid:
             self._raise(
@@ -122,6 +137,7 @@ class OrderStateMachine:
         if total == completed:
             if self.group.status != 'FULFILLED':
                 self.group.status = 'FULFILLED'
+                # implement on commit operation to anonymise user data if user is deleted
                 return True
             return False
 
@@ -154,6 +170,9 @@ class OrderStateMachine:
                 
 
     def validate_transition(self, new_status):
+        """
+        Run pre-transition checks for transition feasibility.
+        """
         rules = self._get_rules(new_status)
         
         if self._is_self_transition(new_status):
@@ -166,6 +185,10 @@ class OrderStateMachine:
         return True
     
     def transition_to(self, new_status):
+        """
+        Transition order from one state to another.
+        """
+        
         rules = self._get_rules(new_status)
         self.validate_transition(new_status)
         
@@ -201,7 +224,7 @@ class OrderStateMachine:
             if pf:
                 update_fields.extend(['is_paid', 'paid_at'])
 
-            update_fields = list(dict.fromkeys(update_fields))      
+            update_fields = list(dict.fromkeys(update_fields))  # dedupe duplicate fields
             self.order.save(update_fields=update_fields)
             
             if self._update_group_status(new_status):
@@ -214,3 +237,63 @@ class OrderStateMachine:
             # self._run_hooks_after_commit(old_status, new_status)
             
         return self.order
+
+
+    @staticmethod
+    def cancel_customer_pending_orders(customer):
+        """
+        Cancel all pending orders belonging to a customer.
+        """
+        with transaction.atomic():
+            all_order_grps = (
+                OrderGroup.objects.select_for_update()
+                    .filter(
+                        user=customer,
+                        status__in = [
+                            OrderGroupStatus.PENDING,
+                            OrderGroupStatus.PARTIALLY_FULFILLED
+                        ]
+                    )
+            )
+            updated_orders = []
+            updated_grps = []
+            for g in all_order_grps:
+                pending_orders = g.orders.select_for_update().filter(status=OrderStatus.PENDING)
+                for o in pending_orders:
+                    o.status = OrderStatus.CANCELLED
+                updated_orders.extend(pending_orders)
+                if g.status == OrderGroupStatus.PENDING:
+                    g.status = OrderGroupStatus.CANCELLED
+                    updated_grps.append(g)
+            if updated_grps:
+                OrderGroup.objects.bulk_update(updated_grps, ['status'])
+            if updated_orders:
+                Order.objects.bulk_update(updated_orders, ['status'])
+        return True
+    
+
+    @staticmethod
+    def cancel_shop_pending_orders(shop):
+        """
+        Cancel all pending orders belonging to a shop.
+        """
+        with transaction.atomic():
+            pending_orders = list(
+                Order.objects.select_for_update()
+                    .filter(
+                        shop=shop,
+                        status=OrderStatus.PENDING
+                    )
+            )
+            for o in pending_orders:
+                o.status = OrderStatus.CANCELLED
+                
+            if pending_orders:
+                Order.objects.bulk_update(pending_orders, ['status'])
+
+            pending_orders_id = [o.id for o in pending_orders]
+            
+            transaction.on_commit(
+                lambda: update_group_status_for_orders.delay(pending_orders_id)
+            )
+            return True
