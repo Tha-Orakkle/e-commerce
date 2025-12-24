@@ -3,7 +3,7 @@ from django.db import transaction
 from django.utils.timezone import now
 from datetime import timedelta
 
-from order.models import Order, OrderGroup
+from order.models import Order, OrderGroup, OrderStatus
 from product.models import Inventory
 
 @shared_task
@@ -71,5 +71,43 @@ def cancel_unpaid_orders_older_than_4_hours():
     return f"TOTAL ORDER GROUPS: {total_group_count}.\n \
         Cancelled {cancelled_orders} unpaid orders (with {total_item_count} items) older than 4 hours."
 
+  
+@shared_task
+def update_group_status_for_orders(order_ids):
+    """
+    Update the group status for orders.
+    """
+    group_ids = (
+        Order.objects.filter(id__in=order_ids)
+            .values_list('group_id', flat=True)
+            .distinct()
+    )
+    if not group_ids:
+        return True
+    
+    updated_grps = []
+    s_conditions = [OrderStatus.CANCELLED, OrderStatus.COMPLETED]
+    
+    with transaction.atomic():
+        groups = (
+            OrderGroup.objects.select_for_update()
+                .filter(id__in=group_ids)
+        )
+        
+        for g in groups:
+            orders = g.orders.select_for_update().all()
+            total_count = orders.count()
+            cancelled = g.orders.filter(status=OrderStatus.CANCELLED).count()
+            done = g.orders.filter(status__in=s_conditions).count()
 
+            if cancelled == total_count:
+                g.status = OrderStatus.CANCELLED
+            elif done == total_count:
+                g.status == OrderStatus.COMPLETED
+            else:
+                continue
+            updated_grps.append(g)
+        if updated_grps:
+            OrderGroup.objects.bulk_update(updated_grps, ['status'])
 
+        return True
