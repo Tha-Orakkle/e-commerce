@@ -61,19 +61,8 @@ class ProductImageListCreateView(APIView):
             )
         if not request.user.can_manage_product(product):
             raise PermissionDenied()
-        if product.images.count() == 8:
-            raise ErrorException(
-                detail="Product images cannot exceed 8. Cannot add more images.",
-                code='image_limit_exceeded'
-            )
         images = request.FILES.getlist('images', [])
-        if images:
-            product.add_images(images)
-        else:
-            raise ErrorException(
-                detail="No image was provided.",
-                code='no_images'
-            )
+        product.add_images(images)
         return Response(
             SuccessAPIResponse(
                 message="Product images added successfully."
