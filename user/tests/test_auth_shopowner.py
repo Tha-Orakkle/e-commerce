@@ -3,7 +3,7 @@ from rest_framework import status
 
 import pytest
 
-from product.tests.conftest import create_fake_images
+from product.tests.conftest import create_fake_images, create_fake_files
 
 
 # =============================================================================
@@ -242,3 +242,45 @@ def test_shop_owner_registration_with_invalid_passwords(client, db_access):
     assert res.data['message'] == "Shop owner registration failed."
     assert res.data['errors'] is not None
     assert res.data['errors']['confirm_password'] == ["Passwords do not match."]
+
+
+def test_shop_owner_registration_with_missing_shop_logo(client, db_access):
+    """
+    Test shop owner registration without shop logo.
+    """
+    data = SHOP_OWNER_REGISTER_DATA.copy()
+    del data['shop_logo']
+    
+    res = client.post(SHOP_OWNER_REGISTER_URL, data, format='multipart')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shop owner registration failed."
+    assert res.data['errors'] is not None
+    assert res.data['errors']['shop_logo'] == ["No file was submitted."]
+    
+def test_shop_owner_registration_with_invalid_with_invalid_shop_logo(client, db_access):
+    """
+    Test shop owner registration with non-file and non-image shop logo.
+    """
+    data = SHOP_OWNER_REGISTER_DATA.copy()
+    data['shop_logo'] = "Non-file shop logo"
+    
+    res = client.post(SHOP_OWNER_REGISTER_URL, data, format='multipart')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shop owner registration failed."
+    assert res.data['errors'] is not None
+    assert res.data['errors']['shop_logo'] == ["The submitted data was not a file. Check the encoding type on the form."]
+    
+    
+    data['shop_logo'] = create_fake_files(1)[0]
+
+    res = client.post(SHOP_OWNER_REGISTER_URL, data, format='multipart')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shop owner registration failed."
+    assert res.data['errors'] is not None
+    assert res.data['errors']['shop_logo'] == ["Upload a valid image. The file you uploaded was either not an image or a corrupted image."]
