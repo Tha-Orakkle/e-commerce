@@ -35,8 +35,26 @@ def test_shop_owner_registration(mock_verification_email_task, client, db_access
     assert 'data' in res.data
     mock_verification_email_task.assert_called_once
     assert res.data['data']['name'] == SHOP_OWNER_REGISTER_DATA['shop_name']
+    assert 'code' in res.data['data']
+    assert res.data['data']['code'].startswith('SH')
+    assert 'owner' in res.data['data']
     assert res.data['data']['owner']['email'] == SHOP_OWNER_REGISTER_DATA['email']
+    assert res.data['data']['owner']['id'] is not None
+    assert res.data['data']['owner']['is_active'] is True
+    assert res.data['data']['owner']['is_staff'] is True
     assert res.data['data']['owner']['is_shopowner'] is True
+    assert res.data['data']['owner']['is_superuser'] is False
+    assert res.data['data']['owner']['is_verified'] is False
+    assert res.data['data']['owner']['is_customer'] is False
+    assert 'profile' in res.data['data']['owner']
+    assert res.data['data']['owner']['profile']['id'] is not None
+    assert res.data['data']['owner']['profile']['first_name'] == SHOP_OWNER_REGISTER_DATA['first_name']
+    assert res.data['data']['owner']['profile']['last_name'] == SHOP_OWNER_REGISTER_DATA['last_name']
+    assert 'passord' not in res.data['data']
+    assert 'passord' not in res.data['data']['owner']
+    assert 'passord' not in res.data['data']['owner']['profile']
+    assert res.data['data']['logo'] is not None
+    assert res.data['data']['logo'].startswith('/media/shp')
 
 @pytest.mark.django_db(transaction=True)
 def test_shop_owner_registration_with_existing_customer(mock_verification_email_task, client, customer):
@@ -274,11 +292,10 @@ def test_shop_owner_registration_with_invalid_with_invalid_shop_logo(client, db_
     assert res.data['errors'] is not None
     assert res.data['errors']['shop_logo'] == ["The submitted data was not a file. Check the encoding type on the form."]
     
-    
     data['shop_logo'] = create_fake_files(1)[0]
 
     res = client.post(SHOP_OWNER_REGISTER_URL, data, format='multipart')
-    
+
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['code'] == "validation_error"
     assert res.data['message'] == "Shop owner registration failed."
