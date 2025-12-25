@@ -2,12 +2,13 @@ from django.db import transaction
 from django.db.models import F
 from django.utils.text import slugify
 from decimal import Decimal
-from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.apps import apps
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.text import slugify
+from rest_framework.exceptions import ValidationError
 from io import BytesIO
 from PIL import Image
 
@@ -97,14 +98,22 @@ class Product(models.Model):
         """
         Adds product images to a product.
         """
-        ProductImage = apps.get_model('product', 'ProductImage')
-        count = self.images.count()
-        if (8 - count) <= 0: # a product can only have 8 images
-            return
-        for image in images[:8 - count]:
-            if not isinstance(image, InMemoryUploadedFile) and not isinstance(image, TemporaryUploadedFile):
-                continue
-            ProductImage.objects.create(product=self, image=image)
+        from .api.v1.serializers import UploadProductImageSeriallizer
+
+        serializers = UploadProductImageSeriallizer(
+            data={'images': images},
+            context={'product': self}
+        )
+        try:
+            serializers.is_valid(raise_exception=True)
+            serializers.save()
+        except ValidationError:
+            raise ErrorException(
+                code='validation_error',
+                detail="Could not add images to product.",
+                errors=serializers.errors
+            )
+        
 
     def delete_all_image_files(self):
         """
