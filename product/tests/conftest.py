@@ -50,12 +50,12 @@ def product(db, temp_media_root):
     )
 
 
-def create_fake_images(num):
+def create_fake_images(n):
     """
     Creates fake images for testing.
     """
     images = []
-    for _ in range(num):
+    for _ in range(n):
         img = Image.new("RGB", (100, 100), color="white")
         buffer = BytesIO()
         img.save(buffer, format="jpeg")
@@ -66,6 +66,21 @@ def create_fake_images(num):
             content_type="image/jpeg"
         ))
     return images
+
+def create_fake_files(n):
+    """
+    Create fake text files for testing.
+    """
+
+    files = []
+    for i in range(n):
+        f = SimpleUploadedFile(
+            f"test{i}.txt",
+            b"Test File",
+            content_type='text/plain'
+        )
+        files.append(f)
+    return files
 
 
 
@@ -86,3 +101,4 @@ def category(db):
     Create a category instance for testing.
     """
     return Category.objects.create(name="Test Category")
+
