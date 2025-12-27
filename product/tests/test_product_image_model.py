@@ -12,7 +12,7 @@ def test_product_image_creation(product, product_image):
     assert type(product_image.id).__name__ == "UUID"
     assert product_image.product == product
     assert ProductImage.objects.count() == 1
-    assert product_image.image.name.startswith(f"products/pdt_{product.id}/")
+    assert product_image.image.name.startswith(f"shp_{product.shop.id}/products/pdt_{product.id}/")
     assert product_image.image.path.startswith(str(product.get_image_dir()))
 
 
