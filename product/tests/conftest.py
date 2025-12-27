@@ -96,9 +96,10 @@ def category_factory(db, temp_media_root):
     """
     Factory to create categories.
     """
-    def create_category():
+    def create_category(name=None):
         count = Category.objects.count()
-        return Category.objects.create(name=f"Test Category {count}")
+        name = name or f"Test Category {count}"
+        return Category.objects.create(name=name)
     
     return create_category
 
