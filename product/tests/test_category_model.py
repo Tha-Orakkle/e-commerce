@@ -1,11 +1,12 @@
 from product.models import Category
 
-def test_category_creation(category):
+def test_category_creation(category_factory):
     """
     Test the creation of a category.
     """
-    assert category.name == "Test Category"
-    assert category.slug == "test-category"
+    category = category_factory(name="Fashion and Apparel")
+    assert category.name == "Fashion and Apparel"
+    assert category.slug == "fashion-and-apparel"
     assert Category.objects.count() == 1
 
 
@@ -16,25 +17,23 @@ def test_category_str(category):
     assert str(category) == f"<Category: {category.id}> {category.slug}"
 
 
-def test_category_ordering(db_access):
+def test_category_ordering(category_factory):
     """
     Test the ordering of categories by created_at.
     """
-
-    # Create three categories with different names
-    category1 = Category.objects.create(name="Electronics")
-    category2 = Category.objects.create(name="Books")
-    category3 = Category.objects.create(name="Clothing")
+    c1 = category_factory(name="Fashion")
+    c2 = category_factory(name="Electronics")
+    c3 = category_factory(name="Books")
 
     categories = Category.objects.all()
-    assert list(categories) == [category2, category3, category1] 
+    assert list(categories) == [c3, c2, c1] 
 
 
 def test_category_save_slug(category):
     """
     Test that the slug is automatically generated from the name.
     """
-    category.name = "New Category Name"
+    category.name = "Fashion & Apparel"
     category.save()
-    
-    assert category.slug == "new-category-name", "Slug was not updated correctly after saving"
+
+    assert category.slug == "fashion-apparel", "Slug was not updated correctly after saving"
