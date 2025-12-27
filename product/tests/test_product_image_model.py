@@ -1,6 +1,5 @@
 import os
 
-from .conftest import create_fake_images
 from product.models import ProductImage
 
 
