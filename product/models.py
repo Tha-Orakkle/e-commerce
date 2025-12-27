@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils.text import slugify
 from decimal import Decimal
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.text import slugify
+from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError
 from io import BytesIO
 from PIL import Image
@@ -30,6 +31,7 @@ class Product(models.Model):
     description = models.TextField(null=False, blank=False, default='')
     price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0.00), blank=False)
     is_active = models.BooleanField(default=True, null=False)
+    deactivated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, null=False, related_name='products')
@@ -138,19 +140,41 @@ class Product(models.Model):
         """
         self.delete_images()
         self.add_images(images)
+        
+    def has_active_orders(self):
+        """
+        Return True if product has active orders.
+        """
+        from order.models import OrderStatus
+        ACTIVE_ORDER_STATES = {
+            OrderStatus.PENDING,
+            OrderStatus.PROCESSING,
+            OrderStatus.SHIPPED
+        }
+        return self.orderitem_set.filter(
+            order__status__in=ACTIVE_ORDER_STATES
+        ).exists()
+
+    def deactivate(self):
+        self.is_active = False
+        self.deactivated_at = now()
+        self.save(update_fields=['is_active', 'deactivated_at'])
+
+    def safe_delete(self):
+        """
+        Delete or deactivate products.
+        """
+        if self.has_active_orders():
+            self.deactivate()
+        else:
+            self.delete()
 
     def delete(self, *args, **kwargs):
         """
         Delete a Product instance.
         """
         self.delete_images()
-        if self.orderitem_set.exists():
-            self.is_active = False
-            self.save(update_fields=['is_active'])
-        else:
-            super().delete(*args, **kwargs)
-        # self.delete_all_image_files()
-        # super().delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         """
