@@ -206,14 +206,14 @@ class ProductDetailView(APIView):
         product = self.get_object(product_id)
         if not product:
             raise ErrorException(
-                detail="Product not found.",
+                detail="No product matching the given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
             
         if not request.user.can_manage_product(product):
             raise PermissionDenied()
         
-        product.delete()
+        product.safe_delete()
         return Response({}, status=status.HTTP_204_NO_CONTENT)
 
 
