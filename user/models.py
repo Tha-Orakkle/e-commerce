@@ -64,6 +64,15 @@ class User(AbstractBaseUser, PermissionsMixin):
             or (self.shop and self.shop == shop)
         )
         
+    def can_manage_shop(self, shop):
+        """
+        Checks if a user can manage a particular shop.
+        """
+        return (
+            self.is_superuser
+            or (self.is_shopowner and self.owned_shop == shop)
+            or (self.shop and self.shop == shop)
+        )
     
     
 class UserProfile(models.Model):
