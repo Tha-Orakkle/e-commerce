@@ -75,10 +75,7 @@ class ShopProductListCreateView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND
             )
         
-        if not (
-            request.user.is_superuser
-            or shop.staff_handle_exists(request.user.staff_handle)
-        ):
+        if not request.user.can_manage_shop(shop):
             raise PermissionDenied()    
 
         serializer = ProductSerializer(
