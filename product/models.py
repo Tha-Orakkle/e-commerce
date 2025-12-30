@@ -46,6 +46,10 @@ class Product(models.Model):
         Returns a string representation of the Product object.
         """
         return f"<Product: {self.id}> {self.name}"
+    
+    @property
+    def stock(self):
+        return self.inventory._stock
 
 
     def add_categories(self, categories):
