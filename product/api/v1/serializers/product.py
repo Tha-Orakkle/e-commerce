@@ -29,6 +29,28 @@ class ProductSerializer(serializers.ModelSerializer):
         if exclude is not None:
             for field_name in exclude:
                 self.fields.pop(field_name, None)
+                
+    def validate_name(self, value):
+        """
+        Validate that the product name is unique.
+        """
+        value = value.strip()
+
+        if self.instance and self.instance.name == value:
+            return value
+        if self.instance:
+            shop = self.instance.shop
+        else:
+            shop = self._shop
+        if not shop:
+            raise AssertionError(
+                "ProductSerializer requires shop in the context when creating new product."
+            )
+        if shop.products.filter(name__iexact=value).exists():
+            raise serializers.ValidationError(
+                "A product with this name already exists in the shop."
+            )
+        return value
 
     def validate(self, attrs):
         """
