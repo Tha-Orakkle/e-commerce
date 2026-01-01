@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from .category import CategorySerializer
@@ -19,6 +20,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         exclude = ['is_active']
+        read_only_fields = ['id', 'deactivated_at']
 
     def __init__(self, *args, **kwargs):
         exclude = kwargs.pop('exclude', None)
@@ -62,12 +64,13 @@ class ProductSerializer(serializers.ModelSerializer):
             )
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         """
         Create a Product instance.
         """
-        files = self.context.get('files')
-        images = files.getlist('images') if files else []
+        # files = self.context.get('files')
+        # images = files.getlist('images') if files else []
         categories = self.initial_data.getlist('categories') if 'categories' in self.initial_data else []
 
         product = Product.objects.create(
@@ -78,26 +81,27 @@ class ProductSerializer(serializers.ModelSerializer):
                 product.add_categories(categories)
             except ErrorException:
                 pass
-        if images:
-            product.add_images(images)
+        
         return product
     
+    @transaction.atomic
     def update(self, instance, validated_data):
         """
         Update a Product instance.
         """
-        files = self.context.get('files')
-        images = files.getlist('images', []) if files else []
+        # files = self.context.get('files')
+        # images = files.getlist('images', []) if files else []
         categories = self.initial_data.getlist('categories') if 'categories' in self.initial_data else []
         
-        if not validated_data and not files and not categories:
+        # if not validated_data and not files and not categories:
+        if not validated_data and not categories:
             return instance
 
         for k, v in validated_data.items():
             setattr(instance, k, v)
         if categories:
             instance.add_categories(categories)
-        if images:
-            instance.update_images(images)
+        # if images:
+        #     instance.update_images(images)
         instance.save()
         return instance
