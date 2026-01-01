@@ -16,7 +16,7 @@ def create_fake_images(n):
     """
     images = []
     for _ in range(n):
-        img = Image.new("RGB", (100, 100), color="white")
+        img = Image.new("RGB", (10, 10), color="white")
         buffer = BytesIO()
         img.save(buffer, format="jpeg")
         buffer.seek(0)
@@ -68,10 +68,12 @@ def product_factory(db, temp_media_root):
     """
     Factory to create products.
     """
-    def create_product(shop):
-        count = Product.objects.filter(shop_id=shop.id).count()
+    def create_product(shop, name=None):
+        # count = Product.objects.filter(shop_id=shop.id).count()
+        count = Product.objects.count()
+        name = name or f"Product {count}"
         return Product.objects.create(
-            name=f"Product {count}",
+            name=name,
             description=f"This is product {count}.",
             price=99.9,
             shop=shop
