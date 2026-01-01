@@ -37,7 +37,7 @@ class UploadProductImageSeriallizer(serializers.Serializer):
     def validate_images(self, images):
         if self._count == 8:
             self._raise(
-                "Product images cannot exceed 8. Cannot add more images.",
+                "Product has 8 images. Cannot add more images.",
                 "image_limit_reached")
         d = 8 - self._count
         if len(images) > d:
