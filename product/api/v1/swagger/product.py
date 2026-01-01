@@ -27,10 +27,6 @@ class ProductDataRequest(serializers.Serializer):
     name = serializers.CharField()
     description = serializers.CharField()
     price = serializers.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0.00))
-    images = serializers.ListField(
-        child=serializers.ImageField(),
-        required=False
-    )
 
 class ProductCategoryRequestData(serializers.Serializer):
     """

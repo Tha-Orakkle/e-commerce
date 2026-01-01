@@ -69,8 +69,6 @@ class ProductSerializer(serializers.ModelSerializer):
         """
         Create a Product instance.
         """
-        # files = self.context.get('files')
-        # images = files.getlist('images') if files else []
         categories = self.initial_data.getlist('categories') if 'categories' in self.initial_data else []
 
         product = Product.objects.create(
@@ -89,11 +87,8 @@ class ProductSerializer(serializers.ModelSerializer):
         """
         Update a Product instance.
         """
-        # files = self.context.get('files')
-        # images = files.getlist('images', []) if files else []
         categories = self.initial_data.getlist('categories') if 'categories' in self.initial_data else []
         
-        # if not validated_data and not files and not categories:
         if not validated_data and not categories:
             return instance
 
@@ -101,7 +96,5 @@ class ProductSerializer(serializers.ModelSerializer):
             setattr(instance, k, v)
         if categories:
             instance.add_categories(categories)
-        # if images:
-        #     instance.update_images(images)
         instance.save()
         return instance

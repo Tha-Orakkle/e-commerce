@@ -176,7 +176,6 @@ class ProductDetailView(APIView):
             partial=True,
             context={
                 'request': request,
-                'files': request.FILES
             })
         if not serializer.is_valid():
             raise ErrorException(
