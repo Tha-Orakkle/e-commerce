@@ -1,7 +1,6 @@
-from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -82,17 +81,16 @@ class ShopProductListCreateView(APIView):
             data=request.data,
             context={
                 'request': request,
-                'files': request.FILES,
                 'shop': shop
             })
+
         if not serializer.is_valid():
             raise ErrorException(
                 detail="Product creation failed.",
                 code='validation_error',
                 errors=serializer.errors
             )
-        with transaction.atomic():
-            serializer.save()
+        serializer.save()
         return Response(SuccessAPIResponse(
             message="Product created successfully.",
             data=serializer.data
@@ -165,7 +163,7 @@ class ProductDetailView(APIView):
         product = self.get_object(product_id)
         if not product:
             raise ErrorException(
-                detail="Product not found.",
+                detail="No product matching the given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
 
