@@ -27,6 +27,24 @@ def create_fake_images(n):
         ))
     return images
 
+def create_large_fake_image(n):
+    """
+    Create a fake image larger than 2MB for testing.
+    """
+    images = []
+    for _ in range(n):
+        # img = Image.new("RGB", (3000, 3000), color="")
+        img = Image.effect_noise((2000, 2000), 100).convert("RGB")
+        buffer = BytesIO()
+        img.save(buffer, format="jpeg", quality=95)
+        buffer.seek(0)
+        images.append(SimpleUploadedFile(
+            name=f"large_image_{uuid4()}.jpg",
+            content=buffer.read(),
+            content_type="image/jpeg"
+        ))
+    return images
+
 
 def create_fake_files(n):
     """
