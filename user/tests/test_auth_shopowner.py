@@ -127,11 +127,11 @@ def test_shop_owner_registration_as_existing_customer_with_wrong_password(client
     assert 'errors' in res.data
     assert res.data['errors']['non_field_errors'] == ['Invalid credentials matching any customer.']
 
-def test_shop_owner_registration_with_existing_email_but_already_customer_false(client, db_access, dummy_user):
+def test_shop_owner_registration_with_existing_email_but_already_customer_false(client, db_access, customer):
     """Test shop owner registration with an existing email but already_customer is False."""
     data = {
         **SHOP_OWNER_REGISTER_DATA,
-        'email': dummy_user.email,
+        'email': customer.email,
         'shop_logo': create_fake_images(1)[0],
         'already_customer': False
     }

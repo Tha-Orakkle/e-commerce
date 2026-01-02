@@ -66,12 +66,12 @@ def test_shop_staff_creation_by_shop_owner_wit_invalid_access_token(client, shop
     print(res.data['message'])
     assert res.data['message'] == "Token is invalid or expired"
 
-def test_shop_staff_creation_by_customer(client, customer, dummy_shop):
+def test_shop_staff_creation_by_customer(client, customer, shopowner):
     """
     Test shop staff creation by a customer.
     """
     client.force_authenticate(user=customer)
-    url = get_staff_creation_url(dummy_shop.id)
+    url = get_staff_creation_url(shopowner.owned_shop.id)
 
     res = client.post(url, STAFF_CREATION_DATA, format='json')
 
@@ -80,12 +80,14 @@ def test_shop_staff_creation_by_customer(client, customer, dummy_shop):
     assert res.data['code'] == "forbidden"
     assert res.data['message'] == "You do not have permission to perform this action."
 
-def test_shop_staff_creation_by_non_owner_shop(client, dummy_shop, shopowner):
+def test_shop_staff_creation_by_non_owner_shop(client, shopowner_factory):
     """
     Test shop staff creation by a shop owner whose shop is different.
     """
-    client.force_authenticate(user=shopowner)
-    url = get_staff_creation_url(dummy_shop.id)
+    sh1 = shopowner_factory()
+    sh2 = shopowner_factory()
+    client.force_authenticate(user=sh1)
+    url = get_staff_creation_url(sh2.owned_shop.id)
 
     res = client.post(url, STAFF_CREATION_DATA, format='json')
 
