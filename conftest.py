@@ -3,8 +3,12 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 import pytest
 
+from cart.models import Cart
+from shop.models import Shop
+from user.models import UserProfile
 
 User = get_user_model()
+
 
 # CLIENT
 @pytest.fixture
@@ -21,112 +25,126 @@ def db_access(db):
     pass
 
 
-# USERS
+# FACTORIES
 @pytest.fixture
-def user(db):
+def profile_factory():
     """
-    Creates the user
+    Factory to create user profiles.
     """
-    return User.objects.create_user(
-        email="user@email.com",
-        password="Password123#", 
-    )
+    def create_profile(user, first_name=None, last_name=None, telephone=None):
+        first_name = first_name or 'John'
+        last_name = last_name or 'Doe'
+        telephone = telephone or '08112221111'
+        return UserProfile.objects.create(
+            user=user,
+            first_name=first_name,
+            last_name=last_name,
+            telephone=telephone
+        )
+    return create_profile
 
 
+@pytest.fixture
+def customer_factory(db, profile_factory):
+    """
+    Factory to create customers.
+    """
+    def create_customer():
+        count = User.objects.filter(is_customer=True, is_superuser=False).count() + 1
+        customer = User.objects.create_user(
+            email=f"customer{count}@email.com",
+            password="Password123#",
+        )
+        profile_factory(customer)
+        Cart.objects.create(user=customer)
+        return customer
+    return create_customer
+
+
+@pytest.fixture
+def shopowner_factory(db, profile_factory):
+    """
+    Factory to create shop owners.
+    """
+    def create_shopowner():
+        count = User.objects.filter(is_shopowner=True, is_superuser=False).count() + 1
+        owner = User.objects.create_shopowner(
+            email=f"shopowner{count}@email.com",
+            staff_handle=f"shopowner{count}",
+            password="Password123#"
+        )
+        profile_factory(owner)
+        Shop.objects.create(
+            name=f"Shop {count}",
+            description=f"Shop {count} created by shopowner factory.",
+            owner=owner
+        )
+        return owner
+    return create_shopowner
+
+
+@pytest.fixture
+def shop_staff_factory(db, profile_factory):
+    """
+    Factory to create shop staff.
+    """
+    def create_shop_staff(shopowner):
+        count = User.objects.filter(is_staff=True, is_superuser=False).count() + 1
+        staff = User.objects.create_staff(
+            shop=shopowner.owned_shop,
+            staff_handle=f"staff{count}",
+            password="Password123#"
+        )
+        profile_factory(staff)
+        return staff
+    return create_shop_staff
+
+
+# USERS (SUPER USER, SHOP OWNER, SHOP STAFF AND CUSTOMER)
 @pytest.fixture
 def super_user(db):
     """
     Creates an admin user
     """
     return User.objects.create_superuser(
-        email='admin_superuser@email.com',
-        staff_id='admin-superuser',
+        email='superuser@email.com',
+        staff_handle='superuser',
         password="Password123#"
     )
 
 
 @pytest.fixture
-def admin_user(db):
+def shopowner(shopowner_factory):
     """
-    Create an admin user.
+    Creates a shop owner.
     """
-    return User.objects.create_staff(
-        staff_id='admin-user',
-        password='Password123#'
-    )
+    return shopowner_factory()
 
 
 @pytest.fixture
-def inactive_user(db):
+def shop_staff(db, shopowner, shop_staff_factory):
     """
-    Creates the inactive user
+    Create a staff for a shop.
     """
-    return User.objects.create_user(
-        email="inactiveuser@email.com",
-        password="Password123#",
-        is_active=False,
-    )
+    return shop_staff_factory(shopowner=shopowner)
 
 
 @pytest.fixture
-def signed_in_user(client, user):
+def customer(customer_factory):
     """
-    Signs in the user
-    Return the refresh token and access token
+    Creates a customer.
     """
-    login_url = reverse('login')
-    data = {
-        'email': user.email,
-        'password': 'Password123#'
-    }
-    response = client.post(login_url, data, format='json')
-    assert response.status_code == 200
-    assert 'refresh_token' in response.cookies
-    assert 'access_token' in response.cookies
+    return customer_factory()
+
+
+@pytest.fixture
+def all_users(super_user, shopowner, shop_staff, customer):
+    """
+    Returns all user types as a dict.
+    """
     return {
-        'refresh_token': response.cookies['refresh_token'].value,
-        'access_token': response.cookies['access_token'].value
+        'super_user': super_user,
+        'shopowner': shopowner,
+        'shop_staff': shop_staff,
+        'customer': customer,
     }
-    
-
-@pytest.fixture
-def signed_in_superuser(client, super_user):
-    """
-    Sign in the super user.
-    Return the refresh token and access token
-    """
-    admin_login_url = reverse('admin-login')
-    data = {
-        'staff_id': super_user.staff_id,
-        'password': 'Password123#'
-    }
-    response = client.post(admin_login_url, data, format='json')
-    assert response.status_code == 200
-    assert 'refresh_token' in response.cookies
-    assert 'access_token' in response.cookies
-    return {
-        'refresh_token': response.cookies['refresh_token'].value,
-        'access_token': response.cookies['access_token'].value
-    }
-    
-
-@pytest.fixture
-def signed_in_admin(client, admin_user):
-    """
-    Sign in the admin.
-    Return the refresh token and access token
-    """
-    admin_login_url = reverse('admin-login')
-    data = {
-        'staff_id': admin_user.staff_id,
-        'password': 'Password123#'
-    }
-    response = client.post(admin_login_url, data, format='json')
-    assert response.status_code == 200
-    assert 'refresh_token' in response.cookies
-    assert 'access_token' in response.cookies
-    return {
-        'refresh_token': response.cookies['refresh_token'].value,
-        'access_token': response.cookies['access_token'].value
-    }
-

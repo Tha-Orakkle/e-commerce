@@ -1,0 +1,102 @@
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from io import BytesIO
+from PIL import Image
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+
+import uuid
+import os
+
+from shop.models import Shop
+from user.api.v1.serializers import UserSerializer
+
+LOGO_SIZE = (400, 400)
+
+class ShopSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the shop model.
+    """
+    owner = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Shop
+        fields = '__all__'
+        read_only_fields = ['id', 'code']
+        
+    def __init__(self, *args, **kwargs):
+        """
+        Initialize the ShopSerializer.
+        Remove field in the exclude arg.
+        """
+        super().__init__(*args, **kwargs)        
+        request = self.context.get('request', None)
+        self._user = getattr(request, 'user', None)
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        view = self.context.get('view')
+
+        if self._user and self._user.is_superuser:
+            return rep        
+   
+        from user.api.v1.routes import ShopOwnerRegistrationView
+        if not isinstance(view, ShopOwnerRegistrationView):
+            rep.pop('owner', None)
+            rep.pop('code', None)
+
+        if self._user and self._user.is_authenticated:
+            if instance in (getattr(self._user, 'owned_shop', None), getattr(self._user, 'shop', None)):
+                rep['code'] = instance.code
+        return rep
+
+    def validate_name(self, value):
+        """
+        Validate the shop name.
+        """
+        value = value.strip()
+        if not value:
+            raise ValidationError("This field may not be blank.")
+        if len(value) < 3:
+            raise ValidationError("Ensure this field has at least 3 characters.")
+        if len(value) > 40:
+            raise ValidationError("Ensure this field has no more than 40 characters.")
+        exists = Shop.objects.filter(name=value).first()
+        # raise error if shop with name exists and it is not the 
+        # current user's shop.
+        should_raise = (
+           (exists and not self.user)
+           or (exists and self.user and self.user.owned_shop.name != value) 
+        )
+        if should_raise:
+            raise ValidationError("Shop with name already exists.")
+        return value
+    
+    def validate_description(self, value):
+        """
+        Validate the shop description.
+        """
+        if value and len(value) < 10:        
+            raise ValidationError("Ensure this field has at least 10 characters.")
+        if value and len(value) > 2000:
+            raise ValidationError("Ensure this field has no more than 2000 characters.")
+        return value
+    
+    def validate_shop_logo(self, value):
+        if not value:
+            return None 
+        img = Image.open(value)
+        img.thumbnail(LOGO_SIZE, Image.LANCZOS)
+        buffer = BytesIO()
+        img_fmt = img.format if img.format else 'PNG'
+        img.save(buffer, format=img_fmt)
+        buffer.seek(0)
+        ext = os.path.splitext(value.name)[1] or '.png'
+        name = str(uuid.uuid4())[:8] + ext
+        return InMemoryUploadedFile(
+            file=buffer,
+            field_name=getattr(img, 'field_name', None),
+            name=name,
+            content_type='image/jpeg',
+            size=buffer.tell(),
+            charset=getattr(img, 'charset', None)
+        )

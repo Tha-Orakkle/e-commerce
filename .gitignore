@@ -7,9 +7,16 @@ __pycache__/
 */*/__pycache__/
 
 app-emails/
+celerybeat-schedule
+celerybeat-schedule.*
+
+# data file
+geodata.json
+geodata.meta.json
 
 # temp
 user/api/v1/routes/google_oauth.py
+test.rest
 todo.txt
 alias.sh
 media/

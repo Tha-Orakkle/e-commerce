@@ -1,10 +1,11 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from common.utils.api_responses import SuccessAPIResponse
-from user.serializers.swagger import logout_schema
+from user.api.v1.swagger import logout_schema
+
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -16,7 +17,7 @@ class LogoutView(APIView):
         """
         response = Response(
             SuccessAPIResponse(
-                message='User logged out successfully.'
+                message='Log out successful.'
             ).to_dict(), status=200
         )
         response.delete_cookie('refresh_token')

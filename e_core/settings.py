@@ -31,7 +31,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG') == "True"
 
 CORS_ALLOW_ALL_ORIGINS = True
-ALLOWED_HOSTS = ['*']
+hosts = [host for host in os.getenv('ALLOWED_HOST').split(',') if host]
+ALLOWED_HOSTS = hosts if hosts else ['localhost']
 
 
 # Application definition
@@ -50,7 +51,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_spectacular',
-    # 'drf_spectacular_sidecar',
+    'django_filters',
+    'django_celery_beat',
+    # 'drf_spectacular_sidecar',    
 
 
     # 'rest_framework.authtoken',
@@ -60,8 +63,14 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.google',
     
     # local_apps
-    'user',
+    'common',
+    'address',
+    'cart',
+    'order',
     'product',
+    'payment',
+    'shop',
+    'user',
 ]
 
 USE_JWT = True
@@ -168,7 +177,7 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = 'email'
 # rest_framework configurations
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'common.backends.authentication.CookieJWTAuthentication'
+        'common.authentication.backends.CookieJWTAuthentication',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'common.utils.error_handlers.custom_exception_handler',
@@ -195,22 +204,34 @@ SIMPLE_JWT = {
 
 # Authentication Backends conf
 AUTHENTICATION_BACKENDS = [
-    'common.backends.authentication.AdminUserBackend',
+    'common.authentication.backends.AdminUserBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-
-# your_project/settings.py
+SPECTACULAR_SETTINGS = {
+    'ENUM_NAME_OVERRIDES': {
+        'order.models.OrderGroup.status': 'OrderGroupStatusEnum',
+        'order.models.Order.status': 'OrderStatusEnum',
+    },
+}
 
 # Celery Broker settings
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
 CELERY_TIMEZONE = 'UTC'
+
+# Celery Beat settings
+CELERY_BEAT_SCHEDULE = {
+    'cancel_unpaid_orders_older_than_4_hours': {
+        'task': 'order.tasks.cancel_unpaid_orders_older_than_4_hours',
+        'schedule': timedelta(hours=4)
+    },
+}
 
 
 
@@ -220,6 +241,7 @@ if os.getenv('ENV') == "production":
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     EMAIL_FILE_PATH = BASE_DIR / 'app-emails'
+    
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
@@ -238,3 +260,11 @@ PHONENUMBER_DEFAULT_FORMAT = "INTERNATIONAL"
 # media settings
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+BASE_URL = "http://127.0.0.1:8000"
+
+# Paystack keys
+PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY')
+PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY')
+PAYSTACK_INITIALIZE_URL="https://api.paystack.co/transaction/initialize"
+PAYSTACK_VERIFY_URL="https://api.paystack.co/transaction/verify/"

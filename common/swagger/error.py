@@ -1,59 +1,136 @@
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, PolymorphicProxySerializer
 from rest_framework import serializers
 
-# Caching mechanism for error responses
-# This cache will store the dynamically created serializer classes
-# to avoid creating them multiple times for the same parameters.
-# This is useful for performance optimization.
-# The cache is a dictionary where the key is a tuple of (message, code, error_serializer)
-# and the value is the dynamically created serializer class.
-_error_response_cache = {}
 
-
-def get_error_response(message, code=400, error_serializer=None):
-    key = (message, code, error_serializer.__class__.__name__ if error_serializer else None)
-    if key in _error_response_cache:
-        return _error_response_cache[key]
-    name = f"ErrorResponse_{code}_{
-        message.lower().replace(' ', '_').replace('.', '').replace('\n',  '')}"
-    fields = {
-        'status': serializers.CharField(default='error'),
-        'code': serializers.IntegerField(default=code),
-        'message': serializers.CharField(default=message)
-    }
-    if error_serializer:
-        fields['errors'] = error_serializer
-
-    # Dynamically create a serializer class
-    _cls = type(name, (serializers.Serializer,), fields)
-    _error_response_cache[key] = _cls
-    return _cls
-
-
-# ERROR SERIALIZERS FOR SWAGGER UI
-class BaseErrorSerializer(serializers.Serializer):
-    """
-    Base class for error serializers.
-    """
-    status = serializers.CharField(default='error')
-
-
-class UnauthorizedSerializer(BaseErrorSerializer):
-    """
-    Serializer for unauthorized responses.
-    """
-    code = serializers.IntegerField(default=401)
-    message = serializers.ChoiceField(
-        choices=[
-            "Authentication credentials were not provided.",
-            "Token is invalid or expired."
-        ],
-        help_text="One of the predefined authentication error messages."
-    )
-    
-
-class ForbiddenSerializer(BaseErrorSerializer):
+class ForbiddenSerializer(serializers.Serializer):
     """
     Serializer for forbidden responses.
     """
-    code = serializers.IntegerField(default=403)
+    status = serializers.CharField(default='error')
+    code = serializers.IntegerField(default='permission_denied')
     message = serializers.CharField(default="You do not have permission to perform this action.")
+
+
+class BaseErrorSerializer(serializers.Serializer):
+    status = serializers.CharField(default='error', read_only=True)
+    code = serializers.ChoiceField(choices=[
+        'not_found', 'validation_error', 'permission_denied'])
+    message = serializers.CharField()
+    
+    
+class ErrorDetailsSerializer(BaseErrorSerializer):
+    """
+    Serializer for detailed error responses.
+    """
+    errors = serializers.DictField(child=serializers.ListField(
+        child=serializers.CharField()), required=False)
+    
+# for polymorphic proxy serializer (400 bad request)
+polymorphic_response = PolymorphicProxySerializer(
+    component_name='APIError',
+    serializers=[BaseErrorSerializer, ErrorDetailsSerializer],
+    resource_type_field_name=None
+)
+
+def build_error_schema_examples(errors):
+    return [OpenApiExample(
+        name=' '.join(code.split('_')).capitalize(),
+        value={
+            'status': 'error',
+            'code': code,
+            'message': message
+        }
+    ) for code, message in errors.items()]
+
+def build_error_schema_examples_with_errors_field(message, errors={}):
+    return [OpenApiExample(
+        name=' '.join(code.split('_')).capitalize(),
+        value={
+            'status': 'error',
+            'code': code,
+            'message': message,
+            'errors': {
+                k: v for k, v in errors[code].items()
+            }
+        }
+    ) for code in errors.keys()]
+
+def build_not_found_error_message(obj):
+    return f'No {obj.lower()} matching the given ID found.'
+
+def build_invalid_id_error(obj_name):
+    return {'invalid_uuid': f'Invalid {obj_name.lower()} id.'}
+
+def make_error_schema_response(errors, code=None):
+    """
+    Response schema
+    Args:
+        errors (dict): key - name for the error.
+                       value - error message
+        code: error code
+    """
+    
+    return OpenApiResponse(
+        response={
+            'type': 'object',
+            'properties': {
+                'status': {'type': 'string', 'example': 'error'},
+                'code': {'type': 'string', 'example': code},
+                'message': {'type': 'string'}
+            },
+            'required': ['status', 'code', 'message']
+        },
+        description='Error',
+        examples=[OpenApiExample(
+            name.replace(".", "").replace("_", " ").capitalize(),
+            value={
+                'status': 'error',
+                'code': code if code else name,
+                'message': message
+            }
+        ) for name, message in errors.items()]
+    )
+
+def make_error_schema_response_with_errors_field(message, errors={}):
+    
+    return OpenApiResponse(
+        response={
+            'type': 'object',
+            'properties': {
+                'status': {'type': 'string', 'example': 'error'},
+                'code': {'type': 'string', 'example': ''},
+                'message': {'type': 'string'},
+                'errors': {
+                    'type': 'object',
+                    'additionalProperties': {
+                        'type': 'array',
+                        'items': {'type': 'string'}
+                    }
+                }
+            },
+            'required': ['status', 'code', 'message']
+        },
+        description='Error',
+        examples=[OpenApiExample(
+            ' '.join(code.split('_')).capitalize(),
+            value={
+                'status': 'error',
+                'code': code,
+                'message': message,
+                'errors': {
+                    k: v for k, v in errors[code].items()
+                }
+            }
+        ) for code in errors.keys()]
+    )
+
+def make_unauthorized_error_schema_response():
+    errors ={
+        'No token': 'Authentication credentials were not provided.',
+        'Invalid token': 'Token is invalid or expired.' 
+    }
+    return make_error_schema_response(errors=errors, code='unauthorized_request')
+
+def make_not_found_error_schema_response(objs):
+    errors = {obj: build_not_found_error_message(obj) for obj in objs}
+    return make_error_schema_response(errors=errors, code='not_found')

@@ -4,27 +4,36 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from user.serializers.swagger import token_refresh_schema
+from user.api.v1.swagger import token_refresh_schema
 from common.utils.api_responses import SuccessAPIResponse
+from common.exceptions import ErrorException
+
 
 class SecureTokenRefreshView(TokenRefreshView):
     """
     Custom TokenRefreshView for refreshing access token.
     """
+    authentication_classes = []
+
     @extend_schema(**token_refresh_schema)
     def post(self, request, *args, **kwargs):
         """ 
         Gets refresh token from cookies before generating new acccess token.
         """
+        exc = ErrorException(code='authentication_error')
+
         refresh_token = request.COOKIES.get('refresh_token', None)
         if not refresh_token:
-            raise AuthenticationFailed('Refresh token was not provided.')
+            exc.detail="Refresh token was not provided."
+            raise exc
         try:
             refresh = RefreshToken(refresh_token)
         except Exception as e:
-            raise AuthenticationFailed(str(e))
+            exc.detail = str(e)
+            raise exc
         if not refresh:
-            raise AuthenticationFailed('Invalid refresh token.')
+            exc.detail = "Token is invalid or expired."
+            raise exc
         response = Response(
             SuccessAPIResponse(
                 message='Token refreshed successfully',
@@ -35,6 +44,4 @@ class SecureTokenRefreshView(TokenRefreshView):
             httponly=True, secure=False,
             samesite='Lax'
         )
-
         return response
-    

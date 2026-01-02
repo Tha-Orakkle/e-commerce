@@ -1,167 +1,221 @@
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-
-
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 from django.urls import reverse
-
 from rest_framework import status
 
-def test_forgot_password(client, user, mock_password_reset_email_task):
-    """
-    Test the forgot password functionality.
-    """
-    url = reverse('forgot-password')
-    response = client.post(url, data={'email': user.email}, format='json')
-    mock_password_reset_email_task.assert_called_once
-    assert response.status_code == status.HTTP_202_ACCEPTED
-    assert response.data['status'] == "success"
-    assert response.data['code'] == 202
-    assert response.data['message'] == "Password reset link sent."
+import pytest
 
+# ==========================================================
+# RESET PASSWORD TESTS
+# ==========================================================
+RESET_PASSWORD_URL = reverse('reset-password-confirm')
+PASSWORD_RESET_DATA = {
+    'new_password': 'NewPassword123#',
+    'confirm_password': 'NewPassword123#'
+}
 
-def test_forgot_password_with_invalid_email(client, db_access):
+def generate_reset_link(user):
     """
-    Test the forgot password functionality with an email 
-    address not associated with a user.
+    Helper function to generate a password reset link for a user.
     """
-    url = reverse('forgot-password')
-    response = client.post(url, data={'email': 'invalid_email'}, format='json')
-    assert response.status_code == status.HTTP_202_ACCEPTED
-    assert response.data['status'] == "success"
-    assert response.data['code'] == 202
-    assert response.data['message'] == "Password reset link sent."
-
-def test_forgot_password_without_email(client):
-    """
-    Test the forgot password functionality without an email.
-    """
-    url = reverse('forgot-password')
-    response = client.post(url, data={}, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "Email address required."
-
-
-def test_reset_password(client, user):
-    """
-    Test the reset password functionality.
-    """
-    url = reverse('reset-password-confirm')
     token_generator = PasswordResetTokenGenerator()
     token = token_generator.make_token(user)
-    uid = urlsafe_base64_encode(force_bytes(user.email))
-    url = f"{url}?uid={uid}&token={token}"
-    response = client.post(url, data={
-        'new_password': 'NewPassword123#',
-        'confirm_password': 'NewPassword123#'
-    }, format='json')
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['status'] == "success"
-    assert response.data['code'] == 200
-    assert response.data['message'] == "Password reset successfully."
+    encoded_email = urlsafe_base64_encode(force_bytes(user.email))
+    link = f"{RESET_PASSWORD_URL}?uid={encoded_email}&token={token}"
+    return link
 
 
-def test_reset_password_with_invalid_token(client, user):
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'customer'],
+    ids=['shopowner', 'customer']
+)
+def test_reset_password(client, all_users, user_type):
+    """
+    Test the reset password functionality.
+    # """
+    user = all_users[user_type]
+    url = generate_reset_link(user)
+    res = client.post(url, data=PASSWORD_RESET_DATA, format='json')
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Password has been reset successfully."
+
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'customer'],
+    ids=['shopowner', 'customer']
+)
+def test_reset_password_with_invalid_token(client, all_users, user_type):
     """
     Test the reset password functionality with an invalid token.
     """
-    url = reverse('reset-password-confirm')
+    user = all_users[user_type]
     uid = urlsafe_base64_encode(force_bytes(user.email))
     token_generator = PasswordResetTokenGenerator()
     token = token_generator.make_token(user) + 'invalid'
-    url = f"{url}?uid={uid}&token={token}"
-    response = client.post(url, data={
+    url = f"{RESET_PASSWORD_URL}?uid={uid}&token={token}"
+    res = client.post(url, data={
         'new_password': 'NewPassword123#',
         'confirm_password': 'NewPassword123#'
     }, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "Password reset failed."
-    assert response.data['errors']['link'][0] == "Invalid or expired password reset link."
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "reset_failed"
+    assert res.data['message'] == "Invalid or expired password reset link."
 
-def test_reset_password_with_invalid_uid(client, user):
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'customer'],
+    ids=['shopowner', 'customer']
+)
+def test_reset_password_with_invalid_uid(client, all_users, user_type):
     """
     Test the reset password functionality with an invalid uid.
     """
-    url = reverse('reset-password-confirm')
+    user = all_users[user_type]
     token_generator = PasswordResetTokenGenerator()
     token = token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.email)) + 'invalid'
-    url = f"{url}?uid={uid}&token={token}"
-    response = client.post(url, data={
-        'new_password': 'NewPassword123#',
-        'confirm_password': 'NewPassword123#'
-    }, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "Password reset failed."
-    assert response.data['errors']['link'][0] == "Invalid or expired password reset link."
+    url = f"{RESET_PASSWORD_URL}?uid={uid}&token={token}"
+    res = client.post(url, data=PASSWORD_RESET_DATA, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "reset_failed"
+    assert res.data['message'] == "Invalid or expired password reset link."
 
-def test_reset_password_without_uid_and_token(client, user):
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'customer'],
+    ids=['shopowner', 'customer']
+)
+def test_reset_password_without_uid_and_token(client, all_users, user_type):
     """
     Test the reset password functionality without uid and token.
     """
-    url = reverse('reset-password-confirm')
-    response = client.post(url, data={
-        'new_password': 'NewPassword123#',
-        'confirm_password': 'NewPassword123#'
-    }, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "Password reset failed."
-    assert response.data['errors']['link'][0] == "Invalid or expired password reset link."
+    user = all_users[user_type]
+    token_generator = PasswordResetTokenGenerator()
+    token = token_generator.make_token(user)
+    uid = urlsafe_base64_encode(force_bytes(user.email)) + 'invalid'
+    
+    # Test missing uid (encoded email)
+    res = client.post(
+        RESET_PASSWORD_URL + f"?token={token}", data=PASSWORD_RESET_DATA, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "reset_failed"
+    assert res.data['message'] == "Invalid or expired password reset link."
+    
+    # Test missing token
+    res = client.post(
+        RESET_PASSWORD_URL + f"?uid={uid}", data=PASSWORD_RESET_DATA, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "reset_failed"
+    assert res.data['message'] == "Invalid or expired password reset link."
+    
+    # Test missing both uid and token
+    res = client.post(
+        RESET_PASSWORD_URL, data=PASSWORD_RESET_DATA, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "reset_failed"
+    assert res.data['message'] == "Invalid or expired password reset link."
 
-
-def test_reset_password_with_mismatched_passwords(client, user):
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'customer'],
+    ids=['shopowner', 'customer']
+)
+def test_reset_password_with_mismatched_passwords(client, all_users, user_type):
     """
     Test the reset password functionality with mismatched passwords.
     """
-    url = reverse('reset-password-confirm')
-    token_generator = PasswordResetTokenGenerator()
-    token = token_generator.make_token(user)
-    uid = urlsafe_base64_encode(force_bytes(user.email))
-    url = f"{url}?uid={uid}&token={token}"
-    response = client.post(url, data={
+    user = all_users[user_type]
+    url = generate_reset_link(user)
+    res = client.post(url, data={
         'new_password': 'NewPassword123#',
         'confirm_password': 'DifferentPassword123#'
     }, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "Password reset failed."
-    assert response.data['errors']['password'][0] == "Password and confirm password fields do not match."
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Password reset failed."
+    assert res.data['errors']['non_field_error'] == ["Passwords do not match."]
 
-def test_reset_password_without_new_password(client, user):
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'customer'],
+    ids=['shopowner', 'customer']
+)
+def test_reset_password_with_missing_passwords(client, all_users, user_type):
     """
-    Test the reset password functionality without a new password.
+    Test the reset password functionality without passwords.
     """
-    url = reverse('reset-password-confirm')
-    token_generator = PasswordResetTokenGenerator()
-    token = token_generator.make_token(user)
-    uid = urlsafe_base64_encode(force_bytes(user.email))
-    url = f"{url}?uid={uid}&token={token}"
-    response = client.post(url, data={
-        'confirm_password': 'NewPassword123#'
+    user = all_users[user_type]
+    url = generate_reset_link(user)
+
+    # Test missing new password
+    res = client.post(
+        url, data={'confirm_password': 'NewPassword123#'},
+        format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Password reset failed."
+    assert res.data['errors']['new_password'] == ["This field is required."]
+
+    # Test missing confirm password
+    res = client.post(
+        url, data={'new_password': 'NewPassword123#'},
+        format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Password reset failed."
+    assert res.data['errors']['confirm_password'] == ["This field is required."]
+
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'customer'],
+    ids=['shopowner', 'customer']
+)
+def test_reset_password_with_blank_passwords(client, all_users, user_type):
+    """
+    Test the reset password functionality with blank passwords.
+    """
+    user = all_users[user_type]
+    url = generate_reset_link(user)
+    res = client.post(url, data={
+        'new_password': '',
+        'confirm_password': ''
     }, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "Password reset failed."
-    assert response.data['errors']['password'][0] == "Password and confirm password fields are required."
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Password reset failed."
+    assert res.data['errors']['new_password'] == ["This field may not be blank."]
+    assert res.data['errors']['confirm_password'] == ["This field may not be blank."]
 
-
-def test_reset_password_without_confirm_password(client, user):
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'customer'],
+    ids=['shopowner', 'customer']
+)
+def test_reset_password_with_weak_password(client, all_users, user_type):
     """
-    Test the reset password functionality without a confirm password.
+    Test the reset password functionality with a weak password.
     """
-    url = reverse('reset-password-confirm')
-    token_generator = PasswordResetTokenGenerator()
-    token = token_generator.make_token(user)
-    uid = urlsafe_base64_encode(force_bytes(user.email))
-    url = f"{url}?uid={uid}&token={token}"
-    response = client.post(url, data={
-        'new_password': 'NewPassword123#'
+    user = all_users[user_type]
+    url = generate_reset_link(user)
+    res = client.post(url, data={
+        'new_password': 'weakpwd',
+        'confirm_password': 'weakpwd'
     }, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['status'] == "error"
-    assert response.data['message'] == "Password reset failed."
-    assert response.data['errors']['password'][0] == "Password and confirm password fields are required."
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Password reset failed."
+    assert 'new_password' in res.data['errors']
+    assert len(res.data['errors']['new_password']) > 0

@@ -1,6 +1,7 @@
 from django.contrib.auth.models import BaseUserManager
-from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from rest_framework.exceptions import ValidationError
+
 
 class UserManager(BaseUserManager):
     """
@@ -12,78 +13,105 @@ class UserManager(BaseUserManager):
         Validates and normalizes the email
         """
         if not email:
-            raise ValidationError('The email field is required.')
+            raise ValueError("This field is required.")
         email = self.normalize_email(email).lower()
         try:
             validate_email(email)
-        except ValidationError:
-            raise ValueError("The email address is invalid.")
-        
+        except Exception:
+            raise ValueError("Enter a valid email address.")
         return email
-
-    
+        
     def create_user(self, email, password, **extra_fields):
         """
-        Create and return a regular user with the given email and pasword
+        Create a customer.
         """
-        email = self.validate_and_normalize_email(email)
-
-        if self.model.objects.filter(email=email).exists():
-            raise ValueError("User with email already exists.")
-        
-        extra_fields.setdefault('is_active', True)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        try:
+            email = self.validate_and_normalize_email(email)
+        except Exception as e:
+            raise ValidationError({'email': [str(e)]})
+        user = self.filter(email=email).first()
+        if user and user.is_customer:
+            raise ValidationError("Customer with email already exists.")
+            
+        if not user:
+            user = self.model(email=email, **extra_fields)
+            user.set_password(password)
+        user.is_active = True
+        user.is_customer = True
         user.save(using=self._db)
         return user
-    
+
     def create_superuser(self, email, password, **extra_fields):
         """
         Create and return a superuser with all permissions
         """
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
+        extra_fields['is_staff'] = True
+        extra_fields['is_superuser'] = True
+        extra_fields['is_verified'] = True
+        extra_fields['is_shopowner'] = True
         
-        if not extra_fields.get('is_staff'):
-            raise ValueError("Superuser must have is_staff=True.")
-        
-        if not extra_fields.get('is_superuser'):
-            raise ValueError("Superuser must have is_superuser=True.")
-
         return self.create_user(email, password, **extra_fields)
     
-    def create_staff(self, staff_id, password, **extra_fields):
+    def create_staff(self, shop, staff_handle, password, **extra_fields):
         """
-        Create staff with staff_id (username) and password.
+        Create staff with staff_handle and password.
         Email not required for the staff creation.
         """
-        extra_fields.setdefault('is_active', True)
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_verified', True)
-
-        if self.model.objects.filter(staff_id=staff_id).exists():
-            raise ValueError("Admin user with staff id already exists.")
-        user = self.model(staff_id=staff_id, **extra_fields)
+        if shop.staff_handle_exists(staff_handle):
+            raise ValidationError("Staff member with staff handle already exists.")
+    
+        extra_fields['is_active'] = True
+        extra_fields['is_staff'] = True
+        extra_fields['is_verified'] = True
+        
+        user = self.model(shop=shop, staff_handle=staff_handle, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
-        
+
+    def create_shopowner(self, email, staff_handle, password, **extra_fields):
+        """
+        Create a shop owner with the email, staff_handle, and password.
+        """
+        try:
+            email = self.validate_and_normalize_email(email)
+        except Exception as e:
+            raise ValidationError({'email': [str(e)]})
+
+        user = self.filter(email=email).first()
+        if user and user.is_shopowner:
+            raise ValidationError("Shop owner with email already exists")
     
-    def get_active_users(self):
-        """
-        Returns only active active users
-        """
-        return self.filter(is_active=True)
+        if not user:
+            user = self.model(email=email)
+            user.set_password(password)
+        user.is_active = True
+        user.is_staff = True
+        user.is_shopowner = True
+        user.staff_handle = staff_handle
+        user.save(using=self._db)
+        return user
 
-    def get_staff(self):
-        """
-        Returns users with is_staff=True
-        """
-        return self.filter(is_staff=True)
-
-
-    def get_superuser(self):
+    def get_superusers(self):
         """
         Returns all superuser
         """
         return self.filter(is_superuser=True)
+
+    def get_active_users(self):
+        """
+        Returns only active active users
+        """
+        return self.filter(is_active=True, is_superuser=False)
+    
+    def get_shopowners(self):
+        """
+        Return all shop owners.
+        """
+        return self.filter(is_shopowner=True, is_superuser=False)
+
+    def get_customers(self):
+        """
+        Return all customers.
+        """
+        return self.filter(is_customer=True, is_superuser=False)

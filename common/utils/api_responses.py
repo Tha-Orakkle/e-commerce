@@ -7,12 +7,10 @@ class BaseAPIResponse:
     BaseAPIResponse model
     """
 
-    def __init__(self, status, code, **kwargs):
+    def __init__(self, **kwargs):
         """
         Initializes the BaseAPIREsponse.
         """
-        self.status = status
-        self.code = code
         if kwargs:
             for key, value in kwargs.items():
                 setattr(self, key, value)
@@ -25,12 +23,13 @@ class BaseAPIResponse:
 
 
 class SuccessAPIResponse(BaseAPIResponse):
-    def __init__(self, code=200, **kwargs):
+    def __init__(self, **kwargs):
         self.status = 'success'
-        super().__init__(self.status, code, **kwargs)
+        super().__init__(**kwargs)
 
 
 class ErrorAPIResponse(BaseAPIResponse):
     def __init__(self, code=400, **kwargs):
         self.status = 'error'
-        super().__init__(self.status, code, **kwargs)
+        self.code = code
+        super().__init__(**kwargs)

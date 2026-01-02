@@ -1,13 +1,14 @@
+from django.contrib.auth import get_user_model
 from django.core import signing
 
-from user.models import User
+User = get_user_model()
 
 
 def generate_email_verification_token(user_id):
     """
     Generate a token for email verification.
     """
-    return signing.dumps({'user_id': user_id}, salt='email-verification')
+    return signing.dumps({'user_id': str(user_id)}, salt='email-verification')
 
 
 def verify_email_verification_token(token):
@@ -24,11 +25,4 @@ def verify_email_verification_token(token):
     except signing.SignatureExpired:
         return None
     # check that the user ID exists in the database
-    user = User.objects.filter(id=user_id).first()
-    if not user:
-        return None
-    return user
-
-    
-
-
+    return User.objects.filter(id=user_id).first()

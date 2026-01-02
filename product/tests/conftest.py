@@ -9,6 +9,59 @@ import shutil
 
 from product.models import Category, Product, ProductImage
 
+
+def create_fake_images(n):
+    """
+    Creates fake images for testing.
+    """
+    images = []
+    for _ in range(n):
+        img = Image.new("RGB", (10, 10), color="white")
+        buffer = BytesIO()
+        img.save(buffer, format="jpeg")
+        buffer.seek(0)
+        images.append(SimpleUploadedFile(
+            name=f"image_{uuid4()}.jpg",
+            content=buffer.read(),
+            content_type="image/jpeg"
+        ))
+    return images
+
+def create_large_fake_image(n):
+    """
+    Create a fake image larger than 2MB for testing.
+    """
+    images = []
+    for _ in range(n):
+        # img = Image.new("RGB", (3000, 3000), color="")
+        img = Image.effect_noise((2000, 2000), 100).convert("RGB")
+        buffer = BytesIO()
+        img.save(buffer, format="jpeg", quality=95)
+        buffer.seek(0)
+        images.append(SimpleUploadedFile(
+            name=f"large_image_{uuid4()}.jpg",
+            content=buffer.read(),
+            content_type="image/jpeg"
+        ))
+    return images
+
+
+def create_fake_files(n):
+    """
+    Create fake text files for testing.
+    """
+
+    files = []
+    for i in range(n):
+        f = SimpleUploadedFile(
+            f"test{i}.txt",
+            b"Test File",
+            content_type='text/plain'
+        )
+        files.append(f)
+    return files
+
+
 @pytest.fixture(scope="module")
 def shared_media_root(tmp_path_factory, request):
     tmp_path = tmp_path_factory.mktemp('media')
@@ -26,63 +79,68 @@ def shared_media_root(tmp_path_factory, request):
 def temp_media_root(shared_media_root, settings):
     settings.MEDIA_ROOT = shared_media_root
 
+# FACTORIES
 
 @pytest.fixture
-def category(db):
+def product_factory(db, temp_media_root):
     """
-    Create a category instance for testing.
+    Factory to create products.
     """
-    return Category.objects.create(
-        name="Test Category",
-        slug="test-category"
-    )
+    def create_product(shop, name=None):
+        # count = Product.objects.filter(shop_id=shop.id).count()
+        count = Product.objects.count()
+        name = name or f"Product {count}"
+        return Product.objects.create(
+            name=name,
+            description=f"This is product {count}.",
+            price=99.9,
+            shop=shop
+        )
+    return create_product
+
+@pytest.fixture
+def product_image_factory(db, temp_media_root):
+    """
+    Factory to create product images.
+    """
+    
+    def create_product_image(product):
+        return ProductImage.objects.create(
+            product=product,
+            image=create_fake_images(1)[0]
+        )
+    return create_product_image
+
+@pytest.fixture
+def category_factory(db, temp_media_root):
+    """
+    Factory to create categories.
+    """
+    def create_category(name=None):
+        count = Category.objects.count()
+        name = name or f"Test Category {count}"
+        return Category.objects.create(name=name)
+    
+    return create_category
 
 
 @pytest.fixture
-def product(db, temp_media_root):
+def product(db, shopowner, product_factory):
     """
     Create a product instance for testing.
     """
-    return Product.objects.create(
-        name="Test Product",
-        description="This is a test product.",
-        price=9.99,
-    )
-
-
-def create_fake_images(num):
-    """
-    Creates fake images for testing.
-    """
-    images = []
-    for _ in range(num):
-        img = Image.new("RGB", (100, 100), color="white")
-        buffer = BytesIO()
-        img.save(buffer, format="jpeg")
-        buffer.seek(0)
-        images.append(SimpleUploadedFile(
-            name=f"image_{uuid4()}.jpg",
-            content=buffer.read(),
-            content_type="image/jpeg"
-        ))
-    return images
-
-
+    return product_factory(shop=shopowner.owned_shop)
 
 @pytest.fixture
-def product_image(db, product):
+def product_image(db, product, product_image_factory):
     """
     Create a product image instance for testing.
     """
-    return ProductImage.objects.create(
-        image=create_fake_images(1)[0],
-        product=product
-    )
-
+    return product_image_factory(product=product)
 
 @pytest.fixture
-def category(db):
+def category(db, category_factory):
     """
     Create a category instance for testing.
     """
-    return Category.objects.create(name="Test Category")
+    return category_factory()

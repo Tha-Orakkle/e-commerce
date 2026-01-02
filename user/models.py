@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q 
 from django.utils.text import slugify
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db.models.signals import post_save
@@ -24,9 +25,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     """
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4, unique=True, null=False)
     email = models.EmailField(unique=True, null=True, blank=True)
-    staff_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    staff_handle = models.CharField(max_length=20, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
+    is_customer = models.BooleanField(default=False)
+    is_shopowner = models.BooleanField(default=False)
+    # shop field stores where the user works if he is a staff at a shop
+    shop = models.ForeignKey('shop.Shop', null=True, blank=True, on_delete=models.CASCADE, related_name='staff_members')
     is_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -34,7 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['staff_id'] # just for the creation of super user
+    REQUIRED_FIELDS = ['staff_handle'] # just for the creation of super user
 
     class Meta:
         ordering = ['-date_joined']
@@ -45,8 +50,29 @@ class User(AbstractBaseUser, PermissionsMixin):
         Returns:
             str: A string in the format "<User: {self.id}> {self.email}".
         """
-        return f"<User: {self.id}> {self.email or self.staff_id + ' (Admin)'}"
+        role = 'Shopowner' if self.is_shopowner else 'Customer' if not self.is_staff else 'Shop_staff'
+        return f"<User: {self.id}> {self.email or self.staff_handle} ({role})"
+    
+    def can_manage_product(self, product):
+        """
+        Checks if a user can manage a particular product.
+        """
+        shop = product.shop
+        return (
+            self.is_superuser
+            or (self.is_shopowner and self.owned_shop == shop)
+            or (self.shop and self.shop == shop)
+        )
         
+    def can_manage_shop(self, shop):
+        """
+        Checks if a user can manage a particular shop.
+        """
+        return (
+            self.is_superuser
+            or (self.is_shopowner and self.owned_shop == shop)
+            or (self.shop and self.shop == shop)
+        )
     
     
 class UserProfile(models.Model):
@@ -68,7 +94,7 @@ class UserProfile(models.Model):
         Returns:
             str: A string in the format "<UserProfile: {self.id}> {self.user.email}".
         """
-        return f"<UserProfile: {self.id}> {self.user.email or self.user.staff_id + ' (Admin)'}"
+        return f"<UserProfile: {self.id}> \n\t FIRST NAME: {self.first_name} \n\t LAST NAME: {self.last_name} \n\t TELEPHONE: {self.telephone}"
     
     
     def add_categories(self, categories):
@@ -86,7 +112,8 @@ class UserProfile(models.Model):
         if missing_slugs:
             raise ErrorException(
                 detail=f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
-                code=status.HTTP_404_NOT_FOUND
+                code='invalid_category',
+                status_code=status.HTTP_404_NOT_FOUND
             )
 
         existing_ids = set(self.preferred_categories.values_list('id', flat=True))
@@ -104,14 +131,3 @@ class UserProfile(models.Model):
         slugs = [slugify(c) for c in categories]
         found_categories = Category.objects.filter(slug__in=slugs)
         self.preferred_categories.remove(*found_categories)
-
-
-
-
-# signal to create a userprofile for a user immediately a
-# user object is created
-@receiver(sender=User, signal=post_save)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        UserProfile.objects.create(user=instance)
-

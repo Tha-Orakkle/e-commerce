@@ -15,8 +15,10 @@ jobs:
         ports:
           - 3306:3306
         env:
-          MYSQL_ROOT_PASSWORD: testrootpassword
           MYSQL_DATABASE: test_db
+          MYSQL_USER: django
+          MYSQL_PASSWORD: password
+          MYSQL_ROOT_PASSWORD: password
         options: >-
           --health-cmd "mysqladmin ping" 
           --health-interval 10s 
