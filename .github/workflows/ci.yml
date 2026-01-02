@@ -16,7 +16,7 @@ jobs:
           - 3306:3306
         env:
           MYSQL_DATABASE: test_db
-          MYSQL_USER: root
+          MYSQL_USER: django
           MYSQL_PASSWORD: password
           MYSQL_ROOT_PASSWORD: password
         options: >-
