@@ -131,6 +131,7 @@ def product(db, shopowner, product_factory):
     """
     return product_factory(shop=shopowner.owned_shop)
 
+
 @pytest.fixture
 def product_image(db, product, product_image_factory):
     """
@@ -144,3 +145,15 @@ def category(db, category_factory):
     Create a category instance for testing.
     """
     return category_factory()
+
+
+@pytest.fixture
+def inventory(db, product):
+    """
+    Return the inventory instance for product fixture instance.
+    """
+    inv = product.inventory
+    inv._stock = 20
+    inv.last_updated_by = 'tester'
+    inv.save(update_fields=['_stock', 'last_updated_by'])
+    return product.inventory
