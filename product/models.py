@@ -17,7 +17,7 @@ import os
 import uuid
 
 from .utils.uploads import product_upload_image_path
-from common.exceptions import ErrorException
+from common.exceptions import ErrorException, InventoryDeletionError
 from shop.models import Shop
 
 
@@ -242,7 +242,7 @@ class ProductImage(models.Model):
 
 class Inventory(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, null=False)
-    _stock = models.PositiveIntegerField(default=0)
+    _stock = models.PositiveIntegerField(db_column='stock', default=0)
     last_updated_by = models.CharField(max_length=20)
     product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='inventory')
     updated_at = models.DateTimeField(auto_now=True)
@@ -250,6 +250,10 @@ class Inventory(models.Model):
     @property
     def stock(self):
         return self._stock
+    
+    @stock.setter
+    def stock(self, value):
+        raise AttributeError("Direct assignment to stock is not allowed. Use add() or subtract() methods.")
 
     def __str__(self):
         """
@@ -302,6 +306,13 @@ class Inventory(models.Model):
                 code='insufficient_stock'
             )
         return self
+    
+    def delete(self, *args, **kwargs):
+        """
+        Prevent deletion of the Inventory instance.
+        """
+        raise InventoryDeletionError(
+            "Inventory instances cannot be deleted directly; use product deletion instead.")
 
 
 @receiver(sender=Product, signal=post_save)
