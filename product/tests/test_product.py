@@ -6,7 +6,6 @@ import pytest
 import uuid
 
 from product.models import Product
-from .conftest import create_fake_images
 
 
 # =============================================================================
@@ -15,12 +14,14 @@ from .conftest import create_fake_images
 
 PRODUCTS_LIST_URL = reverse('product-list')
 
-def test_get_products(client, shopowner, product_factory, customer):
+def test_get_products(client, shopowner, product_factory, customer, category):
     """
     Test get all products.
     """
     for _ in range(3):
-        product_factory(shop=shopowner.owned_shop)
+        p = product_factory(shop=shopowner.owned_shop)
+        p.add_categories([category.name])
+        
     
     client.force_authenticate(user=customer)
     
@@ -34,11 +35,14 @@ def test_get_products(client, shopowner, product_factory, customer):
     assert 'next' in res.data['data']
     assert 'previous' in res.data['data']
     assert res.data['data']['results'] is not None
-    p = res.data['data']['results'][0]
+    product = res.data['data']['results'][0]
     fields = ['id', 'name', 'description', 'price', 'images', 'categories', 'stock', 'shop']
-    assert all(field in p for field in fields)
-    assert 'code' not in p['shop']  # ensure shop code is excluded
-    assert 'owner' not in p['shop']  # ensure shop owner is excluded
+    assert all(field in product for field in fields)
+    cats = product['categories']
+    assert len(cats) > 0
+    assert 'id' in cats[0]
+    assert 'code' not in product['shop']  # ensure shop code is excluded
+    assert 'owner' not in product['shop']  # ensure shop owner is excluded
 
 
 def test_get_products_by_unauthenticated_user(client):
@@ -66,7 +70,7 @@ def test_get_products_by_unauthenticated_user(client):
 # TEST GET ALL PRODUCTS FROM A SHOP
 # =============================================================================
 
-def test_get_shop_products(client, shopowner_factory, product_factory, customer):
+def test_get_shop_products(client, shopowner_factory, product_factory, customer, category):
     """
     Test get all products from a specific shop.
     """
@@ -76,10 +80,13 @@ def test_get_shop_products(client, shopowner_factory, product_factory, customer)
     shop = sh1.owned_shop
     
     for _ in range(3):
-        product_factory(shop=shop)
+        p = product_factory(shop=shop)
+        p.add_categories([category.name])
+        
     
     for _ in range(2):
-        product_factory(shop=sh2.owned_shop)
+        p = product_factory(shop=sh2.owned_shop)
+        p.add_categories([category.name])
         
     client.force_authenticate(user=customer)
 
@@ -95,11 +102,16 @@ def test_get_shop_products(client, shopowner_factory, product_factory, customer)
     assert 'next' in res.data['data']
     assert 'previous' in res.data['data']
     assert res.data['data']['results'] is not None
-    p = res.data['data']['results'][0]
+    product = res.data['data']['results'][0]
     fields = ['id', 'name', 'description', 'price', 'images', 'categories', 'stock', 'shop']
-    assert all(field in p for field in fields)
-    assert 'code' not in p['shop']  # ensure shop code is excluded
-    assert 'owner' not in p['shop']  # ensure shop owner is excluded
+    assert all(field in product for field in fields)
+    cats = product['categories']
+    assert len(cats) > 0
+    assert 'id' in cats[0]
+    assert 'code' not in product['shop']  # ensure shop code is excluded
+    assert 'owner' not in product['shop']  # ensure shop owner is excluded
+    
+    
 
 def test_get_shop_products_by_unauthenticated_user(client, shopowner, product_factory):
     """
@@ -374,6 +386,7 @@ CREATE_PRODUCT_DATA = {
     'name': 'Micro wave',
     'description': 'A micro wave oven',
     'price': 20.00,
+    
 }
 
 
@@ -382,11 +395,13 @@ CREATE_PRODUCT_DATA = {
     ['shopowner', 'shop_staff'],
     ids=['shopowner', 'shop_staff']
 )
-def test_post_product(client, temp_media_root, shopowner, all_users, user_type):
+def test_post_product(client, temp_media_root, shopowner, all_users, user_type, category_factory):
     """
     Test create a new product.
     """
     data = CREATE_PRODUCT_DATA.copy()
+    categories = [category_factory() for _ in range(3)]
+    data['categories'] = [c.name for c in categories]
     user = all_users[user_type]
     assert Product.objects.count() == 0
     
@@ -420,7 +435,14 @@ def test_post_product(client, temp_media_root, shopowner, all_users, user_type):
     assert product.description == data['description']
     assert product.price == data['price']
     assert product.images.count() == 0
+    
+    assert 'categories' in res.data['data']
+    assert res.data['data']['categories'] is not None
+    res_categories = res.data['data']['categories']
 
+    assert len(res_categories) == 3
+    assert product.categories.count() == 3
+    assert all(c in categories for c in product.categories.all())
 
 def test_post_product_with_negative_price(client, temp_media_root, shopowner):
     """
