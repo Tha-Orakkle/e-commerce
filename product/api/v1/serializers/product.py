@@ -69,8 +69,14 @@ class ProductSerializer(serializers.ModelSerializer):
         """
         Create a Product instance.
         """
-        categories = self.initial_data.getlist('categories') if 'categories' in self.initial_data else []
-
+        data = self.initial_data
+        if hasattr(data, 'getlist'):
+            categories  = data.getlist('categories')
+        else:
+            categories = data.get('categories', [])
+        
+        categories = [categories] if not isinstance(categories, list) else categories
+        
         product = Product.objects.create(
             **validated_data, shop=self._shop)
 
@@ -87,14 +93,19 @@ class ProductSerializer(serializers.ModelSerializer):
         """
         Update a Product instance.
         """
-        categories = self.initial_data.getlist('categories') if 'categories' in self.initial_data else []
+        # categories = self.initial_data.getlist('categories') if 'categories' in self.initial_data else []
+        # data = self.initial_data
+        # if hasattr(data, 'getlist'):
+        #     categories  = data.getlist('categories')
+        # else:
+        #     categories = data.get('categories', [])
         
-        if not validated_data and not categories:
+        if not validated_data:
             return instance
 
         for k, v in validated_data.items():
             setattr(instance, k, v)
-        if categories:
-            instance.add_categories(categories)
+        # if categories:
+        #     instance.add_categories(categories)
         instance.save()
         return instance
