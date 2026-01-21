@@ -223,7 +223,7 @@ class ProductCategoryUpdateView(APIView):
         product = Product.objects.filter(id=product_id, is_active=True).first()
         if not product:
             raise ErrorException(
-                detail="Product not found.",
+                detail="No product matching given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
         
