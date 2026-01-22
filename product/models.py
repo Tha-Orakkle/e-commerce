@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F
 from django.utils.text import slugify
 from decimal import Decimal
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -9,6 +9,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.text import slugify
 from django.utils.timezone import now
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from io import BytesIO
 from PIL import Image
@@ -66,19 +67,35 @@ class Product(models.Model):
         missing_slugs = set(slugs) - found_slugs
         
         existing_ids = self.categories.values_list('id', flat=True)
+        if len(existing_ids) == MAX_PRODUCT_CATEGORIES:
+            raise ErrorException(
+                f"Product belongs to {MAX_PRODUCT_CATEGORIES} categories. More categories cannot be added.",
+                code='category_limit_reached'
+            )
         remaining_slot = MAX_PRODUCT_CATEGORIES - len(existing_ids)
-
         new_categories = [c for c in found_categories if c.id not in existing_ids]
+
+        if len(new_categories) > remaining_slot:
+            raise ErrorException(
+                f"Too many categories. You can only add {remaining_slot} new categories.",
+                code='too_many_categories'
+            )
+
         if remaining_slot > 0:
-            self.categories.add(*new_categories[:remaining_slot])
+            self.categories.add(*new_categories)
         
-        # update this to make sure errors are thrown in the serializer.
-        # Serializer validates the category lists and throws errors before
-        # the product is created
+        # new_categories_slugs = [c.slug for c in new_categories]
+        
         if missing_slugs:
             raise ErrorException(
-                f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
-                code='missing_categories'
+                # f"Category with slug(s): \'{', '.join(missing_slugs)}\' not found.",
+                f"Some categories could not be processed.",
+                status_code=status.HTTP_207_MULTI_STATUS,
+                code='unprocessed_categories',
+                errors={
+                    'processed': [c.slug for c in new_categories],
+                    'failed': missing_slugs
+                }
             )
 
     def remove_categories(self, categories):
