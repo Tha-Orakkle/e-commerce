@@ -237,8 +237,14 @@ class ProductCategoryUpdateView(APIView):
                 code='missing_field',
                 status_code=status.HTTP_400_BAD_REQUEST
             )
-
-        categories = request.data.getlist('categories', [])
+        data  = request.data
+        categories = (
+            data.getlist('categories')
+            if hasattr(data, 'getlist')
+            else data.get('categories', [])
+        )
+        
+        categories = list(categories) if categories else []
 
         if action == 'add':
             product.add_categories(categories)
@@ -248,7 +254,7 @@ class ProductCategoryUpdateView(APIView):
             raise ErrorException(
                 detail="Enter a valid action: 'add' or 'remove'.",
                 code='invalid_action',
-                status_code=status.HTTP_400_BAD_REQUEST)        
+            )        
         return Response(SuccessAPIResponse(
             message='Product categories updated successfully.',
         ).to_dict(), status=status.HTTP_200_OK)
