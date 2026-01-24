@@ -4,7 +4,7 @@ from PIL import Image
 
 import os
 
-from .conftest import create_fake_images
+from .fixtures import create_fake_images
 from product.models import Product, ProductImage
 
 

@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 import pytest
 
 User = get_user_model()
-pytest_plugins = ['product.tests.conftest']
 
 
 @pytest.fixture
