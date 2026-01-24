@@ -13,6 +13,18 @@ def validate_cart(cart, include_shop=False):
     Return:
         items (CartItem(many=True)): To prevent being called again by the caller function
         response (Dict): contains a `is_valid` key (boolean value) and `items` key (associated issues as value)
+        response shape: {
+            is_valid: True,
+            items: [{
+                id: item id,
+                quantity: qty ordered,
+                stock: qty left in stock,
+                status: status of the product (available, unavailable,
+                        out_of_stock, insufficient_stock),
+                issue: Issues depending on status of the product,
+                product: ProductSerializer()
+            }]
+        }
     """
     response = {
         'is_valid': True,
