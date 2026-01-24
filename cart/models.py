@@ -55,6 +55,9 @@ class Cart(models.Model):
         return self
     
     def check_item_availability(self, item):
+        """
+        Checks if an item (product) is still available before checkout.
+        """
         if not item.product or not item.product.is_active:
             raise ErrorException(
                 detail="Product no longer available.",
@@ -64,6 +67,9 @@ class Cart(models.Model):
         
     
     def increment_item_quantity(self, item):
+        """
+        Increment the quantity of a item by 1.
+        """
         self.check_item_availability(item)
         item.quantity += 1
         if item.quantity > item.product.inventory.stock:
@@ -74,11 +80,16 @@ class Cart(models.Model):
         item.save()
         return self
     
+    
     def decrement_item_quantity(self, item):
+        """
+        Increment the quantity of a item by 1.
+        """
         self.check_item_availability(item)
         if item.quantity == 0:
+            item.delete()
             raise ErrorException(
-                detail="Cannot remove from item with zero quantity.",
+                detail="Cannot remove from item with 0 quantity.",
                 code='invalid_quantity'
             )
         item.quantity -= 1
