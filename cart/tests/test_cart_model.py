@@ -4,9 +4,6 @@ import pytest
 
 from common.exceptions import ErrorException
 
-# from product.tests.conftest import product, inventory
-
-
 def test_cart_model_creation(customer_no_cart):
     """
     Test cart creation with model.
@@ -188,4 +185,4 @@ def test_decrement_item_quantity(customer, product, inventory):
     # Test removing last qty 
     cart.decrement_item_quantity(item)
     assert cart.items.count() == 0
-    assert not cart.items.exist()
+    assert not cart.items.exists()
