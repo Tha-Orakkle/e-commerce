@@ -6,7 +6,7 @@ import os
 import pytest
 import uuid
 
-from .conftest import create_fake_images, create_large_fake_image, create_fake_files
+from .fixtures import create_fake_images, create_large_fake_image, create_fake_files
 from product.models import ProductImage
 
 

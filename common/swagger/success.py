@@ -17,7 +17,7 @@ def make_success_schema_response(message, data_serializer=None, many=False, pagi
     slug = slugify(message)
     key_name = f"{data_name}_{slug}"
     digest = hashlib.md5(key_name.encode()).hexdigest()[:10]
-    key = (data_name, many, paginated)
+    key = (digest, many, paginated)
     if key in _success_response_schema_cache:
         return _success_response_schema_cache[key]
     

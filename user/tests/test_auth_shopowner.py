@@ -3,7 +3,7 @@ from rest_framework import status
 
 import pytest
 
-from product.tests.conftest import create_fake_images, create_fake_files
+from product.tests.fixtures import create_fake_images, create_fake_files
 
 
 # =============================================================================

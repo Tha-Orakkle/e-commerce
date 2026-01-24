@@ -279,7 +279,7 @@ class Inventory(models.Model):
         return f"<Inventory: {self.id}> {self.product.name} - {self.stock} items"
 
     @transaction.atomic
-    def add(self, qty, handle):
+    def add(self, qty, handle=None):
         """
         Add to the stock.
         """

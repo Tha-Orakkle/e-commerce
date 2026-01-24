@@ -8,6 +8,7 @@ from common.swagger import (
     build_error_schema_examples_with_errors_field,
     ForbiddenSerializer,
     make_error_schema_response,
+    make_error_schema_response_with_errors_field,
     make_success_schema_response,
     make_not_found_error_schema_response,
     make_unauthorized_error_schema_response,
@@ -60,7 +61,15 @@ product_category_error = {
     **invalid_product_id_err,
     'invalid_action': 'Enter a valid action: \'add\' or \'remove\'.',
     'missing_field': 'Please provide a list of categories in the \'categories\' field.',
-    'missing_categories': 'Category with slug(s): \'<slug>\' not found.'
+    'category_limit_reached': "Product belongs to <int: max> categories. More categories cannot be added.",
+    'too_many_categories': "Too many categories. You can only add <int: remaining_slot> new categories.",
+}
+
+product_category_multi_status_error = {
+    'unprocessed_categories': {
+        'processed': ['slug-1', 'slug-2'],
+        'failed': ['slug-3', 'slug-4']
+    }
 }
 
 
@@ -194,11 +203,15 @@ product_category_add_or_remove_schema = {
     'summary': 'Add or remove category from a product',
     'description': 'Collects a list of categories and adds or removes them \
         from a product.Maximum number of categories for a product is 5.',
-    'tags': ['ProductCategory'],
+    'tags': ['Product-Category'],
     'operation_id': 'add_or_remove_product_category',
     'request': ProductCategoryRequestData,
     'responses': {
         200: make_success_schema_response("Product categories updated successfully."),
+        207: make_error_schema_response_with_errors_field(
+            message="Some categories could not be processed.",
+            errors=product_category_multi_status_error
+        ),
         400: make_error_schema_response(errors=product_category_error),
         401: make_unauthorized_error_schema_response(),
         403: ForbiddenSerializer,
