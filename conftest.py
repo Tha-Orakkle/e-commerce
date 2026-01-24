@@ -8,6 +8,11 @@ from shop.models import Shop
 from user.models import UserProfile
 
 User = get_user_model()
+pytest_plugins = [
+    'cart.tests.fixtures',
+    'product.tests.fixtures',
+    'user.tests.fixtures'
+]
 
 
 # CLIENT
