@@ -53,19 +53,19 @@ def validate_cart(cart, include_shop=False):
             'product': None
         }
         if item.product and item.product.is_active:
-            _item['stock'] = item.product.inventory.stock
+            _item['stock'] = item.product.stock
             _item['status'] = 'available'
             _item['issue'] = None
             _item['product'] = ProductSerializer(
                 item.product, exclude=['categories', 'stock']).data
                 
-            if item.product.inventory.stock == 0:
+            if item.product.stock == 0:
                 _item['status'] = 'out_of_stock'
-                _item['issue'] = "Out of stock"
+                _item['issue'] = "Product out of stock"
                 response['is_valid'] = False
-            elif item.quantity > item.product.inventory.stock:
+            elif item.quantity > item.product.stock:
                 _item['status'] = 'insufficient_stock'
-                _item['issue'] = f"Only {item.product.inventory.stock} left in stock"
+                _item['issue'] = f"Only {item.product.stock} left in stock"
                 response['is_valid'] = False
         else:
             response['is_valid'] = False

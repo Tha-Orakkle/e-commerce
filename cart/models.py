@@ -39,6 +39,7 @@ class Cart(models.Model):
         cart_item, created = self.items.get_or_create(
             cart=self,
             product=product,
+            product_name=product.name,
             defaults={'quantity': quantity}
         )
         if not created:
@@ -105,6 +106,7 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(null=False)
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
+    product_name = models.CharField(max_length=50, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -122,4 +124,4 @@ class CartItem(models.Model):
         """
         String representation of the CartItem instance.
         """
-        return f"<CartItem: {self.id}> {self.product.name} - {self.quantity} items"
+        return f"<CartItem: {self.id}> {self.product_name} - {self.quantity} items"
