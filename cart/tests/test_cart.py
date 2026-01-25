@@ -20,7 +20,7 @@ def test_get_all_cart_items(client, customer, shopowner, product_factory):
         cart=customer.cart,
         shop=shopowner.owned_shop,
         product_factory=product_factory,
-        count=5
+        count=2
     )
 
     client.force_authenticate(user=customer)
@@ -121,3 +121,41 @@ def test_get_cart_items_when_some_items_are_invalid_returns_items_with_issues(
     assert it_4['status'] == "available"
     assert it_4['issue'] is None
     assert it_4['product'] is not None
+
+
+
+def test_get_cart_items_by_user_without_cart(client, customer_no_cart):
+    """
+    Test get cart items for customer with no cart.
+    """
+    client.force_authenticate(user=customer_no_cart)
+    res = client.get(CART_ITEMS_LIST_URL)
+    
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "not_found"
+    assert res.data['message'] == "No cart found for the user."
+    
+    
+def test_get_cart_items_by_unauthenticated_user(client):
+    """
+    Test get cart items by unauthenticated user:
+        - Test for without token and invalid token
+    """
+    res = client.get(CART_ITEMS_LIST_URL)
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Authentication credentials were not provided."
+
+    client.cookies['access_token'] = "Invalid_access_token2445"
+    res = client.get(CART_ITEMS_LIST_URL)
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Token is invalid or expired"
+
+    
+    
