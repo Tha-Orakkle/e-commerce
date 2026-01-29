@@ -38,7 +38,7 @@ class CartDetailView(APIView):
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
             
-        product_id = request.data.get('product')
+        product_id = request.data.get('product_id')
         validate_id(product_id, "product")
         product = Product.objects.select_related('inventory').filter(
             id=product_id,
@@ -156,9 +156,15 @@ class CartItemDetailView(APIView):
                 code='invalid_operation'
             )
         
+        item = cart.items.filter(id=cart_item_id).first()
+        if item:
+            data=CartItemSerializer(item).data
+        else:
+            data={}
+            
         return Response(SuccessAPIResponse(
             message="Cart item updated successfully.",
-            data=CartItemSerializer(item).data
+            data=data
         ).to_dict(), status=status.HTTP_200_OK)
 
     @extend_schema(**delete_cart_item_schema)
