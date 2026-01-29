@@ -16,7 +16,7 @@ class AddToCartRequest(serializers.Serializer):
     """
     Serializer for the request data to add an item to the cart.
     """
-    product = serializers.UUIDField(required=True)
+    product_id = serializers.UUIDField(required=True)
     quantity = serializers.IntegerField(required=True, min_value=1, help_text="The quantity of the product to add to the cart.")
 
 class UpdateCartItemRequest(serializers.Serializer):
