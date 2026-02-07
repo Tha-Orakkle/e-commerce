@@ -55,3 +55,4 @@ def load_locations_to_db(django_db_setup, django_db_blocker, test_locations_file
             from django.core.management import call_command
             call_command('fetch_geodata', force=True)
             call_command('import_geodata')
+    yield
