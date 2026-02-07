@@ -28,6 +28,12 @@ class CityListView(APIView):
             )
         validate_id(state_id, 'state')
         cities = City.objects.filter(state__id=state_id)
+        if not cities.exists():
+            raise ErrorException(
+                detail="No cities found for the provided state ID.",
+                code='not_found',
+                status_code=status.HTTP_404_NOT_FOUND
+            )
         serializers = CitySerializer(cities, many=True)
         return Response(SuccessAPIResponse(
             messages="Cities retrieved successfully.",
