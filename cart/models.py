@@ -27,7 +27,7 @@ class Cart(models.Model):
         Add an item to the cart.
         """
         # confirm whats left of the stock
-        stock = product.inventory.stock
+        stock = product.stock
         if stock == 0:
             raise ErrorException(
                 detail="Product out of stock.",
@@ -73,9 +73,9 @@ class Cart(models.Model):
         """
         self.check_item_availability(item)
         item.quantity += 1
-        if item.quantity > item.product.inventory.stock:
+        if item.quantity > item.product.stock:
             raise ErrorException(
-                detail=f"Insufficient stock. Only {item.product.inventory.stock} left.",
+                detail=f"Insufficient stock. Only {item.product.stock} left.",
                 code='insufficient_stock'
             )
         item.save()
