@@ -14,20 +14,30 @@ from . import GEODATA_FILE, GEODATA_URL
 class Command(BaseCommand):
     help = f"Fetch geodata from {GEODATA_URL} to populate the Country, State and City tables."
     
-    def handle(self, *args, **kwargs):
+    
+    def add_arguments(self, parser):
         """
-        Gets the data.
+        Add command line arguments for the management command.
+        """
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Force fetch and overwrite existing geodata file without confirmation.'
+        )
+    
+    
+    def check_existing_file(self):
+        """
+        Checks if the geodata file already exists
+        """
+        return GEODATA_FILE.exists()
+    
+    
+    def fetch_from_api(self):
+        """
+        Fetches geodata from the API and saves it to a file.
         """
         count = 0
-
-        if GEODATA_FILE.exists():
-            self.stdout.write(self.style.WARNING("Geodata json file already exists. Do you want to update it? (y/n)"))
-            user_input = input("> ").strip().lower()
-            if user_input != 'y':
-                self.stdout.write(self.style.NOTICE("Using existing geodata file. No changes made.\n"))
-                return
-
-        # Get the geodata remotely
         try:
             self.stdout.write(f"\nFetching geodata from:")
             self.stdout.write(self.style.HTTP_INFO(f"{GEODATA_URL}\n"))
@@ -75,3 +85,18 @@ class Command(BaseCommand):
             raise CommandError(f"Request error: {e}")
         except Exception as e:
             raise CommandError(f"Unexpected error: {e}")
+
+    
+    def handle(self, *args, **options):
+        """
+        Gets the data.
+        """
+        
+        file_exists = self.check_existing_file()
+
+        if file_exists and not options['force']:
+            self.stdout.write(self.style.NOTICE("Using existing geodata file. No changes made.\n"))
+            return    
+        
+        # Get the geodata remotely
+        self.fetch_from_api()
