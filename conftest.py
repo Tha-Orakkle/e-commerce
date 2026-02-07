@@ -9,6 +9,7 @@ from user.models import UserProfile
 
 User = get_user_model()
 pytest_plugins = [
+    'address.tests.fixtures',
     'cart.tests.fixtures',
     'product.tests.fixtures',
     'user.tests.fixtures'
