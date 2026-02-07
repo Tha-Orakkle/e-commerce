@@ -35,6 +35,7 @@ def test_import_geodata(db_access, load_locations_to_file):
     Test the import_geodata command to ensure it 
     correctly imports data from the fake location file.
     """
+    Country.objects.all().delete()
     assert not Country.objects.exists(), "No countries should exist before import."
     from django.core.management import call_command
     call_command('import_geodata')
@@ -50,5 +51,3 @@ def test_import_geodata(db_access, load_locations_to_file):
     assert City.objects.filter(name='Ikeja', state=lag).exists(), "Ikeja city should be imported."
     assert City.objects.filter(name='Lekki', state=lag).exists(), "Lekki city should be imported."
     assert City.objects.filter(name='Yaba', state=lag).exists(), "Yaba city should be imported."
-    
-
