@@ -62,27 +62,21 @@ def create_fake_files(n):
     return files
 
 
-@pytest.fixture(scope="module")
-def shared_media_root(tmp_path_factory, request):
-    tmp_path = tmp_path_factory.mktemp('media')
+@pytest.fixture(scope='session')
+def test_media_dir(test_root_dir):
+    original = getattr(settings, 'MEDIA_ROOT', None)
+    path = test_root_dir / 'media'
+    path.mkdir(exist_ok=True)
+    settings.MEDIA_ROOT = path
+    yield path
+    if original is not None:
+        settings.MEDIA_ROOT = original
+    else:
+        delattr(settings, 'MEDIA_ROOT')
 
-    # clean up
-    def cleanup():
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path)
-
-    request.addfinalizer(cleanup)
-    yield tmp_path
-
-
-@pytest.fixture
-def temp_media_root(shared_media_root, settings):
-    settings.MEDIA_ROOT = shared_media_root
-
-# FACTORIES
 
 @pytest.fixture
-def product_factory(db, temp_media_root):
+def product_factory(db, test_media_dir):
     """
     Factory to create products.
     """
@@ -99,7 +93,7 @@ def product_factory(db, temp_media_root):
     return create_product
 
 @pytest.fixture
-def product_image_factory(db, temp_media_root):
+def product_image_factory(db, test_media_dir):
     """
     Factory to create product images.
     """
@@ -112,7 +106,7 @@ def product_image_factory(db, temp_media_root):
     return create_product_image
 
 @pytest.fixture
-def category_factory(db, temp_media_root):
+def category_factory(db, test_media_dir):
     """
     Factory to create categories.
     """
