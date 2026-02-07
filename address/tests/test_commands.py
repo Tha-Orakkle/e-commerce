@@ -7,13 +7,11 @@ from . import FAKE_LOCATION_DATA
 from address.models import Country, State, City
 
 
-def test_fetch_geodata_creates_file(tmp_path, settings):
+def test_fetch_geodata_creates_file(test_locations_file_path, settings):
     """
     Test that the fetch_geodata command fetches data and
     creates the geodata file when it doesn't exist.
     """
-    file_path = tmp_path / 'locations.json'
-    settings.GEODATA_FILE = file_path
     fake_api_res = FAKE_LOCATION_DATA
     with patch('address.management.commands.fetch_geodata.requests.get') as mock_get:
         mock_res = MagicMock()
@@ -27,12 +25,12 @@ def test_fetch_geodata_creates_file(tmp_path, settings):
         
     assert settings.GEODATA_FILE.exists(), "Geodata file should be created after fetching."
     
-    with open(file_path, 'r') as f:
+    with open(test_locations_file_path, 'r') as f:
         data = json.load(f)
         assert data == fake_api_res, "The content of the geodata file should match the fake API response."
 
 
-def test_import_geodata(db_access, fake_location_file):
+def test_import_geodata(db_access, load_locations_to_file):
     """
     Test the import_geodata command to ensure it 
     correctly imports data from the fake location file.
