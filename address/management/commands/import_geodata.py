@@ -33,6 +33,7 @@ class Command(BaseCommand):
         }
 
         metadata_file = settings.GEODATA_FILE.with_suffix('.meta.json')
+        total = None
         if metadata_file.exists():
             with open(metadata_file, 'r') as f:
                 metadata = json.load(f)
@@ -44,7 +45,7 @@ class Command(BaseCommand):
         self.stdout.write("Importing geodata to the database.")
         self.stdout.write("This may take a while...")
 
-        with open(settings.GEODATA_FILE, 'r', encoding='utf-8') as f:
+        with open(settings.GEODATA_FILE, 'rb') as f:
             objects = ijson.items(f, 'item')
 
             for obj in tqdm(objects, **tqdm_args):
