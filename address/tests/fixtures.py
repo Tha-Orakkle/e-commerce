@@ -1,3 +1,4 @@
+from django.conf import settings
 from unittest.mock import patch, MagicMock
 
 import io
@@ -6,27 +7,41 @@ import pytest
 
 from . import FAKE_LOCATION_DATA
 
-@pytest.fixture
-def fake_location_file(tmp_path, settings):
+@pytest.fixture(scope='session')
+def test_locations_file_path(test_root_dir):
     """
-    Create a temporary file with fake location data for testing.
+    Create a file path for storing location dataset for testing.
     """
-    file_path = tmp_path / 'locations.json'
-    data = FAKE_LOCATION_DATA
-    with open(file_path, 'w') as f:
-        json.dump(data, f, indent=2)
+    original = getattr(settings, 'GEODATA_FILE', None)
+    path = test_root_dir / 'locations'
+    path.mkdir(exist_ok=True)
     
-    settings.GEODATA_FILE = file_path  # Override the GEODATA_FILE setting for tests
-    return file_path
+    file_path = path / 'locations.json'
+    settings.GEODATA_FILE = file_path
+    yield file_path
+    
+    if original is not None:
+        settings.GEODATA_FILE = original
+    else:
+        delattr(settings, 'GEODATA_FILE')
 
 
-@pytest.fixture
-def load_locations(django_db_setup, django_db_blocker, tmp_path, settings):
+@pytest.fixture(scope='session')
+def load_locations_to_file(test_locations_file_path):
+    """
+    Create a temporary file with fake locations data for testing.
+    """
+    data = FAKE_LOCATION_DATA
+    with open(test_locations_file_path, 'w') as f:
+        json.dump(data, f, indent=2)
+    yield test_locations_file_path
+
+
+@pytest.fixture(scope='session')
+def load_locations_to_db(django_db_setup, django_db_blocker, test_locations_file_path):
     """
     Load test location dataset into the database.
     """
-    file_path = tmp_path / 'locations.json'
-    settings.GEODATA_FILE = file_path
     fake_api_res = FAKE_LOCATION_DATA
     
     with django_db_blocker.unblock():
