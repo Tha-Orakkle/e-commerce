@@ -3,7 +3,10 @@ from rest_framework import status
 
 import pytest
 
+from cart.models import Cart
+from shop.models import Shop
 from product.tests.fixtures import create_fake_images, create_fake_files
+from user.models import UserProfile
 
 
 # =============================================================================
@@ -56,6 +59,24 @@ def test_shop_owner_registration(mock_verification_email_task, client, db_access
     assert res.data['data']['logo'] is not None
     assert res.data['data']['logo'].startswith('/media/shp')
 
+
+def test_shop_owner_registration_does_not_have_cart(client, db_access):
+    """Test that a shop owner does not have a cart."""
+    data = {
+        **SHOP_OWNER_REGISTER_DATA,
+        'shop_logo': create_fake_images(1)[0]
+    }
+    res = client.post(SHOP_OWNER_REGISTER_URL, data, format='multipart')
+    
+    assert res.status_code == status.HTTP_201_CREATED
+    assert 'data' in res.data
+    assert 'owner' in res.data['data']
+    owner_id = res.data['data']['owner']['id']
+    assert UserProfile.objects.filter(user_id=owner_id).exists()
+    assert not Cart.objects.filter(user_id=owner_id).exists()
+    assert Shop.objects.filter(owner_id=owner_id).exists()
+
+
 @pytest.mark.django_db(transaction=True)
 def test_shop_owner_registration_with_existing_customer(mock_verification_email_task, client, customer):
     """Test shop owner registration by an existing customer."""
@@ -75,6 +96,7 @@ def test_shop_owner_registration_with_existing_customer(mock_verification_email_
     assert res.data['data']['name'] == data['shop_name']
     assert res.data['data']['owner']['email'] == customer.email
     assert res.data['data']['owner']['is_shopowner'] is True
+
 
 @pytest.mark.django_db(transaction=True)
 def test_shop_owner_registration_by_verified_customer(mock_verification_email_task, client, customer):

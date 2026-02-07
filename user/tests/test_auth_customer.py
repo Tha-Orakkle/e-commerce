@@ -4,6 +4,11 @@ from rest_framework import status
 
 import pytest
 
+from cart.models import Cart
+from shop.models import Shop
+from user.models import UserProfile
+
+
 User = get_user_model()
 
 # ==========================================================
@@ -39,6 +44,7 @@ def test_customer_registration(mock_verification_email_task,  client, db_access)
     assert res.data['data']['profile']['first_name'] == data['first_name']
     assert res.data['data']['profile']['last_name'] == data['last_name']
 
+
 @pytest.mark.django_db(transaction=True)
 def test_customer_registration_for_shopowner(mock_verification_email_task, client, shopowner):
     """
@@ -55,6 +61,23 @@ def test_customer_registration_for_shopowner(mock_verification_email_task, clien
     assert res.data['data']['is_staff'] == True
     assert res.data['data']['profile']['first_name'] == data['first_name']
     assert res.data['data']['profile']['last_name'] == data['last_name'] 
+
+
+def test_customer_created_with_cart_and_profile(client, db_access):
+    """
+    Test that a cart and user profile are created for a new customer.
+    Test that user is not associated with any shop.
+    """
+    data = REG_DATA
+    res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
+    assert res.status_code == status.HTTP_201_CREATED
+    user_id = res.data['data']['id']
+    assert UserProfile.objects.filter(user_id=user_id).exists()
+    assert Cart.objects.filter(user_id=user_id).exists()
+    assert not Shop.objects.filter(owner_id=user_id).exists()
+    user = User.objects.get(id=user_id)
+    assert user.shop is None
+
 
 def test_customer_registration_for_shopowner_with_invalid_password(client, shopowner):
     """
@@ -74,6 +97,7 @@ def test_customer_registration_for_shopowner_with_invalid_password(client, shopo
     assert res.data['code'] == "invalid_credentials"
     assert res.data['message'] == "Customer registration failed."
     assert res.data['errors']['non_field_errors'] == ['Invalid credentials matching any shop owner.']
+
 
 def test_customer_registration_for_shopowner_with_invalid_email(client, shopowner):
     """
