@@ -7,32 +7,39 @@ import ijson
 import json
 import requests
 
-from . import GEODATA_FILE, GEODATA_URL
-# from address.models import GeodataImportLog
-
 
 class Command(BaseCommand):
-    help = f"Fetch geodata from {GEODATA_URL} to populate the Country, State and City tables."
+    help = f"Fetch geodata from {settings.GEODATA_URL} to populate the Country, State and City tables."
     
-    def handle(self, *args, **kwargs):
+    
+    def add_arguments(self, parser):
         """
-        Gets the data.
+        Add command line arguments for the management command.
+        """
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Force fetch and overwrite existing geodata file without confirmation.'
+        )
+    
+    
+    def check_file_exists(self):
+        """
+        Checks if the geodata file already exists
+        """
+        return settings.GEODATA_FILE.exists()
+    
+    
+    def fetch_from_api(self):
+        """
+        Fetches geodata from the API and saves it to a file.
         """
         count = 0
-
-        if GEODATA_FILE.exists():
-            self.stdout.write(self.style.WARNING("Geodata json file already exists. Do you want to update it? (y/n)"))
-            user_input = input("> ").strip().lower()
-            if user_input != 'y':
-                self.stdout.write(self.style.NOTICE("Using existing geodata file. No changes made.\n"))
-                return
-
-        # Get the geodata remotely
         try:
             self.stdout.write(f"\nFetching geodata from:")
-            self.stdout.write(self.style.HTTP_INFO(f"{GEODATA_URL}\n"))
+            self.stdout.write(self.style.HTTP_INFO(f"{settings.GEODATA_URL}\n"))
             self.stdout.write("This may take a while...\n")
-            with requests.get(GEODATA_URL, stream=True, timeout=(5, 30)) as response:
+            with requests.get(settings.GEODATA_URL, stream=True, timeout=(5, 30)) as response:
                 response.raise_for_status()
                 raw = response.raw
                 if response.headers.get('Content-Encoding') == 'gzip':
@@ -40,7 +47,7 @@ class Command(BaseCommand):
                 else:
                     stream = raw
                 objects = ijson.items(stream, 'item')
-                with open(GEODATA_FILE, 'w') as f, tqdm(
+                with open(settings.GEODATA_FILE, 'w') as f, tqdm(
                     desc="Downloading",
                     unit=" items",
                     dynamic_ncols=True,
@@ -59,10 +66,10 @@ class Command(BaseCommand):
                     f.write(']')
 
             # create a meta json file for the geodata
-            with open(GEODATA_FILE.with_suffix('.meta.json'), 'w') as meta:
-                json.dump({'filename': GEODATA_FILE.name, 'items_saved': count}, meta)
+            with open(settings.GEODATA_FILE.with_suffix('.meta.json'), 'w') as meta:
+                json.dump({'filename': settings.GEODATA_FILE.name, 'items_saved': count}, meta)
             
-            self.stdout.write(self.style.SUCCESS(f"\nGeodata successfully saved to {GEODATA_FILE}."))
+            self.stdout.write(self.style.SUCCESS(f"\nGeodata successfully saved to {settings.GEODATA_FILE}."))
             self.stdout.write(self.style.SUCCESS(f"To import it into your database, run:\n\n    --python manage.py import_geodata\n"))
 
         except requests.exceptions.HTTPError as e:
@@ -75,3 +82,18 @@ class Command(BaseCommand):
             raise CommandError(f"Request error: {e}")
         except Exception as e:
             raise CommandError(f"Unexpected error: {e}")
+
+    
+    def handle(self, *args, **options):
+        """
+        Gets the data.
+        """
+        
+        file_exists = self.check_file_exists()
+
+        if file_exists and not options['force']:
+            self.stdout.write(self.style.NOTICE("Using existing geodata file. No changes made.\n"))
+            return    
+        
+        # Get the geodata remotely
+        self.fetch_from_api()

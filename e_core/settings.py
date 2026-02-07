@@ -268,3 +268,8 @@ PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY')
 PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY')
 PAYSTACK_INITIALIZE_URL="https://api.paystack.co/transaction/initialize"
 PAYSTACK_VERIFY_URL="https://api.paystack.co/transaction/verify/"
+
+
+# Geodata settings
+GEODATA_URL = "https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/refs/heads/master/json/countries%2Bstates%2Bcities.json"
+GEODATA_FILE = BASE_DIR / 'geodata.json'

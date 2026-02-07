@@ -21,6 +21,6 @@ class CountryListView(APIView):
         countries = Country.objects.all()
         serializers = CountrySerializer(countries, many=True)
         return Response(SuccessAPIResponse(
-            message="Countries retreived successfully.",
+            message="Countries retrieved successfully.",
             data=serializers.data
         ).to_dict(), status=status.HTTP_200_OK)

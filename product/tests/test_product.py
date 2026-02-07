@@ -395,7 +395,7 @@ CREATE_PRODUCT_DATA = {
     ['shopowner', 'shop_staff'],
     ids=['shopowner', 'shop_staff']
 )
-def test_post_product(client, temp_media_root, shopowner, all_users, user_type, category_factory):
+def test_post_product(client, test_media_dir, shopowner, all_users, user_type, category_factory):
     """
     Test create a new product.
     """
@@ -444,7 +444,7 @@ def test_post_product(client, temp_media_root, shopowner, all_users, user_type, 
     assert product.categories.count() == 3
     assert all(c in categories for c in product.categories.all())
 
-def test_post_product_with_negative_price(client, temp_media_root, shopowner):
+def test_post_product_with_negative_price(client, test_media_dir, shopowner):
     """
     Test create a new product with a negative price.
     Negative numbers will resolve to 0.00
@@ -460,7 +460,7 @@ def test_post_product_with_negative_price(client, temp_media_root, shopowner):
     assert res.data['message'] == "Product created successfully."
     assert res.data['data']['price'] == "0.00"
 
-def test_post_product_with_price_longer_than_ten_digits(client, temp_media_root, shopowner):
+def test_post_product_with_price_longer_than_ten_digits(client, test_media_dir, shopowner):
     """
     Test create a new product with a price longer than 10 digits.
     """
@@ -484,7 +484,7 @@ def test_post_product_with_price_longer_than_ten_digits(client, temp_media_root,
     assert res.data['errors']['price'][0] == "Ensure that there are no more than 10 digits in total."
 
 
-def test_post_product_with_price_with_more_than_eight_digits_before_decimal(client, temp_media_root, shopowner):
+def test_post_product_with_price_with_more_than_eight_digits_before_decimal(client, test_media_dir, shopowner):
     """
     Test create a new product with a price with more than 8 digits before decimal point.
     """
@@ -570,7 +570,7 @@ def test_post_product_with_only_name(client, shopowner):
     assert product.images.count() == 0
     
 
-def test_post_product_with_missing_name(client, temp_media_root, shopowner):
+def test_post_product_with_missing_name(client, test_media_dir, shopowner):
     """
     Test create a product with missing name field.
     """
@@ -587,7 +587,7 @@ def test_post_product_with_missing_name(client, temp_media_root, shopowner):
     assert res.data['errors']['name'][0] == "This field is required."
 
 
-def test_post_product_with_blank_name_field(client, temp_media_root, shopowner):
+def test_post_product_with_blank_name_field(client, test_media_dir, shopowner):
     """
     Test create a product with a blank name field.
     """
@@ -603,7 +603,7 @@ def test_post_product_with_blank_name_field(client, temp_media_root, shopowner):
     assert res.data['errors']['name'][0] == "This field may not be blank."
 
 
-def test_post_product_with_invalid_name(client, temp_media_root, shopowner):
+def test_post_product_with_invalid_name(client, test_media_dir, shopowner):
     """
     Test create a product with a name that is too long.
     """    
@@ -620,7 +620,7 @@ def test_post_product_with_invalid_name(client, temp_media_root, shopowner):
     assert res.data['errors']['name'][0] == "Ensure this field has no more than 50 characters."
 
 
-def test_post_product_with_invalid_shop_id(client, temp_media_root, shopowner):
+def test_post_product_with_invalid_shop_id(client, test_media_dir, shopowner):
     """
     Test create a product with an invalid shop id.
     """
@@ -634,7 +634,7 @@ def test_post_product_with_invalid_shop_id(client, temp_media_root, shopowner):
     assert res.data['code'] == "invalid_uuid"
     assert res.data['message'] == "Invalid shop id."
     
-def test_post_product_with_non_existent_shop_id(client, temp_media_root, shopowner):
+def test_post_product_with_non_existent_shop_id(client, test_media_dir, shopowner):
     """
     Test create a product with a non-existent shop id.
     """

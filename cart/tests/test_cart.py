@@ -638,7 +638,7 @@ def test_increment_cart_item_quantity_exceeding_stock(client, customer, inventor
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['status'] == "error"
     assert res.data['code'] == "insufficient_stock"
-    assert res.data['message'] == f"Insufficient stock. Only {item.product.inventory.stock} left."
+    assert res.data['message'] == f"Insufficient stock. Only {item.product.stock} left."
 
 
 

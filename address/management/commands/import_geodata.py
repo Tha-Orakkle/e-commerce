@@ -1,20 +1,26 @@
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from tqdm import tqdm
 
 import ijson
 import json
 
-from . import GEODATA_FILE
 from address.models import Country, State, City
 
 
 # This program will simply import NG data to minimize db usage
-
 class Command(BaseCommand):
     help = "Import geodata to the database."
 
+
+    def check_file_exists(self):
+        """
+        Checks if the geodata file already exists
+        """
+        return settings.GEODATA_FILE.exists()
+    
     def handle(self, *args, **kwargs):
-        if not GEODATA_FILE.exists():
+        if not self.check_file_exists():
             self.stdout.write(self.style.NOTICE("Geodata file does not exist."))
             self.stdout.write(self.style.NOTICE("Run\n\n   python manage.py fetch_geodata\nto download it.\n"))
             return
@@ -26,7 +32,8 @@ class Command(BaseCommand):
             'mininterval': 0.3
         }
 
-        metadata_file = GEODATA_FILE.with_suffix('.meta.json')
+        metadata_file = settings.GEODATA_FILE.with_suffix('.meta.json')
+        total = None
         if metadata_file.exists():
             with open(metadata_file, 'r') as f:
                 metadata = json.load(f)
@@ -38,7 +45,7 @@ class Command(BaseCommand):
         self.stdout.write("Importing geodata to the database.")
         self.stdout.write("This may take a while...")
 
-        with open(GEODATA_FILE, 'r', encoding='utf-8') as f:
+        with open(settings.GEODATA_FILE, 'rb') as f:
             objects = ijson.items(f, 'item')
 
             for obj in tqdm(objects, **tqdm_args):

@@ -2,6 +2,8 @@ from django.urls import reverse
 from rest_framework import status
 
 import uuid
+from cart.models import Cart
+from user.models import UserProfile
 
 # ==========================================================
 # SHOP STFF CREATION TESTS
@@ -37,6 +39,24 @@ def test_shop_staff_creation_by_shop_owner(request, client, shopowner):
     assert res.data['data']['is_staff'] == True
     assert res.data['data']['profile']['first_name'] == data['first_name']
     assert res.data['data']['profile']['last_name'] == data['last_name']
+    
+
+def test_shop_staff_created_does_not_have_cart(client, shopowner):
+    """
+    Test that a shop staff member does not have a cart created.
+    """
+    client.force_authenticate(user=shopowner)
+    url = get_staff_creation_url(shopowner.owned_shop.id)
+    data = STAFF_CREATION_DATA
+    res = client.post(url, data, format='json')
+    
+    assert res.status_code == status.HTTP_201_CREATED
+    assert res.data['message'] == "Shop staff member creation successful."
+    assert res.data['data'] is not None
+    staff_id = res.data['data']['id']
+    assert not Cart.objects.filter(user_id=staff_id).exists()
+    assert UserProfile.objects.filter(user_id=staff_id).exists()
+
 
 def test_shop_staff_creation_by_shop_owner_without_access_token(client, shopowner):
     """
@@ -50,6 +70,7 @@ def test_shop_staff_creation_by_shop_owner_without_access_token(client, shopowne
     assert res.data['status'] == "error"
     assert res.data['code'] == "unauthorized"
     assert res.data['message'] == "Authentication credentials were not provided."
+
 
 def test_shop_staff_creation_by_shop_owner_wit_invalid_access_token(client, shopowner):
     """

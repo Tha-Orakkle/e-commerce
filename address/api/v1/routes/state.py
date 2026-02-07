@@ -26,6 +26,12 @@ class StateListView(APIView):
                 code='missing_country',
             )
         states = State.objects.filter(country__code=country_code)
+        if not states.exists():
+            raise ErrorException(
+                detail=f"No states found for country code: {country_code}",
+                code='no_states_found',
+                status_code=status.HTTP_404_NOT_FOUND
+            )
         serializers = StateSerializer(states, many=True)
         return Response(SuccessAPIResponse(
             message="States retrieved successfully.",

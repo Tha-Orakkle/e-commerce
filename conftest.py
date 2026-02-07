@@ -1,5 +1,6 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.urls import reverse
+
 from rest_framework.test import APIClient
 import pytest
 
@@ -9,10 +10,28 @@ from user.models import UserProfile
 
 User = get_user_model()
 pytest_plugins = [
+    'address.tests.fixtures',
     'cart.tests.fixtures',
     'product.tests.fixtures',
     'user.tests.fixtures'
 ]
+
+# TEST ROOT DIRECTORY
+@pytest.fixture(scope='session')
+def test_root_dir(tmp_path_factory):
+    """
+    Create a temporary directory for test files.
+    """
+    root = tmp_path_factory.mktemp('test_root')
+    
+    original = getattr(settings, 'TEST_ROOT_DIR', None)
+
+    settings.TEST_ROOT_DIR = root
+    yield root
+    if original is not None:
+        settings.TEST_ROOT_DIR = original
+    else:
+        delattr(settings, 'TEST_ROOT_DIR')
 
 
 # CLIENT

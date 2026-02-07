@@ -92,7 +92,7 @@ def test_update_inventory_insufficient_stock(client, shopowner, product, invento
     response = client.post(url, data, format='json')
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['code'] == 'insufficient_stock'
-    detail = f"Insufficient stock to complete this operation. Only {product.inventory.stock} left."
+    detail = f"Insufficient stock to complete this operation. Only {product.stock} left."
     assert response.data['message'] == detail
     inventory.refresh_from_db()
     assert inventory.stock == 20
@@ -133,7 +133,7 @@ def test_update_inventory_with_negative_quantity(client, shopowner, product, inv
     assert response.data['code'] == 'invalid_quantity'
     assert response.data['message'] == "Provide a valid quantity that is greater than 0."
     inventory.refresh_from_db()
-    assert product.inventory.stock == 20    
+    assert product.stock == 20    
 
     data['action'] = 'subtract'
     response = client.post(url, data, format='json')
@@ -141,7 +141,7 @@ def test_update_inventory_with_negative_quantity(client, shopowner, product, inv
     assert response.data['code'] == 'invalid_quantity'
     assert response.data['message'] == "Provide a valid quantity that is greater than 0."
     inventory.refresh_from_db()
-    assert product.inventory.stock == 20
+    assert product.stock == 20
 
 
 def test_update_inventory_customer(client, customer, product, inventory):
@@ -182,7 +182,7 @@ def test_update_inventory_by_staff_of_different_shop(client, shopowner_factory, 
     assert response.data['code'] == "forbidden"
     assert response.data['message'] == "You do not have permission to perform this action."
     inventory.refresh_from_db()
-    assert product.inventory.stock == 20
+    assert product.stock == 20
 
 
 def test_update_inventory_by_unauthenticated_user(client, product, inventory):
