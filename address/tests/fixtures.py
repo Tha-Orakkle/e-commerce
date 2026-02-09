@@ -6,6 +6,8 @@ import json
 import pytest
 
 from . import FAKE_LOCATION_DATA
+from address.models import ShippingAddress, Country, State, City
+
 
 @pytest.fixture(scope='session')
 def test_locations_file_path(test_root_dir):
@@ -56,3 +58,38 @@ def load_locations_to_db(django_db_setup, django_db_blocker, test_locations_file
             call_command('fetch_geodata', force=True)
             call_command('import_geodata')
     yield
+
+
+@pytest.fixture
+def shipping_address_factory(load_locations_to_db):
+    def create_shipping_address(user):
+        country = Country.objects.first()
+        state = country.states.first()
+        city = state.cities.first()
+        count = user.addresses.count()
+
+        return ShippingAddress.objects.create(
+            user=user,
+            city=city,
+            full_name='John Doe',
+            telephone='08112221111',
+            street_address=f'{count + 1} Main St',
+            postal_code='10001'
+        )
+    return create_shipping_address
+
+
+@pytest.fixture
+def create_shipping_address_data(load_locations_to_db):
+    country = Country.objects.first()
+    state = country.states.first()
+    city = state.cities.first()
+    return {
+        'street_address': '123 Main St',
+        'postal_code': '100001',
+        'city': city.id,
+        'state': state.id,
+        'country': country.code,
+        'full_name': 'Sheldon Cooper',
+        'telephone': '08112223344',
+    }
