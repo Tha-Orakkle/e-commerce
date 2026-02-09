@@ -64,7 +64,7 @@ class ShippingAddressListCreateView(APIView):
                 errors=e.detail
             )
         return Response(SuccessAPIResponse(
-            message="Shipping address created succssfully.",
+            message="Shipping address created successfully.",
             data=ShippingAddressSerializer(address).data
         ).to_dict(), status=status.HTTP_201_CREATED)
     
