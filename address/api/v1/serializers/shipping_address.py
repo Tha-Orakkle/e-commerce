@@ -13,7 +13,12 @@ class ShippingAddressSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ShippingAddress
-        fields = ['id', 'full_name', 'telephone', 'street_address', 'city', 'state', 'country', 'postal_code']
+        fields = [
+            'id', 'full_name', 'telephone',
+            'street_address', 'city', 'state',
+            'country', 'postal_code',
+            'created_at', 'updated_at'   
+        ]
         
     def to_representation(self, instance):
         rep = super().to_representation(instance)

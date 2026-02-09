@@ -10,8 +10,8 @@ from .api.v1.routes import (
 
 
 urlpatterns = [
-    path('address/', ShippingAddressListCreateView.as_view(), name='shipping-addresses'),
-    path('address/<str:address_id>/', ShippingAddressDetailView.as_view(), name='shipping-address'),
+    path('address/', ShippingAddressListCreateView.as_view(), name='shipping-address-list-create'),
+    path('address/<str:address_id>/', ShippingAddressDetailView.as_view(), name='shipping-address-detail'),
     path('countries/', CountryListView.as_view(), name="countries"),
     path('states/', StateListView.as_view(), name="states"),
     path('cities/', CityListView.as_view(), name="cities")
