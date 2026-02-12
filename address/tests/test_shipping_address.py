@@ -3,15 +3,6 @@ from rest_framework import status
 
 import pytest
 
-
-# test create shipping address with valid data
-# test create shipping address with data
-# test creating more than 5 shipping addresses for a user (should fail)
-
-
-
-
-
 # =============================================================================
 # TEST CREATE SHIPPING ADDRESS
 # =============================================================================
