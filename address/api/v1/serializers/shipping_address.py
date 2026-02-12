@@ -32,7 +32,7 @@ class ShippingAddressSerializer(serializers.ModelSerializer):
 class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
     full_name = serializers.CharField(min_length=3, max_length=32)
     telephone = PhoneNumberField(region='NG')
-    street_address = serializers.CharField(max_length=256)
+    street_address = serializers.CharField(min_length=5, max_length=256)
     city = serializers.UUIDField()
     state = serializers.UUIDField()
     country = serializers.CharField(max_length=2)
@@ -61,6 +61,7 @@ class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
             return code
         try:
             valid = verify_postal_code_format(country_iso2=country_code, postal_code=code)
+            
         except KeyError:
             raise serializers.ValidationError(
                 {'postal_code': 'Cannot validate postal code for the given country code.'}
