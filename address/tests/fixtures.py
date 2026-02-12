@@ -61,13 +61,63 @@ def load_locations_to_db(django_db_setup, django_db_blocker, test_locations_file
 
 
 @pytest.fixture
-def shipping_address_factory(load_locations_to_db):
-    def create_shipping_address(user):
-        country = Country.objects.first()
-        state = country.states.first()
-        city = state.cities.first()
-        count = user.addresses.count()
+def country_factory():
+    """
+    Factory fixture for creating Country instances.
+    """
+    def create_country(name, code):
+        return Country.objects.create(name=name, code=code)
+    return create_country
 
+
+@pytest.fixture
+def state_factory():
+    """
+    Factory fixture for creating State instances.
+    """
+    def create_state(name, country):
+        return State.objects.create(name=name, country=country)
+    return create_state
+
+
+@pytest.fixture
+def city_factory():
+    """
+    Factory fixture for creating City instances.
+    """
+    def create_city(name, state):
+        return City.objects.create(name=name, state=state)
+    return create_city
+
+
+@pytest.fixture
+def country(country_factory):
+    """
+    Fixture for creating a Country instance.
+    """
+    return country_factory(name='Nigeria', code='NG')
+
+
+@pytest.fixture
+def state(state_factory, country):
+    """
+    Fixture for creating a State instance.
+    """
+    return state_factory(name='Lagos', country=country)
+
+
+@pytest.fixture
+def city(city_factory, state):
+    """
+    Fixture for creating a City instance.
+    """
+    return city_factory(name='Ikeja', state=state)
+
+
+@pytest.fixture
+def shipping_address_factory(city):
+    def create_shipping_address(user, city=city):
+        count = user.addresses.count()
         return ShippingAddress.objects.create(
             user=user,
             city=city,
@@ -77,19 +127,3 @@ def shipping_address_factory(load_locations_to_db):
             postal_code='10001'
         )
     return create_shipping_address
-
-
-@pytest.fixture
-def create_shipping_address_data(load_locations_to_db):
-    country = Country.objects.first()
-    state = country.states.first()
-    city = state.cities.first()
-    return {
-        'street_address': '123 Main St',
-        'postal_code': '100001',
-        'city': city.id,
-        'state': state.id,
-        'country': country.code,
-        'full_name': 'Sheldon Cooper',
-        'telephone': '08112223344',
-    }
