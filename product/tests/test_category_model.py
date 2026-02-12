@@ -1,5 +1,10 @@
 from product.models import Category
 
+
+# =============================================================================
+# TEST CATEGORY MODEL
+# =============================================================================
+
 def test_category_creation(category_factory):
     """
     Test the creation of a category.
