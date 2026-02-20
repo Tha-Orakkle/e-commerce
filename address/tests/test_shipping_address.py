@@ -170,3 +170,55 @@ def test_street_address_not_blank(client, customer, country, state, city, blank_
     assert 'errors' in res.data
     assert 'street_address' in res.data['errors']
     assert res.data['errors']['street_address'] == ["This field may not be blank."]
+    
+    
+# TELEPHONE - NIGERIAN
+
+@pytest.mark.parametrize(
+    'invalid_telephone',
+    ['string', 2134, 122.32, '081292', '0912889899999'],
+    ids=['string', 'int', 'float', 'less_than_11_digits',
+         'greater_than_11_digits']
+)
+def test_invalid_telephone(client, customer, country, state, city, invalid_telephone):
+    """
+    Test that telephone is not valid.
+    """
+    data = create_shipping_address_data(country, state, city)
+    data['telephone'] = invalid_telephone
+    client.force_authenticate(user=customer)
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data=data,
+        format='json'
+    )
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address creation failed."
+    assert 'errors' in res.data
+    assert 'telephone' in res.data['errors']
+    assert res.data['errors']['telephone'] == ["Enter a valid phone number."]
+    
+    
+def test_non_nigerian_telephone(client, customer, country, state, city):
+    """
+    Test that telephone is a valid Nigerian number.
+    """
+    data = create_shipping_address_data(country, state, city)
+    data['telephone'] = '+18446778182'
+    client.force_authenticate(user=customer)
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data=data,
+        format='json'    
+    )
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address creation failed."
+    assert 'errors' in res.data
+    assert 'telephone' in res.data['errors']
+    assert res.data['errors']['telephone'] == ["Enter a valid Nigerian phone number (+234)."]
+    
