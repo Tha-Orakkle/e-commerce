@@ -50,6 +50,8 @@ class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
         return value.strip().title()
     
     def validate_telephone(self, value):
+        if value and value.country_code != 234:
+            raise serializers.ValidationError("Enter a valid Nigerian phone number (+234).")
         try:
             return value.as_e164
         except AttributeError:
