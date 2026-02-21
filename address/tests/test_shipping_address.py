@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 
 import pytest
+import uuid
 
 # =============================================================================
 # TEST CREATE SHIPPING ADDRESS
@@ -54,13 +55,17 @@ def test_create_shipping_address(client, customer, state, city):
     customer.refresh_from_db()
     assert customer.addresses.filter(id=res_data['id']).exists()
 
-# STREET ADDRESS
-def test_street_address_field_is_required(client, customer, country, state, city):
+@pytest.mark.parametrize(
+    'field',
+    ['full_name', 'telephone', 'street_address', 'city', 'state', 'country', 'postal_code'],
+    ids=['full_name', 'telephone', 'street_address', 'city', 'state', 'country', 'postal_code']
+)
+def test_required_fields(client, customer, state, city, field):
     """
     Test that street address field is required when creating a shipping address.
     """
     data = create_shipping_address_data(state=state, city=city)
-    data.pop('street_address')  # Remove street_address to simulate missing field
+    data.pop(field)  # Remove street_address to simulate missing field
     client.force_authenticate(user=customer)
     res = client.post(
         SHIPPING_ADDRESS_LIST_CREATE_URL,
@@ -72,10 +77,11 @@ def test_street_address_field_is_required(client, customer, country, state, city
     assert res.data['code'] == "validation_error"
     assert res.data['message'] == "Shipping address creation failed."
     assert 'errors' in res.data
-    assert 'street_address' in res.data['errors']
-    assert res.data['errors']['street_address'] == ["This field is required."]
+    assert field in res.data['errors']
+    assert res.data['errors'][field] == ["This field is required."]
 
-   
+
+# STREET ADDRESS
 def test_street_address_too_short(client, customer, country, state, city):
     """
     Test that street address must be at least 5 characters long.
@@ -224,7 +230,7 @@ def test_non_nigerian_telephone(client, customer, country, state, city):
     assert res.data['errors']['telephone'] == ["Enter a valid Nigerian phone number (+234)."]
 
 # POSTAL CODE
-# Test for checking code in the postal code verification
+# Test for checking country code in the postal code verification
 #+ to be implemented on expansion
 
 @pytest.mark.parametrize(
@@ -255,3 +261,140 @@ def test_invalid_nigerian_postal_code(client, customer, state, city, invalid_pos
     assert 'errors' in res.data
     assert 'postal_code' in res.data['errors']
     assert res.data['errors']['postal_code'] == ["Invalid postal code format for the given country."]
+
+
+# FULL NAME
+def test_full_name_is_short(client, customer, state, city):
+    """
+    Test full name is required when creating shipping address.
+    """
+    data = create_shipping_address_data(state, city)
+    data['full_name'] = 'aa' # too short
+    client.force_authenticate(user=customer)
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data=data,
+        format='json'
+    )
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address creation failed."
+    assert 'errors' in res.data
+    assert 'full_name' in res.data['errors']
+    assert res.data['errors']['full_name'] == ['Ensure this field has at least 3 characters.']
+
+def test_full_name_too_long(client, customer, country, state, city):
+    """
+    Test that full name must be at most 32 characters long.
+    """
+    data = create_shipping_address_data(state=state, city=city)
+    data['full_name'] = 'A' * 33
+    client.force_authenticate(user=customer)
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data=data,
+        format='json'    
+    ) 
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address creation failed."
+    assert 'errors' in res.data
+    assert 'full_name' in res.data['errors']
+    assert res.data['errors']['full_name'] == ['Ensure this field has no more than 32 characters.']
+    
+# COUNTRY
+def test_country_code_too_long(client, customer, state, city):
+    """
+    Test that the country ISO2 code must not exceed 2 chars. 
+    """
+    data = create_shipping_address_data(state, city, country_code='UKH')
+    client.force_authenticate(user=customer)
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data=data,
+        format='json'
+    )
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address creation failed."
+    assert 'errors' in res.data
+    assert 'country' in res.data['errors']
+    assert res.data['errors']['country'] == ['Ensure this field has no more than 2 characters.']
+
+# Uncomment when more countries are permitted
+
+# def test_non_existent_country_code(client, customer, state, city):
+#     """
+#     Test that request with non-existent country code fails.
+#     """
+#     data = create_shipping_address_data(state, city, country_code='II')
+#     client.force_authenticate(user=customer)
+#     res = client.post(
+#         SHIPPING_ADDRESS_LIST_CREATE_URL,
+#         data=data,
+#         format='json'
+#     )
+    
+#     assert res.status_code == status.HTTP_400_BAD_REQUEST
+#     assert res.data['status'] == "error"
+#     assert res.data['code'] == "validation_error"
+#     assert res.data['message'] == "Shipping address creation failed."
+#     assert 'errors' in res.data
+#     assert 'country' in res.data['errors']
+#     assert res.data['errors']['country'] == ['Invalid country.']
+
+    
+# STATE
+@pytest.mark.parametrize(
+    'field',
+    ['state', 'city'],
+    ids=['state', 'city']
+)
+def test_state_and_city_is_valid_uuid(client, customer, state, city, field):
+    """
+    Test that the state and city IDs are valid IDs.
+    """
+    data = create_shipping_address_data(state, city)
+    data[field] = 'invalid_uuid'
+    client.force_authenticate(user=customer)
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data=data,
+        format='json'
+    )
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address creation failed."
+    assert 'errors' in res.data
+    assert field in res.data['errors']
+    assert res.data['errors'][field] == ['Must be a valid UUID.']
+
+@pytest.mark.parametrize(
+    'field, found_in',
+    [('state', 'country'), ('city', 'state')],
+    ids=['state', 'city']
+)
+def test_non_existent_state_and_city_ids(client, customer, state, city, field, found_in):
+    """
+    Test that the state and city IDs match existing state/city.
+    """
+    data = create_shipping_address_data(state, city)
+    data[field] = uuid.uuid4()
+    client.force_authenticate(user=customer)
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data=data,
+        format='json'
+    )
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address creation failed."
+    assert 'errors' in res.data
+    assert field in res.data['errors']
+    assert res.data['errors'][field] == [f'Invalid {field} for the specified {found_in}.']
