@@ -398,3 +398,54 @@ def test_non_existent_state_and_city_ids(client, customer, state, city, field, f
     assert 'errors' in res.data
     assert field in res.data['errors']
     assert res.data['errors'][field] == [f'Invalid {field} for the specified {found_in}.']
+
+
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'shop_staff'],
+    ids=['shopowner', 'shop_staff']
+)
+def test_shipping_address_creation_by_non_customer(client, all_users, user_type):
+    """
+    Test that shipping address can only be created by a customer.
+    """
+    user = all_users[user_type]
+    client.force_authenticate(user=user)
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data={},
+        format='json'
+    )
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."
+
+
+def test_shipping_address_creation_by_unauthenticated_user(client):
+    """
+    Test create shipping address by unauthenticated user fails.
+    Test invalid no token passed and invalid token
+    """
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data={},
+        format='json'
+    )
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Authentication credentials were not provided."
+
+    client.cookies['access_token'] = "Invalid_access_token2445"
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data={},
+        format='json'
+    )
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Token is invalid or expired"
