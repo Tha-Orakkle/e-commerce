@@ -77,7 +77,8 @@ class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
         return postal_code
 
     def _get_city_or_raise(self, city_id, state_id, country_code):
-        # only allow Nigerian postal codes for now 
+
+        # only allow Nigerian postal codes for now
         country_code = 'NG'
         city =  City.objects.select_related('state__country').filter(
             id=city_id, state_id=state_id, state__country__code=country_code).first()
@@ -87,22 +88,23 @@ class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
         
         if not Country.objects.filter(code=country_code).exists():
             raise serializers.ValidationError(
-                {'country': f'Country with code not found or supported.'}
+                {'country': 'Invalid country.'}
             )
             
-        state = State.objects.select_related('country').filter(id=state_id).first()
+        state = State.objects.filter(
+            id=state_id,
+            country__code=country_code
+        ).first()
         if not state:
-            raise serializers.ValidationError({'state': 'State with given ID not found or supported.'})
+            raise serializers.ValidationError({'state': 'Invalid state for the specified country.'})
         
-        if state and state.country.code != country_code:
-            raise serializers.ValidationError({'state': f'State does not belong to country with code.'})
-        
-        city = City.objects.filter(id=city_id).first()
+        city = City.objects.filter(
+            id=city_id,
+            state_id=state_id
+        ).first()
         if not city:
-            raise serializers.ValidationError({'city': 'City with given ID not found or supported.'})
-        if city.state_id != state_id:
-            raise serializers.ValidationError({'city': f'City does not belong to state.'})
-
+            raise serializers.ValidationError({'city': 'Invalid city for the specified state.'})
+        
         return city 
         
         
