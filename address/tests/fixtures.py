@@ -66,7 +66,10 @@ def country_factory():
     Factory fixture for creating Country instances.
     """
     def create_country(name, code):
-        return Country.objects.create(name=name, code=code)
+        return Country.objects.get_or_create(
+            code=code,
+            defaults={'name': name}
+            )[0]
     return create_country
 
 
