@@ -589,3 +589,150 @@ def test_get_shipping_addresses_by_non_customer(client, all_users, user_type):
     assert res.data['status'] == "error"
     assert res.data['code'] == "forbidden"
     assert res.data['message'] == "You do not have permission to perform this action."    
+
+
+# =============================================================================
+# TEST GET SPECIFIC SHIPPING ADDRESS
+# =============================================================================
+
+def test_get_shipping_address_with_id(client, customer, shipping_address_factory):
+    """
+    Test get specific shipping address by ID.
+    """
+    address = shipping_address_factory(customer)
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    client.force_authenticate(user=customer)
+    res = client.get(url)
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping address retrieved successfully."
+    assert 'data' in res.data
+    res_data = res.data['data']
+    assert res_data['id'] == str(address.id)
+    assert res_data['full_name'] == address.full_name
+    assert res_data['street_address'] == address.street_address
+    assert res_data['telephone'] == address.telephone
+    assert res_data['city'] == address.city.name
+    assert res_data['state'] == address.city.state.name
+    assert res_data['country'] == address.city.state.country.name
+    assert res_data['postal_code'] == address.postal_code
+    assert 'created_at' in res_data
+    assert 'updated_at' in res_data
+    assert 'user' not in res_data
+    
+    
+def test_get_shipping_address_by_different_user(client, customer_factory, shipping_address_factory):
+    """
+    Test that a user cannot retrieve a shipping address of another user.
+    """
+    customer_1 = customer_factory()
+    customer_2 = customer_factory()
+    address = shipping_address_factory(customer_2)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    client.force_authenticate(user=customer_1)
+    res = client.get(url)
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "not_found"
+    assert res.data['message'] == "No shipping address matching the given ID found."
+    
+
+def test_get_shipping_address_by_superuser(client, customer_factory, super_user, shipping_address_factory):
+    """
+    Test that a superuser can retrieve a shipping address of any user.
+    """
+    customer = customer_factory()
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    client.force_authenticate(user=super_user)
+    res = client.get(url)
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping address retrieved successfully."
+    assert 'data' in res.data
+    res_data = res.data['data']
+    assert res_data['id'] == str(address.id)
+    assert res_data['full_name'] == address.full_name
+    assert res_data['street_address'] == address.street_address
+    assert res_data['telephone'] == address.telephone
+    assert res_data['city'] == address.city.name
+    assert res_data['state'] == address.city.state.name
+    assert res_data['country'] == address.city.state.country.name
+    assert res_data['postal_code'] == address.postal_code
+    assert 'created_at' in res_data
+    assert 'updated_at' in res_data
+    assert 'user' in res_data
+    assert res_data['user']['id'] == str(customer.id)
+    user_fields = [
+        'email', 'is_verified', 'staff_handle', 'is_active',
+        'is_customer', 'is_shopowner', 'is_staff', 'is_superuser',
+        'is_superuser', 'date_joined', 'updated_at', 'profile'
+    ]
+
+    assert all(field in res_data['user'] for field in user_fields)
+    assert 'password' not in res_data['user']
+    
+    
+def test_get_shipping_address_with_invalid_id(client, customer, shipping_address_factory):
+    """
+    Test get specific shipping address with invalid ID (uuid) fails.
+    """
+    shipping_address_factory(customer)
+    url = reverse('shipping-address-detail', kwargs={'address_id': 'invalid_uuid'})
+    
+    client.force_authenticate(user=customer)
+    res = client.get(url)
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_uuid"
+    assert res.data['message'] == "Invalid shipping address id."
+
+    
+def test_get_shipping_address_by_unauthenticated_user(client, customer, shipping_address_factory):
+    """
+    Test get specific shipping address by unauthenticated user fails.
+    """
+    address = shipping_address_factory(customer)
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    res = client.get(url)
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Authentication credentials were not provided."
+
+    client.cookies['access_token'] = "Invalid_access_token2445"
+    res = client.get(url)
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Token is invalid or expired"
+    
+
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'shop_staff'],
+    ids=['shopowner', 'shop_staff']
+)
+def test_get_shipping_address_by_non_customer(client, customer_factory, all_users, user_type, shipping_address_factory):
+    """
+    Test get specific shipping address by non_customer (shop owner and staff).
+    """
+    user = all_users[user_type]
+    address = shipping_address_factory(customer_factory())
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    client.force_authenticate(user=user)
+    res = client.get(url)
+    
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."
+
