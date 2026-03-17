@@ -4,6 +4,8 @@ from rest_framework import status
 import pytest
 import uuid
 
+from address.models import ShippingAddress
+
 # =============================================================================
 # TEST CREATE SHIPPING ADDRESS
 # =============================================================================
@@ -449,3 +451,141 @@ def test_shipping_address_creation_by_unauthenticated_user(client):
     assert res.data['status'] == "error"
     assert res.data['code'] == "unauthorized"
     assert res.data['message'] == "Token is invalid or expired"
+
+
+# =============================================================================
+# TEST GET ALL SHIPPING ADDRESSES
+# =============================================================================
+
+
+def test_get_shipping_addresses(client, customer, city, shipping_address_factory):
+    """
+    Get all shipping addresses for a customer.
+    """
+    for _ in range(3):
+        shipping_address_factory(customer, city)
+    
+    url = SHIPPING_ADDRESS_LIST_CREATE_URL
+    client.force_authenticate(user=customer)
+    
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping addresses retrieved successfully."
+    assert 'data' in res.data
+    assert len(res.data['data']) == 3
+    ship_add = res.data['data'][0]
+    fields = [
+        'id', 'full_name', 'street_address',
+        'city', 'state', 'country', 'postal_code',
+        'telephone', 'created_at', 'updated_at'
+    ]
+    assert all(field in ship_add for field in fields)
+    assert all(ship_add[field] is not None for field in fields)
+    
+    
+def test_get_shipping_addresses_with_no_addresses(client, customer):
+    """
+    Test retrieving shipping addresses when user has no addresses.
+    """
+    url = SHIPPING_ADDRESS_LIST_CREATE_URL
+    client.force_authenticate(user=customer)
+    
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping addresses retrieved successfully."
+    assert 'data' in res.data
+    assert len(res.data['data']) == 0
+    
+    
+def test_get_shipping_addresses_by_different_user(client, customer_factory, city, shipping_address_factory):
+    """
+    Test that a user cannot retrieve shipping addresses of another user.
+    """
+    customer_1 = customer_factory()
+    customer_2 = customer_factory()
+    for _ in range(2):
+        shipping_address_factory(customer_2, city)
+    shipping_address_factory(customer_1, city)
+    
+    assert ShippingAddress.objects.count() == 3
+    
+    url = SHIPPING_ADDRESS_LIST_CREATE_URL
+    client.force_authenticate(user=customer_1)
+    
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping addresses retrieved successfully."
+    assert 'data' in res.data
+    assert len(res.data['data']) == 1
+    
+
+def test_get_shipping_addresses_by_superuser(client, customer_factory, super_user, city, shipping_address_factory):
+    """
+    Test that a superuser can retrieve shipping addresses of all users.
+    """
+    customer_1 = customer_factory()
+    customer_2 = customer_factory()
+    for _ in range(2):
+        shipping_address_factory(customer_1, city)
+        shipping_address_factory(customer_2, city)
+    
+    assert ShippingAddress.objects.count() == 4
+    
+    url = SHIPPING_ADDRESS_LIST_CREATE_URL
+    client.force_authenticate(user=super_user)
+    
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping addresses retrieved successfully."
+    assert 'data' in res.data
+    assert len(res.data['data']) == 4
+
+
+def test_get_shiping_addresses_by_unauthenticated_user(client):
+    """
+    Test retrieving shipping addresses by unauthenticated user fails.
+    """
+    url = SHIPPING_ADDRESS_LIST_CREATE_URL
+    res = client.get(url)
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Authentication credentials were not provided."
+
+    client.cookies['access_token'] = "Invalid_access_token2445"
+    res = client.get(url)
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Token is invalid or expired"
+
+
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'shop_staff'],
+    ids=['shopowner', 'shop_staff']
+)
+def test_get_shipping_addresses_by_non_customer(client, all_users, user_type):
+    """
+    Test get shipping addresses by non_customer (shop owner and staff).
+    """
+    user = all_users[user_type]
+    url = SHIPPING_ADDRESS_LIST_CREATE_URL
+    client.force_authenticate(user=user)
+
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."    
