@@ -140,7 +140,7 @@ class ShippingAddressDetailView(APIView):
         address = self.get_object(address_id)
         if not address:
             raise ErrorException(
-                detail="Shipping address not found.",
+                detail="No shipping address matching given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
 
