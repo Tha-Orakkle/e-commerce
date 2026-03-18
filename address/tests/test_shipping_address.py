@@ -736,3 +736,131 @@ def test_get_shipping_address_by_non_customer(client, customer_factory, all_user
     assert res.data['code'] == "forbidden"
     assert res.data['message'] == "You do not have permission to perform this action."
 
+
+# =============================================================================
+# TEST DELETE SHIPPING ADDRESS
+# =============================================================================
+
+def test_delete_shipping_address(client, customer, shipping_address_factory):
+    """
+    Test delete specific shipping address by ID.
+    """
+    address = shipping_address_factory(customer)
+    shipping_address_factory(customer)
+    
+    assert ShippingAddress.objects.filter(id=address.id).exists()
+    assert ShippingAddress.objects.count() == 2
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    client.force_authenticate(user=customer)
+    res = client.delete(url)
+    assert res.status_code == status.HTTP_204_NO_CONTENT
+    assert not customer.addresses.filter(id=address.id).exists()
+    assert ShippingAddress.objects.count() == 1
+    
+
+def test_delete_shipping_address_by_different_user(client, customer_factory, shipping_address_factory):
+    """
+    Test that a user cannot delete a shipping address of another user.
+    """
+    customer_1 = customer_factory()
+    customer_2 = customer_factory()
+    address = shipping_address_factory(customer_2)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    client.force_authenticate(user=customer_1)
+    res = client.delete(url)
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "not_found"
+    assert res.data['message'] == "No shipping address matching given ID found."
+
+
+def test_delete_shipping_address_by_superuser(client, customer_factory, super_user, shipping_address_factory):
+    """
+    Test that a superuser can delete a shipping address of any user.
+    """
+    customer = customer_factory()
+    address = shipping_address_factory(customer)
+
+    assert ShippingAddress.objects.filter(id=address.id).exists()
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    client.force_authenticate(user=super_user)
+    res = client.delete(url)
+    assert res.status_code == status.HTTP_204_NO_CONTENT
+    assert not ShippingAddress.objects.filter(id=address.id).exists()
+    
+    
+def test_delete_shipping_address_with_invalid_id(client, customer):
+    """
+    Test delete specific shipping address with invalid ID (uuid) fails.
+    """
+    url = reverse('shipping-address-detail', kwargs={'address_id': 'invalid_uuid'})
+    
+    client.force_authenticate(user=customer)
+    res = client.delete(url)
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_uuid"
+    assert res.data['message'] == "Invalid shipping address id."
+    
+
+def test_delete_non_existent_shipping_address(client, customer):
+    """
+    Test delete specific shipping address with non-existent ID fails.
+    """
+    url = reverse('shipping-address-detail', kwargs={'address_id': uuid.uuid4()})
+    
+    client.force_authenticate(user=customer)
+    res = client.delete(url)
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "not_found"
+    assert res.data['message'] == "No shipping address matching given ID found."
+
+
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'shop_staff'],
+    ids=['shopowner', 'shop_staff']
+)
+def test_delete_shipping_address_by_non_customer(client, customer, all_users, user_type, shipping_address_factory):
+    """
+    Test delete specific shipping address by non_customer (shop owner and staff).
+    """
+    user = all_users[user_type]
+    address = shipping_address_factory(customer)
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    client.force_authenticate(user=user)
+    res = client.delete(url)
+    
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."
+
+
+def test_delete_shipping_address_by_unauthenticated_user(client, customer, shipping_address_factory):
+    """
+    Test delete specific shipping address by unauthenticated user fails.
+    """
+    address = shipping_address_factory(customer)
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    res = client.delete(url)
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Authentication credentials were not provided."
+
+    client.cookies['access_token'] = "Invalid_access_token2445"
+    res = client.delete(url)
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Token is invalid or expired"
