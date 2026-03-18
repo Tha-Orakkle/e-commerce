@@ -32,7 +32,7 @@ class ShippingAddressSerializer(serializers.ModelSerializer):
 class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
     full_name = serializers.CharField(min_length=3, max_length=32)
     telephone = PhoneNumberField(region='NG')
-    street_address = serializers.CharField(max_length=256)
+    street_address = serializers.CharField(min_length=5, max_length=256)
     city = serializers.UUIDField()
     state = serializers.UUIDField()
     country = serializers.CharField(max_length=2)
@@ -50,17 +50,22 @@ class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
         return value.strip().title()
     
     def validate_telephone(self, value):
+        if value and value.country_code != 234:
+            raise serializers.ValidationError("Enter a valid Nigerian phone number (+234).")
         try:
             return value.as_e164
         except AttributeError:
             raise serializers.ValidationError("Enter a valid phone number.")
 
 
-    def _validate_postal_code(self, code, country_code):
-        if not code:
-            return code
+    def _validate_postal_code(self, postal_code, country_code):
+        if not postal_code:
+            return postal_code
         try:
-            valid = verify_postal_code_format(country_iso2=country_code, postal_code=code)
+            # only allow Nigerian postal codes for now 
+            country_code = 'NG'
+            valid = verify_postal_code_format(country_iso2=country_code, postal_code=postal_code)
+
         except KeyError:
             raise serializers.ValidationError(
                 {'postal_code': 'Cannot validate postal code for the given country code.'}
@@ -69,9 +74,12 @@ class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {'postal_code':'Invalid postal code format for the given country.'}
             )
-        return code
+        return postal_code
 
     def _get_city_or_raise(self, city_id, state_id, country_code):
+
+        # only allow Nigerian postal codes for now
+        country_code = 'NG'
         city =  City.objects.select_related('state__country').filter(
             id=city_id, state_id=state_id, state__country__code=country_code).first()
         
@@ -80,22 +88,23 @@ class ShippingAddressCreateUpdateSerializer(serializers.Serializer):
         
         if not Country.objects.filter(code=country_code).exists():
             raise serializers.ValidationError(
-                {'country': f'Country with code not found or supported.'}
+                {'country': 'Invalid country.'}
             )
             
-        state = State.objects.select_related('country').filter(id=state_id).first()
+        state = State.objects.filter(
+            id=state_id,
+            country__code=country_code
+        ).first()
         if not state:
-            raise serializers.ValidationError({'state': 'State with given ID not found or supported.'})
+            raise serializers.ValidationError({'state': 'Invalid state for the specified country.'})
         
-        if state and state.country.code != country_code:
-            raise serializers.ValidationError({'state': f'State does not belong to country with code.'})
-        
-        city = City.objects.filter(id=city_id).first()
+        city = City.objects.filter(
+            id=city_id,
+            state_id=state_id
+        ).first()
         if not city:
-            raise serializers.ValidationError({'city': 'City with given ID not found or supported.'})
-        if city.state_id != state_id:
-            raise serializers.ValidationError({'city': f'City does not belong to state.'})
-
+            raise serializers.ValidationError({'city': 'Invalid city for the specified state.'})
+        
         return city 
         
         

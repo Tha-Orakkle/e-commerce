@@ -7,6 +7,9 @@ def validate_id(id, obj_name):
     """
     Validates the given id to ensure it is a valid UUID.
     """
+    if id.__class__.__name__ == 'UUID':
+        return True
+
     try:
         uuid.UUID(id)
         return True
