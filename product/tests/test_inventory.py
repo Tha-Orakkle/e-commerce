@@ -22,12 +22,12 @@ def test_update_inventory_add_qty(client, all_users, user_type, product, invento
         'action': 'add',
         'quantity': 15
     }
-    response = client.post(url, data, format='json')
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['status'] == 'success'
-    assert response.data['message'] == 'Inventory updated successfully.'
-    assert response.data['data']['product'] == product.name
-    assert response.data['data']['stock'] == 35
+    res = client.post(url, data, format='json')
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == 'success'
+    assert res.data['message'] == 'Inventory updated successfully.'
+    assert res.data['data']['product'] == product.name
+    assert res.data['data']['stock'] == 35
     inventory.refresh_from_db()
     assert inventory.stock == 35
 
@@ -49,12 +49,12 @@ def test_update_inventory_sub_qty(client, all_users, user_type, product, invento
         'action': 'subtract',
         'quantity': 15
     }
-    response = client.post(url, data, format='json')
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['status'] == 'success'
-    assert response.data['message'] == 'Inventory updated successfully.'
-    assert response.data['data']['product'] == product.name
-    assert response.data['data']['stock'] == 5
+    res = client.post(url, data, format='json')
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == 'success'
+    assert res.data['message'] == 'Inventory updated successfully.'
+    assert res.data['data']['product'] == product.name
+    assert res.data['data']['stock'] == 5
     inventory.refresh_from_db()
     assert inventory.stock == 5
 
@@ -69,10 +69,10 @@ def test_update_inventory_invalid_action(client, shopowner, product, inventory):
         'action': 'invalid_action',
         'quantity': 10
     }
-    response = client.post(url, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['code'] == 'invalid_action'
-    assert response.data['message'] == "Provide a valid action: 'add' or 'subtract'."
+    res = client.post(url, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['code'] == 'invalid_action'
+    assert res.data['message'] == "Provide a valid action: 'add' or 'subtract'."
     inventory.refresh_from_db()
     
     assert inventory.stock == 20
@@ -89,11 +89,11 @@ def test_update_inventory_insufficient_stock(client, shopowner, product, invento
         'action': 'subtract',
         'quantity': 25
     }
-    response = client.post(url, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['code'] == 'insufficient_stock'
+    res = client.post(url, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['code'] == 'insufficient_stock'
     detail = f"Insufficient stock to complete this operation. Only {product.stock} left."
-    assert response.data['message'] == detail
+    assert res.data['message'] == detail
     inventory.refresh_from_db()
     assert inventory.stock == 20
 
@@ -109,10 +109,10 @@ def test_update_inventory_with_non_integer_quantity(client, shopowner, product, 
         'action': 'add',
         'quantity': 'ten'
     }
-    response = client.post(url, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['code'] == 'invalid_quantity'
-    assert response.data['message'] == "Provide a valid quantity that is greater than 0."
+    res = client.post(url, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['code'] == 'invalid_quantity'
+    assert res.data['message'] == "Provide a valid quantity that is greater than 0."
     inventory.refresh_from_db()
     assert inventory.stock == 20
 
@@ -128,18 +128,18 @@ def test_update_inventory_with_negative_quantity(client, shopowner, product, inv
         'action': 'add',
         'quantity': -5
     }
-    response = client.post(url, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['code'] == 'invalid_quantity'
-    assert response.data['message'] == "Provide a valid quantity that is greater than 0."
+    res = client.post(url, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['code'] == 'invalid_quantity'
+    assert res.data['message'] == "Provide a valid quantity that is greater than 0."
     inventory.refresh_from_db()
     assert product.stock == 20    
 
     data['action'] = 'subtract'
-    response = client.post(url, data, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data['code'] == 'invalid_quantity'
-    assert response.data['message'] == "Provide a valid quantity that is greater than 0."
+    res = client.post(url, data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['code'] == 'invalid_quantity'
+    assert res.data['message'] == "Provide a valid quantity that is greater than 0."
     inventory.refresh_from_db()
     assert product.stock == 20
 
@@ -155,11 +155,11 @@ def test_update_inventory_customer(client, customer, product, inventory):
         'action': 'add',
         'quantity': 10
     }
-    response = client.post(url, data, format='json')
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "forbidden"
-    assert response.data['message'] == "You do not have permission to perform this action."
+    res = client.post(url, data, format='json')
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."
     inventory.refresh_from_db()
     assert inventory.stock == 20
 
@@ -176,11 +176,11 @@ def test_update_inventory_by_staff_of_different_shop(client, shopowner_factory, 
         'action': 'add',
         'quantity': 10
     }
-    response = client.post(url, data, format='json')
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.data['status'] == "error"
-    assert response.data['code'] == "forbidden"
-    assert response.data['message'] == "You do not have permission to perform this action."
+    res = client.post(url, data, format='json')
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."
     inventory.refresh_from_db()
     assert product.stock == 20
 
