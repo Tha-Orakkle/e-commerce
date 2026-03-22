@@ -864,3 +864,187 @@ def test_delete_shipping_address_by_unauthenticated_user(client, customer, shipp
     assert res.data['status'] == "error"
     assert res.data['code'] == "unauthorized"
     assert res.data['message'] == "Token is invalid or expired"
+    
+    
+# =============================================================================
+# TEST UPDATE A SHIPPING ADDRESS
+# =============================================================================
+
+# CHECK - test update a shippping address with valid data and valid id
+# CHECK - test update a shipping address with invalid id (invalid uuid and non-existent id)
+# test update a shipping address with invalid data (
+    # invalid telephone, postal code, street address, full name, country code, state and city ids)
+# test update a shipping address by different user (not owner)
+# test update a shipping address by unauthenticated user
+
+def test_update_shipping_address(
+    client, customer, country, state_factory,
+    city_factory, shipping_address_factory, city):
+    """
+    Test update a shipping address with valid data and valid id.
+    """
+    address = shipping_address_factory(customer, city)
+
+    new_state = state_factory(name='Ogun', country=country)
+    new_city = city_factory(name='Ajuwon', state=new_state)
+
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    data = {
+        'full_name': 'Updated Name',
+        'street_address': '123 Updated Street',
+        'telephone': '08123456789',
+        'city': new_city.id,
+        'state': new_state.id,
+        'country': country.code,
+        'postal_code': '123456'
+    }
+    
+    assert all(getattr(address, f) != data[f] for f in data.keys()
+               if f not in ['city', 'state', 'country'])
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping address updated successfully."
+    assert 'data' in res.data
+    res_data = res.data['data']
+    assert res_data['id'] == str(address.id)
+    assert res_data['city'] == new_city.name
+    assert res_data['full_name'] == data['full_name']
+    assert res_data['street_address'] == data['street_address']
+    assert res_data['postal_code'] == data['postal_code']
+    res_tel = res_data['telephone'].lstrip('+234').replace(' ', '')
+    assert f'0{res_tel}' == data['telephone']
+    assert res_data['state'] == new_city.state.name
+    assert res_data['country'] == new_city.state.country.name
+    assert 'created_at' in res_data
+    assert 'updated_at' in res_data
+    
+    address.refresh_from_db()
+    assert address.full_name == data['full_name']
+    assert address.street_address == data['street_address']
+    assert address.postal_code == data['postal_code']
+    assert address.telephone == data['telephone']
+    assert address.city == new_city
+
+
+def test_update_shipping_address_with_invalid_id(client, customer):
+    """
+    Test update a shipping address with invalid id (uuid).
+    """
+    url = reverse('shipping-address-detail', kwargs={'address_id': 'invalid_uuid'})
+    data = {'full_name': 'Updated Name'}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "invalid_uuid"
+    assert res.data['message'] == "Invalid shipping address id."
+    
+    
+def test_update_shipping_address_with_non_existent_id(client, customer):
+    """
+    Test update a shipping address with non-existent id.
+    """
+    data = {'full_name': 'Updated Name'}
+    url = reverse('shipping-address-detail', kwargs={'address_id': uuid.uuid4()})
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "not_found"
+    assert res.data['message'] == "No shipping address matching given ID found."
+
+def test_update_shipping_address_by_different_user(client, customer_factory, shipping_address_factory):
+    """
+    Test update a shipping address by different user (not owner).
+    """
+    customer_1 = customer_factory()
+    customer_2 = customer_factory()
+    address = shipping_address_factory(customer_2)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'full_name': 'Updated Name'}
+    
+    client.force_authenticate(user=customer_1)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "not_found"
+    assert res.data['message'] == "No shipping address matching given ID found."
+
+
+def test_update_shipping_address_by_superuser(client, customer, super_user, shipping_address_factory):
+    """
+    Test update a shipping address by superuser.
+    """
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'full_name': 'Updated Name'}
+    
+    client.force_authenticate(user=super_user)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping address updated successfully."
+    assert 'data' in res.data
+    res_data = res.data['data']
+    assert res_data['id'] == str(address.id)
+    assert res_data['full_name'] == data['full_name']
+
+@pytest.mark.parametrize(
+    'user_type',
+    ['shopowner', 'shop_staff'],
+    ids=['shopowner', 'shop_staff']
+)
+def test_update_shipping_address_by_non_customer(client, all_users, user_type, customer, shipping_address_factory):
+    """
+    Test update a shipping address by non_customer (shop owner and staff).
+    """
+    user = all_users[user_type]
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'full_name': 'Updated Name'}
+    
+    client.force_authenticate(user=user)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "forbidden"
+    assert res.data['message'] == "You do not have permission to perform this action."  
+
+
+def test_update_shipping_address_by_unauthenticated_user(client, customer, shipping_address_factory):
+    """
+    Test update a shipping address by unauthenticated user fails.
+    """
+    address = shipping_address_factory(customer)
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'full_name': 'Updated Name'}
+    
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Authentication credentials were not provided."
+
+    client.cookies['access_token'] = "Invalid_access_token2445"
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "unauthorized"
+    assert res.data['message'] == "Token is invalid or expired"
