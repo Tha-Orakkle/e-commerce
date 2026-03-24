@@ -57,6 +57,30 @@ def test_create_shipping_address(client, customer, state, city):
     customer.refresh_from_db()
     assert customer.addresses.filter(id=res_data['id']).exists()
 
+
+def test_create_more_than_5_shipping_addresses(client, customer, state, city, shipping_address_factory):
+    """
+    Test that a user cannot create more than 5 shipping addresses.
+    """
+    for _ in range(5):
+        shipping_address_factory(customer, city)
+    assert customer.addresses.count() == 5
+    
+    data = create_shipping_address_data(state=state, city=city)
+    client.force_authenticate(user=customer)
+
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data=data,
+        format='json'    
+    )
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "max_addresses_reached"
+    assert res.data['message'] == "Customers can only have a maximum of 5 shipping addresses."
+    assert customer.addresses.count() == 5
+
+
 @pytest.mark.parametrize(
     'field',
     ['full_name', 'telephone', 'street_address', 'city', 'state', 'country', 'postal_code'],
