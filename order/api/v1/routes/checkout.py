@@ -96,4 +96,4 @@ class CheckoutView(APIView):
         return Response(SuccessAPIResponse(
             message="Checkout successful. Orders have been created.",
             data=OrderGroupSerializer(order_group).data
-        ).to_dict(), status=status.HTTP_200_OK)
+        ).to_dict(), status=status.HTTP_201_CREATED)
