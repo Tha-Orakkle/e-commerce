@@ -139,3 +139,82 @@ def test_checkout_success_single_shop(client, mocker, create_cart_items, custome
 
     # cart assertions
     assert cart.items.count() == 0
+    
+def test_checkout_success_multiple_shops(client, mocker, create_cart_items, customer, shipping_address_factory, shopowner_factory):
+    """
+    Test successful checkout process with items from multiple shops.
+        - Given a customer with items in their cart from multiple shops and a valid shipping address
+    """
+    NUM_SHOPS = 3
+    NUM_ITEMS = 6
+    QUANTITY = 10
+
+    cart = customer.cart
+
+    assert customer.order_groups.count() == 0
+    assert cart.items.count() == 0
+
+    address = shipping_address_factory(user=customer)
+    shops = [shopowner_factory().owned_shop for _ in range(NUM_SHOPS)]
+    expected_shop_ids = set(str(shop.id) for shop in shops)
+    
+    total, _ = create_cart_items(
+        cart, shops=shops,
+        num_items=NUM_ITEMS, quantity=QUANTITY
+    )
+    
+    for shop in shops:
+        assert shop.orders.count() == 0
+        assert cart.items.filter(product__shop=shop).count() == NUM_ITEMS // NUM_SHOPS
+
+    assert cart.items.count() == NUM_ITEMS
+
+    payload = {
+        'shipping_address': address.id,
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+    client.force_authenticate(user=customer)
+    
+    res = client.post(CHECKOUT_URL, payload, format='json')
+    data = res.data
+    assert 'data' in res.data
+    res_data = data['data']
+
+    # response assertions
+    assert res.status_code == status.HTTP_201_CREATED
+    assert data['status'] == "success"
+    assert data['message'] == "Checkout successful. Orders have been created."
+
+    assert customer.order_groups.count() == 1
+    assert cart.items.count() == 0
+    for shop in shops:
+        # Each shop should receive the order items combined into one order
+        assert shop.orders.count() == 1
+    
+    # order_group assertions    
+    orders = res_data['orders']
+    assert len(orders) == NUM_SHOPS
+    order_totals_sum = 0
+    shop_ids_in_response = set()
+    for order in orders:
+        items = order['items']
+        shop_ids_in_response.add(order['shop']['id'])
+        
+        assert len(items) == NUM_ITEMS // NUM_SHOPS
+        
+        computed_total = sum(
+            Decimal(item['price']) * item['quantity'] for item in items
+        )
+        
+        assert Decimal(order['total_amount']) == computed_total
+        
+        order_totals_sum += computed_total
+
+    assert expected_shop_ids == shop_ids_in_response
+
+    # money assertions
+    delivery_fee = Decimal(res_data['delivery_fee'])
+    total_amount = Decimal(res_data['total_amount'])
+    assert total_amount == Decimal(total) + delivery_fee
+    assert total_amount == order_totals_sum + delivery_fee
