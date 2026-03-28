@@ -2,6 +2,8 @@ from decimal import Decimal
 from django.urls import reverse
 from rest_framework import status
 
+import pytest
+
 from order.utils.orders import create_orders_from_cart
 
 
@@ -258,3 +260,52 @@ def test_inventory_is_updated_after_checkout(client,
         expected_stock = initial_inventories[product.id] - ITEM_QUANTITY
         assert product.stock == expected_stock
     
+
+def test_checkout_atomic_rolls_back_on_failure(
+    client, mocker, create_cart_items, customer, shipping_address_factory, shopowner_factory
+):
+    """
+    Test that the checkout process rolls back if an error occurs during order creation.
+        - Given a customer with items in their cart, when they checkout and an error occurs during order creation,
+        no orders should be created and the cart should remain unchanged.
+    """
+    NUM_SHOPS = 2
+    cart = customer.cart
+    address = shipping_address_factory(user=customer)
+    
+    shops = [shopowner_factory().owned_shop for _ in range(NUM_SHOPS)]
+
+    _, products = create_cart_items(cart, shops=shops)
+    initial_cart_count = cart.items.count()
+    initial_inventories = {product.id: product.stock for product in products}
+
+    assert customer.order_groups.count() == 0
+
+    payload = {
+        'shipping_address': address.id,
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+
+    client.force_authenticate(user=customer)
+
+    mocker.patch(
+        'order.utils.orders.Order.objects.bulk_update',
+        side_effect=Exception('DB failure')
+    )
+    
+    with pytest.raises(Exception):
+        res = client.post(CHECKOUT_URL, data=payload, format='json')
+    
+    # Verify rollback
+    assert customer.order_groups.count() == 0
+    for shop in shops:
+        assert shop.orders.count() == 0
+
+    # cart is not cleared
+    assert cart.items.count() == initial_cart_count
+    
+    # inventory does not change 
+    for product in products:
+        product.refresh_from_db()
+        assert product.stock == initial_inventories[product.id]
