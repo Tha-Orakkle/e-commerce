@@ -21,6 +21,7 @@ def create_orders_from_cart(user, shipping_address, fulfillment_method, payment_
             fulfillment_method=fulfillment_method,
             shipping_address=shipping_address
         )
+        fields_to_update = ['total_amount']
         
         inv_ids = [ci.product.inventory.id for ci in cart_items]
         inventory_map = {
@@ -28,7 +29,15 @@ def create_orders_from_cart(user, shipping_address, fulfillment_method, payment_
             for inv in Inventory.objects.select_for_update()
             .filter(id__in=inv_ids)
         }
-        group_total_amount = Decimal(calculate_delivery_fee()) if fulfillment_method == 'DELIVERY' else Decimal('0.00')
+        # group_total_amount = Decimal(calculate_delivery_fee()) if fulfillment_method == 'DELIVERY' else Decimal('0.00')
+        group_total_amount = Decimal('0.00')
+        
+        if fulfillment_method == 'DELIVERY':
+            delivery_fee = calculate_delivery_fee()
+            group_total_amount += Decimal(delivery_fee)
+            order_group.delivery_fee = Decimal(delivery_fee)
+            fields_to_update.append('delivery_fee')
+            
         order_by_shops = {}
         order_items_to_create = []
         
@@ -72,7 +81,7 @@ def create_orders_from_cart(user, shipping_address, fulfillment_method, payment_
         OrderItem.objects.bulk_create(order_items_to_create)
         Order.objects.bulk_update(order_by_shops.values(), ['total_amount'])
         order_group.total_amount = group_total_amount
-        order_group.save(update_fields=['total_amount'])
+        order_group.save(update_fields=fields_to_update)
         cart_items.delete()
 
     return order_group

@@ -46,6 +46,7 @@ class OrderGroup(models.Model):
     payment_method = models.CharField(max_length=15, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     fulfillment_method = models.CharField(max_length=9, choices=FulFillmentMethod.choices, default=FulFillmentMethod.PICKUP)
+    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     # is_paid = models.BooleanField(default=False)
     
     # user data including denormalized data

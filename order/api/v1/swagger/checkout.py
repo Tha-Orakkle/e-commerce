@@ -56,7 +56,7 @@ checkout_schema = {
     'tags': ['Checkout'],
     'request': CheckoutRequestData,
     'responses': {
-        200: make_success_schema_response(
+        201: make_success_schema_response(
             "Checkout successful. Order has been created.",
             OrderGroupSerializer),
         400: OpenApiResponse(

@@ -57,6 +57,30 @@ def test_create_shipping_address(client, customer, state, city):
     customer.refresh_from_db()
     assert customer.addresses.filter(id=res_data['id']).exists()
 
+
+def test_create_more_than_5_shipping_addresses(client, customer, state, city, shipping_address_factory):
+    """
+    Test that a user cannot create more than 5 shipping addresses.
+    """
+    for _ in range(5):
+        shipping_address_factory(customer, city)
+    assert customer.addresses.count() == 5
+    
+    data = create_shipping_address_data(state=state, city=city)
+    client.force_authenticate(user=customer)
+
+    res = client.post(
+        SHIPPING_ADDRESS_LIST_CREATE_URL,
+        data=data,
+        format='json'    
+    )
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "max_addresses_reached"
+    assert res.data['message'] == "Customers can only have a maximum of 5 shipping addresses."
+    assert customer.addresses.count() == 5
+
+
 @pytest.mark.parametrize(
     'field',
     ['full_name', 'telephone', 'street_address', 'city', 'state', 'country', 'postal_code'],
@@ -328,6 +352,7 @@ def test_country_code_too_long(client, customer, state, city):
     assert res.data['errors']['country'] == ['Ensure this field has no more than 2 characters.']
 
 # Uncomment when more countries are permitted
+# test that states and cities can be found in the country with the given code
 
 # def test_non_existent_country_code(client, customer, state, city):
 #     """
@@ -870,12 +895,8 @@ def test_delete_shipping_address_by_unauthenticated_user(client, customer, shipp
 # TEST UPDATE A SHIPPING ADDRESS
 # =============================================================================
 
-# CHECK - test update a shippping address with valid data and valid id
-# CHECK - test update a shipping address with invalid id (invalid uuid and non-existent id)
 # test update a shipping address with invalid data (
     # invalid telephone, postal code, street address, full name, country code, state and city ids)
-# test update a shipping address by different user (not owner)
-# test update a shipping address by unauthenticated user
 
 def test_update_shipping_address(
     client, customer, country, state_factory,
@@ -1048,3 +1069,477 @@ def test_update_shipping_address_by_unauthenticated_user(client, customer, shipp
     assert res.data['status'] == "error"
     assert res.data['code'] == "unauthorized"
     assert res.data['message'] == "Token is invalid or expired"
+    
+
+# FULL NAME
+def test_update_shipping_address_full_name(client, customer, shipping_address_factory):
+    """
+    Test update a shipping address full name with valid data.
+    """
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'full_name': 'Updated Name'}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping address updated successfully."
+    assert 'data' in res.data
+    res_data = res.data['data']
+    address.refresh_from_db()
+    assert res_data['id'] == str(address.id)
+    assert res_data['full_name'] == data['full_name']
+    assert res_data['street_address'] == address.street_address
+    assert res_data['telephone'] == address.telephone
+    assert res_data['city'] == address.city.name
+    assert res_data['state'] == address.city.state.name
+    assert res_data['country'] == address.city.state.country.name
+    assert res_data['postal_code'] == address.postal_code
+
+
+def test_update_shipping_address_with_empty_full_name(client, customer, shipping_address_factory):
+    """
+    Test update a shipping address with empty full name.
+    """
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'full_name': ''}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'full_name' in res.data['errors']
+    assert res.data['errors']['full_name'] == ['This field may not be blank.']
+    address.refresh_from_db()
+    assert address.full_name != data['full_name']
+
+
+def test_update_shipping_address_with_invalid_full_name(client, customer, shipping_address_factory):
+    """
+    Test update a shipping address with invalid full name (too short and too long).
+    """
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    # Full name too short
+    data = {'full_name': 'aa'}
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'full_name' in res.data['errors']
+    assert res.data['errors']['full_name'] == ['Ensure this field has at least 3 characters.']
+    address.refresh_from_db()
+    assert address.full_name != data['full_name']
+    
+    # Full name too long
+    data['full_name'] = 'A' * 33
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'full_name' in res.data['errors']
+    assert res.data['errors']['full_name'] == ['Ensure this field has no more than 32 characters.']
+    address.refresh_from_db()
+    assert address.full_name != data['full_name']
+    
+
+# TELEPHONE
+
+def test_update_shipping_address_with_valid_telephone(client, customer, shipping_address_factory):
+    """
+    Test update a shipping address with valid telephone in different formats.
+    """
+    address = shipping_address_factory(customer)
+    old_tel = address.telephone
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    
+    valid_telephones = ['08123456789', '8123456789', '+2348123456789', '081 234 56789']
+    
+    for tel in valid_telephones:
+        data = {'telephone': tel}
+        client.force_authenticate(user=customer)
+        res = client.patch(url, data=data, format='json')
+        
+        assert res.status_code == status.HTTP_200_OK
+        assert res.data['status'] == "success"
+        assert res.data['message'] == "Shipping address updated successfully."
+        assert 'data' in res.data
+        res_data = res.data['data']
+        assert res_data['id'] == str(address.id)
+        res_tel = res_data['telephone'].lstrip('+234').replace(' ', '')
+        assert f'0{res_tel}' == '08123456789'
+        address.refresh_from_db()
+        add_tel = str(address.telephone).lstrip('+234').replace(' ', '')
+        assert f'0{add_tel}' == '08123456789'
+        assert address.telephone != old_tel
+
+
+@pytest.mark.parametrize(
+    'invalid_telephone',
+    ['string', 2134, 122.32, '081292', '0912889899999'],
+    ids=['string', 'int', 'float', 'less_than_11_digits',
+         'greater_than_11_digits']
+)
+def test_update_shipping_address_with_invalid_telephone(client, customer, shipping_address_factory, invalid_telephone):
+    """
+    Test update a shipping address with invalid telephone.
+    """
+    address = shipping_address_factory(customer)
+    tel = address.telephone
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'telephone': invalid_telephone}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'telephone' in res.data['errors']
+    assert res.data['errors']['telephone'] == ['Enter a valid phone number.']
+    address.refresh_from_db()
+    assert address.telephone == tel
+
+def test_update_shipping_address_with_empty_telephone(client, customer, shipping_address_factory):
+    """
+    Test update a shipping address with empty telephone.
+    """
+    address = shipping_address_factory(customer)
+    tel = address.telephone
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'telephone': ''}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'telephone' in res.data['errors']
+    assert res.data['errors']['telephone'] == ['This field may not be blank.']
+
+    address.refresh_from_db()
+    assert address.telephone == tel
+
+def test_update_shipping_address_with_non_nigerian_telephone(client, customer, shipping_address_factory):
+    """
+    Test update a shipping address with non-nigerian telephone number.
+    """
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'telephone': '+18446778182'}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'telephone' in res.data['errors']
+    assert res.data['errors']['telephone'] == ['Enter a valid Nigerian phone number (+234).']
+  
+    
+# STREET ADDRESS
+def test_update_shipping_address_street_address_with_valid_data(client, customer, shipping_address_factory):
+    """
+    Test update a shipping address street address with valid data.
+    """
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'street_address': '123 Updated Street'}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping address updated successfully."
+    assert 'data' in res.data
+    res_data = res.data['data']
+    address.refresh_from_db()
+    assert res_data['id'] == str(address.id)
+    assert res_data['street_address'] == data['street_address']
+    assert res_data['full_name'] == address.full_name
+    assert res_data['telephone'] == address.telephone
+    assert res_data['city'] == address.city.name
+    assert res_data['state'] == address.city.state.name
+    assert res_data['country'] == address.city.state.country.name
+    assert res_data['postal_code'] == address.postal_code
+
+
+def test_update_shipping_address_with_short_street_address(client, customer, shipping_address_factory):
+    """
+    Test updating street_address of shipping address with less than 5 characters.
+    """
+    address = shipping_address_factory(customer)
+
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'street_address': '1234'}
+    client.force_authenticate(user=customer)
+    
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'street_address' in res.data['errors']
+    assert res.data['errors']['street_address'] == ['Ensure this field has at least 5 characters.']
+    
+    
+@pytest.mark.parametrize(
+    'blank_street_address',
+    ['   ', '\t', '\n', ''],
+    ids=['spaces', 'tab', 'newline', 'empty_string']
+)
+def test_update_shipping_address_with_empty_street_address(client, customer, shipping_address_factory, blank_street_address):
+    """
+    Test updating street_address of shipping address with empty string.
+    """
+    address = shipping_address_factory(customer)
+
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'street_address': blank_street_address}
+    client.force_authenticate(user=customer)
+
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'street_address' in res.data['errors']
+    assert res.data['errors']['street_address'] == ['This field may not be blank.']
+
+
+def test_update_shipping_address_with_long_street_address(client, customer, shipping_address_factory):
+    """
+    Test updating street_address of shipping address with more than 256 characters.
+    """
+    address = shipping_address_factory(customer)
+
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'street_address': 'A' * 257}
+    client.force_authenticate(user=customer)
+    
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'street_address' in res.data['errors']
+    assert res.data['errors']['street_address'] == ['Ensure this field has no more than 256 characters.']
+
+
+@pytest.mark.parametrize(
+    'invalid_data',
+    [True, False, [], {}, (), None],
+    ids=['boolean_true', 'boolean_false', 'list', 'dict', 'tuple', 'null']
+)
+def test_update_shipping_address_with_non_string_street_address(client, customer, shipping_address_factory, invalid_data):
+    """
+    Test updating street_address of shipping address with non-string value.
+    """
+    address = shipping_address_factory(customer)
+
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'street_address': invalid_data}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'street_address' in res.data['errors']
+    if invalid_data is None:
+        assert res.data['errors']['street_address'] == ['This field may not be null.'] 
+    else:
+        assert res.data['errors']['street_address'] == ['Not a valid string.']
+
+
+# POSTAL CODE
+
+def test_update_shipping_address_postal_code_with_valid_data(client, customer, shipping_address_factory):
+    """
+    Test update the shipping address postal code with valid data.
+    """
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {'postal_code': '123456'}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Shipping address updated successfully."
+    assert 'data' in res.data
+    res_data = res.data['data']
+    address.refresh_from_db()
+    assert res_data['id'] == str(address.id)
+    assert res_data['postal_code'] == data['postal_code']
+    assert res_data['full_name'] == address.full_name
+    assert res_data['street_address'] == address.street_address
+    assert res_data['telephone'] == address.telephone
+    assert res_data['city'] == address.city.name
+    assert res_data['state'] == address.city.state.name
+    assert res_data['country'] == address.city.state.country.name
+    
+
+@pytest.mark.parametrize(
+    'invalid_postal_code',
+    ['012345', '1001', '12345678'],
+    ids=['zero-first-digit', 'short-code', 'long-code'],
+)
+def test_update_shipping_address_with_invalid_postal_code(client, customer, shipping_address_factory, invalid_postal_code):
+    """
+    Test that only Nigerian postal codes are allowed.
+    Instances to test:
+        - Must not start with zero
+        - Must be 6 digits
+    """
+    address = shipping_address_factory(customer)
+    data = {'postal_code': invalid_postal_code}
+
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert 'postal_code' in res.data['errors']
+    assert res.data['errors']['postal_code'] == ["Invalid postal code format for the given country."]
+
+
+# COUNTRY
+# For now the country field is hard coded to 'NG'
+# def test_update_shipping_address_with_invalid_country(client, customer, shipping_address_factory):
+#     """
+#     Test update a shipping address with invalid country code (more than 2 characters).
+#     """
+#     address = shipping_address_factory(customer)
+    
+#     url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+#     data = {'country': 'NIG'}
+    
+#     client.force_authenticate(user=customer)
+#     res = client.patch(url, data=data, format='json')
+    
+#     assert res.status_code == status.HTTP_400_BAD_REQUEST
+#     assert res.data['status'] == "error"
+#     assert res.data['code'] == "validation_error"
+#     assert res.data['message'] == "Shipping address update failed."
+#     assert 'errors' in res.data
+#     assert 'country' in res.data['errors']
+#     assert res.data['errors']['country'] == ['Ensure this field has no more than 2 characters.']
+    
+    
+# def test_update_shipping_address_with_non_string_country(client, customer, shipping_address_factory):
+#     """
+#     Test update a shipping address with non-string country code.
+#     """
+#     address = shipping_address_factory(customer)
+    
+#     url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+#     data = {'country': 123}
+    
+#     client.force_authenticate(user=customer)
+#     res = client.patch(url, data=data, format='json')
+    
+#     assert res.status_code == status.HTTP_400_BAD_REQUEST
+#     assert res.data['status'] == "error"
+#     assert res.data['code'] == "validation_error"
+#     assert res.data['message'] == "Shipping address update failed."
+#     assert 'errors' in res.data
+#     assert 'country' in res.data['errors']
+
+
+# STATE AND CITY
+
+@pytest.mark.parametrize(
+    'field, found_in',
+    [('state', 'country'), ('city', 'state')],
+    ids=['state', 'city']
+)
+def test_update_shipping_address_with_invalid_state_and_city(client, customer, shipping_address_factory, field, found_in):
+    """
+    Test that updating a shipping address with invalid state id fails.
+    """
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {field: uuid.uuid4()}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert field in res.data['errors']
+    assert res.data['errors'][field] == [f'Invalid {field} for the specified {found_in}.']
+
+
+@pytest.mark.parametrize(
+    'field',
+    ['state', 'city'],
+    ids=['state', 'city']
+)
+def test_update_shipping_address_with_non_uuid_state_and_city(client, customer, shipping_address_factory, field):
+    """
+    Test that updating a shipping address with non-uuid state or city id fails.
+    """
+    address = shipping_address_factory(customer)
+    
+    url = reverse('shipping-address-detail', kwargs={'address_id': address.id})
+    data = {field: 'invalid_uuid'}
+    
+    client.force_authenticate(user=customer)
+    res = client.patch(url, data=data, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "validation_error"
+    assert res.data['message'] == "Shipping address update failed."
+    assert 'errors' in res.data
+    assert field in res.data['errors']
+    assert res.data['errors'][field] == ['Must be a valid UUID.']
