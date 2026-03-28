@@ -12,6 +12,7 @@ User = get_user_model()
 pytest_plugins = [
     'address.tests.fixtures',
     'cart.tests.fixtures',
+    'order.tests.fixtures',
     'product.tests.fixtures',
     'user.tests.fixtures'
 ]
