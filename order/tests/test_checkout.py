@@ -147,7 +147,7 @@ def test_checkout_success_multiple_shops(client, mocker, create_cart_items, cust
     """
     NUM_SHOPS = 3
     NUM_ITEMS = 6
-    QUANTITY = 10
+    ITEM_QUANTITY = 10
 
     cart = customer.cart
 
@@ -160,7 +160,7 @@ def test_checkout_success_multiple_shops(client, mocker, create_cart_items, cust
     
     total, _ = create_cart_items(
         cart, shops=shops,
-        num_items=NUM_ITEMS, quantity=QUANTITY
+        num_items=NUM_ITEMS, quantity=ITEM_QUANTITY
     )
     
     for shop in shops:
@@ -218,3 +218,43 @@ def test_checkout_success_multiple_shops(client, mocker, create_cart_items, cust
     total_amount = Decimal(res_data['total_amount'])
     assert total_amount == Decimal(total) + delivery_fee
     assert total_amount == order_totals_sum + delivery_fee
+
+
+def test_inventory_is_updated_after_checkout(client,
+                                             customer,
+                                             shipping_address_factory,
+                                             shopowner_factory,
+                                             create_cart_items):
+    """
+    Test that the product inventory is updated correctly after checkout.
+        - Given a customer with items in their cart, when they checkout,
+        the inventory of the products should be reduced by the quantity ordered.
+    """
+    NUM_SHOPS = 3
+    ITEM_QUANTITY = 10
+    cart = customer.cart
+    shops = [shopowner_factory().owned_shop for _ in range(NUM_SHOPS)]
+    _, products = create_cart_items(cart, shops=shops, num_items=6, quantity=ITEM_QUANTITY)
+    initial_inventories = {product.id: product.stock for product in products}
+    
+    address = shipping_address_factory(user=customer)
+    payload = {
+        'shipping_address': address.id,
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+    client.force_authenticate(user=customer)
+
+    res = client.post(CHECKOUT_URL, payload, format='json')
+
+    # response assertions
+    assert res.status_code == status.HTTP_201_CREATED
+    assert res.data['status'] == "success"
+    assert res.data['message'] == "Checkout successful. Orders have been created."
+    
+    # inventory assertions
+    for product in products:
+        product.refresh_from_db()
+        expected_stock = initial_inventories[product.id] - ITEM_QUANTITY
+        assert product.stock == expected_stock
+    
