@@ -295,7 +295,7 @@ def test_checkout_atomic_rolls_back_on_failure(
     )
     
     with pytest.raises(Exception):
-        res = client.post(CHECKOUT_URL, data=payload, format='json')
+        client.post(CHECKOUT_URL, data=payload, format='json')
     
     # Verify rollback
     assert customer.order_groups.count() == 0
