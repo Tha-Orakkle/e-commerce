@@ -44,6 +44,8 @@ class CheckoutView(APIView):
             raise ErrorException(
                 detail="Cart contains invalid items.",
                 code='invalid_cart',
+                errors=[item for item in validated_response['items']
+                        if item['status'] != 'available']
             )
 
 

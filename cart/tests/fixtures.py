@@ -7,25 +7,26 @@ from cart.models import CartItem
 User = get_user_model()
 
 
-def fill_customer_cart(cart, shop, product_factory, count):
+@pytest.fixture
+def create_cart_items(product_factory):
     """
-    Fills a customers cart and fill it with products.
+    Factory to create cart items for a given cart.
     """
-    items = []
-    for _ in range(count):
-        prd = product_factory(shop=shop)
-        prd.inventory.add(20, handle='tester')
-        items.append(
-            CartItem(
-                quantity=15,
-                product=prd,
-                product_name=prd.name,
-                cart=cart
-            )
-        )
-    CartItem.objects.bulk_create(items)
-    cart.refresh_from_db()
-    return cart
+    def _create(cart, shops, num_items=3, quantity=10):
+        total = 0
+        products = []
+
+        for i in range(num_items):
+            shop = shops[i % len(shops)]
+            product = product_factory(shop=shop)
+            product.inventory.add(qty=20, handle=f'test-{i}')
+            cart.add_to_cart(product, quantity=quantity)
+            total += product.price * quantity
+            products.append(product)
+
+        return total, products
+
+    return _create
 
 
 @pytest.fixture

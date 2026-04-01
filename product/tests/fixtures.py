@@ -80,7 +80,7 @@ def product_factory(db, test_media_dir):
     """
     Factory to create products.
     """
-    def create_product(shop, name=None):
+    def create_product(shop, name=None, **kwargs):
         # count = Product.objects.filter(shop_id=shop.id).count()
         count = Product.objects.count()
         name = name or f"Product {count}"
@@ -88,7 +88,8 @@ def product_factory(db, test_media_dir):
             name=name,
             description=f"This is product {count}.",
             price=99.9,
-            shop=shop
+            shop=shop,
+            **kwargs
         )
     return create_product
 

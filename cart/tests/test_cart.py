@@ -4,9 +4,6 @@ from rest_framework import status
 import pytest
 import uuid
 
-from cart.tests.fixtures import fill_customer_cart
-
-
 # =============================================================================
 # TEST GET ALL CART ITEMS
 # =============================================================================
@@ -14,17 +11,12 @@ from cart.tests.fixtures import fill_customer_cart
 CART_ITEMS_LIST_URL = reverse('cart-detail')
 
 
-def test_get_all_cart_items(client, customer, shopowner, product_factory):
+def test_get_all_cart_items(client, customer, shopowner, create_cart_items):
     """
     Test get all cart items.
     """
-
-    cart = fill_customer_cart(
-        cart=customer.cart,
-        shop=shopowner.owned_shop,
-        product_factory=product_factory,
-        count=2
-    )
+    cart = customer.cart
+    create_cart_items(cart, [shopowner.owned_shop], num_items=2)
 
     client.force_authenticate(user=customer)
     res = client.get(CART_ITEMS_LIST_URL)
@@ -36,6 +28,7 @@ def test_get_all_cart_items(client, customer, shopowner, product_factory):
     assert data.get('is_valid') is True
     assert 'items' in data
     items = res.data['data']['items']
+    assert len(items) == 2
     assert cart.items.count() == len(items)
     item = items[0]
     fields = ['id', 'quantity', 'stock', 'status', 'issue', 'product']
@@ -52,17 +45,15 @@ def test_get_all_cart_items(client, customer, shopowner, product_factory):
 
 
 def test_get_cart_items_when_some_items_are_invalid_returns_items_with_issues(
-        client, customer, shopowner, product_factory):
+        client, customer, create_cart_items, shopowner, product_factory):
     """
     Returns all cart items with their respective
     validation issues when the cart contains invalid items.
     """
-    cart = fill_customer_cart(
-        cart=customer.cart,
-        shop=shopowner.owned_shop,
-        product_factory=product_factory,
-        count=4
-    )
+    cart = customer.cart
+    
+    create_cart_items(cart, [shopowner.owned_shop], num_items=4)
+    
     item_1, item_2, item_3, item_4 = cart.items.all()
 
     # issue 1 - Product no longer available
@@ -164,17 +155,13 @@ def test_get_cart_items_by_unauthenticated_user(client):
 # TEST GET A SPECIFIC CART ITEM
 # =============================================================================
 
-def test_get_specific_cart_item(client, customer, shopowner, product_factory):
+def test_get_specific_cart_item(client, customer,create_cart_items, shopowner, product_factory):
     """
     Test get a specific cart item.
     """
-
-    cart = fill_customer_cart(
-        cart=customer.cart,
-        shop=shopowner.owned_shop,
-        product_factory=product_factory,
-        count=2
-    )
+    cart = customer.cart
+    create_cart_items(cart, [shopowner.owned_shop], num_items=2)
+    
     item = cart.items.first()
 
     url = reverse('cart-item-detail', args=[item.id])
