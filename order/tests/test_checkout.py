@@ -259,7 +259,8 @@ def test_inventory_is_updated_after_checkout(client,
         product.refresh_from_db()
         expected_stock = initial_inventories[product.id] - ITEM_QUANTITY
         assert product.stock == expected_stock
-    
+
+
 
 def test_checkout_atomic_rolls_back_on_failure(
     client, mocker, create_cart_items, customer, shipping_address_factory, shopowner_factory
@@ -309,3 +310,222 @@ def test_checkout_atomic_rolls_back_on_failure(
     for product in products:
         product.refresh_from_db()
         assert product.stock == initial_inventories[product.id]
+
+
+def test_checkout_fails_with_invalid_cart_product_unavailable(
+    client, customer, create_cart_items, shopowner, shipping_address_factory):
+    """
+    Test that checkout fails if the cart contains an unavailable product.
+        - Given a customer with an unavailable product in their cart, when they checkout,
+        the checkout process should fail with an appropriate error message.
+    """
+    cart = customer.cart
+    _, products = create_cart_items(
+        cart, shops=[shopowner.owned_shop], num_items=1)
+
+    item = cart.items.first()
+    p = products[0]
+    p.is_active = False
+    p.save(update_fields=['is_active'])
+
+    address = shipping_address_factory(user=customer)
+    
+    payload = {
+        'shipping_address': address.id,
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+
+    client.force_authenticate(user=customer)
+    
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['message'] == "Cart contains invalid items."
+    assert len(res.data['errors']) == 1
+    error = res.data['errors'][0]
+    assert error['id'] is not None
+    assert error['status'] == 'unavailable'
+    assert error['quantity'] == item.quantity
+    assert error['issue'] == "Product no longer available"
+    assert error['product'] is None
+    
+def test_checkout_fails_with_invalid_cart_product_out_of_stock(
+    client, customer, create_cart_items, shopowner, shipping_address_factory):
+    """
+    Test that checkout fails if the cart contains a product that is out of stock.
+        - Given a customer with a product that is out of stock in their cart, when
+        they checkout, the checkout process should fail with an appropriate error message.
+    """
+    cart = customer.cart
+    _, products = create_cart_items(
+        cart, shops=[shopowner.owned_shop], num_items=1)
+
+    item = cart.items.first()
+    p = products[0]
+    p.inventory.subtract(qty=p.stock, handle='test')
+
+    address = shipping_address_factory(user=customer)
+    
+    payload = {
+        'shipping_address': address.id,
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+
+    client.force_authenticate(user=customer)
+    
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['message'] == "Cart contains invalid items."
+    assert len(res.data['errors']) == 1
+    error = res.data['errors'][0]
+    assert error['id'] is not None
+    assert error['status'] == 'out_of_stock'
+    assert error['quantity'] == item.quantity
+    assert error['issue'] == "Product out of stock"
+    assert error['product'] is not None
+    err_product = error['product']
+    fields = [
+        'id', 'name', 'description', 'shop',
+        'created_at', 'updated_at'
+    ]
+    assert all(err_product[f] is not None for f in fields)
+
+
+def test_checkout_fails_with_invalid_cart_product_insufficient_stock(
+    client, customer, create_cart_items, shopowner, shipping_address_factory):
+    """
+    Test that checkout fails if the cart contains a product with insufficient stock.
+        - Given a customer with a product with insufficient stock in their cart, when
+        they checkout, the checkout process should fail with an appropriate error message.
+    """
+    cart = customer.cart
+    _, products = create_cart_items(
+        cart, shops=[shopowner.owned_shop], num_items=1)
+
+    item = cart.items.first()
+    p = products[0]
+    qty = (p.stock - item.quantity) + 1
+    p.inventory.subtract(qty=qty, handle='test')
+
+    address = shipping_address_factory(user=customer)
+    
+    payload = {
+        'shipping_address': address.id,
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+
+    client.force_authenticate(user=customer)
+    
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['message'] == "Cart contains invalid items."
+    assert len(res.data['errors']) == 1
+    error = res.data['errors'][0]
+    assert error['id'] is not None
+    assert error['status'] == 'insufficient_stock'
+    assert error['quantity'] == item.quantity
+    assert error['issue'] == f"Only {p.stock} left in stock"
+    assert error['product'] is not None
+    err_product = error['product']
+    fields = [
+        'id', 'name', 'description', 'shop',
+        'created_at', 'updated_at'
+    ]
+    assert all(err_product[f] is not None for f in fields)
+
+
+def test_checkout_fails_with_invalid_cart(
+    client, customer, create_cart_items, shipping_address_factory, shopowner):
+    """
+    Test that checkout fails with multiple cart item errors
+    and response returns only products with issues.
+    """
+    cart = customer.cart
+    address = shipping_address_factory(user=customer)
+    
+    _, products = create_cart_items(
+        cart, shops=[shopowner.owned_shop], num_items=4)
+
+    # make first product unavailable
+    p1 = products[0]
+    p1.is_active = False
+    p1.save(update_fields=['is_active'])
+    
+    # make second product out of stock
+    p2 = products[1]
+    p2.inventory.subtract(qty=p2.stock, handle='test')
+    
+    # make third product insufficient stock
+    p3 = products[2]
+    qty = (p3.stock - cart.items.filter(product=p3).first().quantity) + 1
+    p3.inventory.subtract(qty=qty, handle='test')
+    
+    payload = {
+        'shipping_address': address.id,
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+    
+    client.force_authenticate(user=customer)
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['message'] == "Cart contains invalid items."
+    assert len(res.data['errors']) == 3
+    error_statuses = {error['status'] for error in res.data['errors']}
+    assert error_statuses == {'unavailable', 'out_of_stock', 'insufficient_stock'}
+    
+
+def test_checkout_fails_with_no_cart_items(client, customer, shipping_address_factory):
+    """
+    Test that checkout fails if the cart has no items.
+        - Given a customer with an empty cart, when they checkout,
+        the checkout process should fail with an appropriate error message.
+    """
+    address = shipping_address_factory(user=customer)
+    
+    payload = {
+        'shipping_address': address.id,
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+    
+    client.force_authenticate(user=customer)
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+    
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "empty_cart"
+    assert res.data['message'] == "Cart is empty."
+
+
+def test_checkout_fails_with_no_cart(client, customer_no_cart, shipping_address_factory):
+    """
+    Test that checkout fails if the user has no cart.
+        - Given a customer with no cart, when they checkout,
+        the checkout process should fail with an appropriate error message.
+    """
+    address = shipping_address_factory(user=customer_no_cart)
+
+    payload = {
+        'shipping_address': address.id,
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+    
+    client.force_authenticate(user=customer_no_cart)
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+    
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data['status'] == "error"
+    assert res.data['code'] == "not_found"
+    assert res.data['message'] == "No cart found for the user."
