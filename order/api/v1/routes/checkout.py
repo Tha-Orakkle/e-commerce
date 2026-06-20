@@ -34,17 +34,20 @@ class CheckoutView(APIView):
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
-        cart_items, validated_response = validate_cart(cart, include_shop=True)
-        if validated_response['items'] == []:
+        cart_items = cart.items.select_related(
+            "product__inventory", "product__shop"
+        )
+        validated = validate_cart(cart_items)
+        if validated['items'] == []:
             raise ErrorException(
                 detail="Cart is empty.",
                 code='empty_cart'
             )
-        if not validated_response['is_valid']:
+        if not validated['is_valid']:
             raise ErrorException(
                 detail="Cart contains invalid items.",
                 code='invalid_cart',
-                errors=[item for item in validated_response['items']
+                errors=[item for item in validated['items']
                         if item['status'] != 'available']
             )
 

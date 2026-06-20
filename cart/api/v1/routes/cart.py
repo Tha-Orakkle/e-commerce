@@ -77,19 +77,20 @@ class CartDetailView(APIView):
         """
         Get the cart and all items.
         """
-        validated_response = None
+        validated = None
         try:
             cart = request.user.cart
-            _, validated_response = validate_cart(cart)
         except User.cart.RelatedObjectDoesNotExist:
             raise ErrorException(
                 detail="No cart found for the user.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
+        cart_items = cart.items.select_related("product__inventory")
+        validated = validate_cart(cart_items)
         return Response(SuccessAPIResponse(
             message='Cart retrieved successfully.',
-            data=validated_response
+            data=validated
         ).to_dict(), status=status.HTTP_200_OK)
 
 

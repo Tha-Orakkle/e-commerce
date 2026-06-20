@@ -1,73 +1,75 @@
 from rest_framework import status
 
-from common.exceptions import ErrorException
-
 from product.api.v1.serializers import ProductSerializer
 
 
-def validate_cart(cart, include_shop=False):
+def validate_cart(cart_items, inventory_map=None):
     """
-    Validates that the cart conatins available items.
-    Args:
-        cart (Cart): The cart to validate.
-    Return:
-        items (CartItem(many=True)): To prevent being called again by the caller function
-        response (Dict): contains a `is_valid` key (boolean value) and `items` key (associated issues as value)
-        response shape: {
-            is_valid: True,
-            items: [{
-                id: item id,
-                quantity: qty ordered,
-                stock: qty left in stock,
-                status: status of the product (available, unavailable,
-                        out_of_stock, insufficient_stock),
-                issue: Issues depending on status of the product,
-                product: ProductSerializer()
-            }]
-        }
+    Unified cart validator.
+
+    Modes:
+    - Pre-check: inventory_map=None → uses product.stock
+    - Post-lock: inventory_map=locked inventories → uses DB truth
     """
     response = {
-        'is_valid': True,
-        'items': []
+        "is_valid": True,
+        "items": []
     }
-    if not cart:
-        raise ErrorException(
-            detail="No cart for the user.",
-            code='not_found',
-            status_code=status.HTTP_404_NOT_FOUND)
-    if not cart.items.exists():
-        return [[], response]
     
-    select = ['product__inventory']
-    if include_shop:
-        select.append('product__shop')
-
-    cart_items = cart.items.select_related(*select)
     for item in cart_items:
+        product = item.product
+        qty = item.quantity
+
         _item = {
-            'id': item.id,
-            'quantity': item.quantity,
-            'stock': 0,
-            'status': 'unavailable',
-            'issue': "Product no longer available",
-            'product': None
+            "id": item.id,
+            "quantity": qty,
+            "stock": 0,
+            "status": "unavailable",
+            "issue":"Product no longer available",
+            "product": None
         }
-        if item.product and item.product.is_active:
-            _item['stock'] = item.product.stock
-            _item['status'] = 'available'
-            _item['issue'] = None
-            _item['product'] = ProductSerializer(
-                item.product, exclude=['categories', 'stock']).data
-                
-            if item.product.stock == 0:
-                _item['status'] = 'out_of_stock'
-                _item['issue'] = "Product out of stock"
-                response['is_valid'] = False
-            elif item.quantity > item.product.stock:
-                _item['status'] = 'insufficient_stock'
-                _item['issue'] = f"Only {item.product.stock} left in stock"
-                response['is_valid'] = False
+        
+        # Determine product vailidity 
+        if not product or not product.is_active:
+            response["is_valid"] = False
+            response["items"].append(_item)
+            continue
+        
+        # Determine stock source
+        if inventory_map is None:
+            # PRE-CHECK MODE (UX only)
+            stock = product.stock
         else:
-            response['is_valid'] = False
-        response['items'].append(_item)
-    return [cart_items, response]
+            # POST-LOCK MODE (authoritative truth)
+            inv = inventory_map.get(product.inventory_id)
+            if not inv:
+                _item["status"] = "inventory_missing"
+                _item["issue"] = "Inventory missing"
+                response["is_valid"] = False
+                response["items"].append(_item)
+                continue
+             
+            stock = inv._stock
+
+        _item["stock"] = stock
+        _item["product"] = ProductSerializer(
+            product,
+            exclude=["categories", "stock"]
+        ).data
+        
+        # stock rules
+        if stock == 0:
+            _item["status"] = "out_of_stock"
+            _item["issue"] = "Product out of stock"
+            response["is_valid"] = False
+        elif qty > stock:
+            _item["status"] = "insufficient_stock"
+            _item["issue"] = f"Only {stock} left in stock"
+            response["is_valid"] = False
+        else:
+            _item["status"] = "available"
+            _item["issue"] = None
+
+        response["items"].append(_item)
+
+    return response
