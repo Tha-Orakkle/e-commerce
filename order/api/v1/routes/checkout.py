@@ -41,7 +41,7 @@ class CheckoutView(APIView):
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             raise ErrorException(
-                detail="Invalid request data",
+                detail="Checkout failed. Invalid request data.",
                 code="validation_error",
                 errors=serializer.errors
             )
