@@ -80,12 +80,14 @@ def test_checkout_success_single_shop(client,
 
     # order_group assertions
     assert 'id' in res_data
+    fn = customer.profile.first_name
+    ln = customer.profile.last_name
     expected_core = {
         'status': 'PENDING',
         'payment_method': payload['payment_method'],
         'fulfillment_method': payload['fulfillment_method'],
         'email': customer.email,
-        'full_name': f"{customer.profile.first_name} {customer.profile.last_name}",
+        'full_name': f"{fn} {ln}",
     }
     assert_dict_matches(res_data, expected_core)
 
@@ -181,7 +183,8 @@ def test_checkout_success_multiple_shops(client,
 
     for shop in shops:
         assert shop.orders.count() == 0
-        assert cart.items.filter(product__shop=shop).count() == NUM_ITEMS // NUM_SHOPS
+        count = cart.items.filter(product__shop=shop).count()
+        assert count == NUM_ITEMS // NUM_SHOPS
 
     assert cart.items.count() == NUM_ITEMS
 
@@ -268,7 +271,8 @@ def test_inventory_is_updated_after_checkout(client,
     # response assertions
     assert res.status_code == status.HTTP_201_CREATED
     assert res.data['status'] == "success"
-    assert res.data['message'] == "Checkout successful. Orders have been created."
+    msg = res.data['message']
+    assert msg == "Checkout successful. Orders have been created."
 
     # inventory assertions
     for product in products:
@@ -672,4 +676,372 @@ def test_checkout_fails_when_shipping_address_non_existent(client,
     assert data['message'] == "Checkout failed. Invalid request data."
     assert "errors" in data
     errors = data["errors"]
-    assert errors["shipping_address"] == ["No shipping address matching the given ID found."]
+    expected_error = [
+        "No shipping address matching the given ID found."
+    ]
+    assert errors["shipping_address"] == expected_error
+
+
+# ===================================================
+# TEST CHECKOUT PAYMENT METHOD INPUTS
+# ===================================================
+@pytest.mark.parametrize(
+    "payment_method",
+    ["cash", "digital"],
+    ids=["cash", "digital"]
+)
+def test_checkout_passes_with_lower_case_payment_method(
+    client,
+    customer,
+    shopowner,
+    shipping_address_factory,
+    create_cart_items,
+    payment_method
+):
+    """
+    Test that checkout passes payment_method passed as a lower case.
+    """
+    cart = customer.cart
+    address = shipping_address_factory(user=customer)
+    create_cart_items(cart, shops=[shopowner.owned_shop], num_items=1)
+
+    assert cart.items.count() == 1
+
+    payload = {
+        "shipping_address": address.id,
+        "fulfillment_method": "DELIVERY",
+        "payment_method": payment_method
+    }
+    client.force_authenticate(user=customer)
+
+    res = client.post(CHECKOUT_URL, data=payload, format="json")
+    assert res.status_code == status.HTTP_201_CREATED
+    data = res.data
+
+    assert data["status"] == "success"
+    assert data["data"]["payment_method"] == payment_method.upper()
+
+
+def test_checkout_fails_without_payment_method(client,
+                                               customer,
+                                               shipping_address_factory):
+    """
+    Test when no payment method is passed.
+    """
+
+    address = shipping_address_factory(user=customer)
+
+    payload = {
+        "shipping_address": address.id,
+        "fulfillment_method": "DELIVERY",
+    }
+
+    client.force_authenticate(user=customer)
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+
+    errors = data["errors"]
+    assert "payment_method" in errors
+    assert errors["payment_method"] == ["This field is required."]
+
+
+@pytest.mark.parametrize(
+    "blank_payment",
+    ["", "   "],
+    ids=["blank", "spaced"]
+)
+def test_checkout_fails_with_blank_payment_method(client,
+                                                  customer,
+                                                  shipping_address_factory,
+                                                  blank_payment):
+    """
+    Test checkout fails when the payment method passed is blank.
+    """
+
+    address = shipping_address_factory(user=customer)
+
+    payload = {
+        "shipping_address": address.id,
+        "fulfillment_method": "DELIVERY",
+        "payment_method": blank_payment
+    }
+
+    client.force_authenticate(user=customer)
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+
+    errors = data["errors"]
+    assert "payment_method" in errors
+    assert errors["payment_method"] == ["This field may not be blank."]
+
+
+@pytest.mark.parametrize(
+    "invalid_payment",
+    [True, False],
+    ids=["boolean_true", "boolean_false"]
+)
+def test_checkout_fails_with_boolean_payment_method(
+    client,
+    customer,
+    shipping_address_factory,
+    invalid_payment
+):
+    """
+    Test that checkout fails when a boolean datatype is passed
+    as payment method.
+    """
+    address = shipping_address_factory(user=customer)
+    payload = {
+        "shipping_address": address.id,
+        "fulfillment_method": "DELIVERY",
+        "payment_method": invalid_payment
+    }
+    client.force_authenticate(user=customer)
+
+    res = client.post(CHECKOUT_URL, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+
+    errors = data["errors"]
+    assert "payment_method" in errors
+    assert errors["payment_method"] == ["Not a valid string."]
+
+
+@pytest.mark.parametrize(
+    "invalid_payment",
+    [123456, 123.43, "invalid_method"],
+    ids=["int", "float", "invalid_method"])
+def test_checkout_fails_with_invalid_payment_method(client,
+                                                    customer,
+                                                    shipping_address_factory,
+                                                    invalid_payment):
+    """
+    Test that checkout fails when invalid data passed as payment method.
+    """
+    address = shipping_address_factory(user=customer)
+    payload = {
+        "shipping_address": address.id,
+        "fulfillment_method": "DELIVERY",
+        "payment_method": invalid_payment
+    }
+    client.force_authenticate(user=customer)
+
+    res = client.post(CHECKOUT_URL, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+
+    errors = data["errors"]
+    assert "payment_method" in errors
+    expected_error = [
+        "The payment method must be either 'CASH' or 'DIGITAL'."
+    ]
+    assert errors["payment_method"] == expected_error
+
+
+# ===================================================
+# TEST CHECKOUT FULFILLMENT METHOD INPUTS
+# ===================================================
+@pytest.mark.parametrize(
+    "fulfillment_method",
+    ["pickup", "delivery"],
+    ids=["pickup", "delivery"]
+)
+def test_checkout_passes_with_lower_case_fulfillment_method(
+    client,
+    customer,
+    shopowner,
+    shipping_address_factory,
+    create_cart_items,
+    fulfillment_method
+):
+    """
+    Test that checkout passes fulfillment_method passed as a lower case.
+    """
+    cart = customer.cart
+    address = shipping_address_factory(user=customer)
+    create_cart_items(cart, shops=[shopowner.owned_shop], num_items=1)
+
+    assert cart.items.count() == 1
+
+    payload = {
+        "shipping_address": address.id,
+        "fulfillment_method": fulfillment_method,
+        "payment_method": "CASH"
+    }
+    client.force_authenticate(user=customer)
+
+    res = client.post(CHECKOUT_URL, data=payload, format="json")
+    assert res.status_code == status.HTTP_201_CREATED
+    data = res.data
+
+    assert data["status"] == "success"
+    assert data["data"]["fulfillment_method"] == fulfillment_method.upper()
+
+
+def test_checkout_fails_without_fulfillment_method(client,
+                                                   customer,
+                                                   shipping_address_factory):
+
+    """
+    Test when no fulfimment_method is passed.
+    """
+
+    address = shipping_address_factory(user=customer)
+
+    payload = {
+        "shipping_address": address.id,
+        "payment_method": "CASH",
+    }
+
+    client.force_authenticate(user=customer)
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+
+    errors = data["errors"]
+    assert "fulfillment_method" in errors
+    assert errors["fulfillment_method"] == ["This field is required."]
+
+
+@pytest.mark.parametrize(
+    "blank_fulfillment",
+    ["", "   "],
+    ids=["blank", "spaced"]
+)
+def test_checkout_fails_with_blank_fulfillment_method(
+    client,
+    customer,
+    shipping_address_factory,
+    blank_fulfillment
+):
+    """
+    Test checkout fails when the fulfillment method passed is blank.
+    """
+
+    address = shipping_address_factory(user=customer)
+
+    payload = {
+        "shipping_address": address.id,
+        "fulfillment_method": blank_fulfillment,
+        "payment_method": "CASH"
+    }
+
+    client.force_authenticate(user=customer)
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+
+    errors = data["errors"]
+    assert "fulfillment_method" in errors
+    assert errors["fulfillment_method"] == ["This field may not be blank."]
+
+
+@pytest.mark.parametrize(
+    "invalid_fulfillment",
+    [True, False],
+    ids=["boolean_true", "boolean_false"]
+)
+def test_checkout_fails_with_boolean_payment_method(
+    client,
+    customer,
+    shipping_address_factory,
+    invalid_fulfillment
+):
+    """
+    Test that checkout fails when a boolean datatype is passed
+    as fulfillment method.
+    """
+    address = shipping_address_factory(user=customer)
+    payload = {
+        "shipping_address": address.id,
+        "fulfillment_method": invalid_fulfillment,
+        "payment_method": "CASH"
+    }
+    client.force_authenticate(user=customer)
+
+    res = client.post(CHECKOUT_URL, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+
+    errors = data["errors"]
+    assert "fulfillment_method" in errors
+    assert errors["fulfillment_method"] == ["Not a valid string."]
+
+
+@pytest.mark.parametrize(
+    "invalid_fulfillment",
+    [123456, 123.43, "invalid_method"],
+    ids=["int", "float", "invalid_method"])
+def test_checkout_fails_with_invalid_fulfillment_method(
+    client,
+    customer,
+    shipping_address_factory,
+    invalid_fulfillment
+):
+    """
+    Test that checkout fails when invalid data passed as fulfillment method.
+    """
+    address = shipping_address_factory(user=customer)
+    payload = {
+        "shipping_address": address.id,
+        "fulfillment_method": invalid_fulfillment,
+        "payment_method": "CASH"
+    }
+    client.force_authenticate(user=customer)
+
+    res = client.post(CHECKOUT_URL, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+
+    errors = data["errors"]
+    assert "fulfillment_method" in errors
+    expected_error = [
+        "The fulfillment method must be either 'PICKUP' or 'DELIVERY'."
+    ]
+    assert errors["fulfillment_method"] == expected_error
