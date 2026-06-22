@@ -44,6 +44,6 @@ class CheckoutSerializer(serializers.Serializer):
         
         if value not in allowed:
             raise serializers.ValidationError(
-                "The payment method must be either 'CASH' or 'DIGITAL'."
+                "The fulfillment method must be either 'PICKUP' or 'DELIVERY'."
             )
         return value
