@@ -1,101 +1,89 @@
-from drf_spectacular.utils import extend_schema
 from django.contrib.auth import get_user_model
 from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 
-from address.models import ShippingAddress
+
 from cart.utils.validators import validate_cart
-from common.cores.validators import validate_id
-from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from common.permissions import IsCustomer
-from order.api.v1.serializers import OrderGroupSerializer
-from order.api.v1.swagger import checkout_schema
-from order.utils.orders import create_orders_from_cart
+from common.utils.api_responses import SuccessAPIResponse
+from order.api.v1.serializers import CheckoutSerializer, OrderGroupSerializer
+from order.domain.exceptions import EmptyCartError, InvalidCartError
+from order.services import CheckoutService
 
 
 User = get_user_model()
 
-
 class CheckoutView(APIView):
+    """
+    Endpoint for checking out. 
+    Creates order from the items in the cart.
+    """
     permission_classes = [IsCustomer]
     
-    @extend_schema(**checkout_schema)
     def post(self, request):
-        """
-        Handles the checkout process.
-        """
         try:
             cart = request.user.cart
         except User.cart.RelatedObjectDoesNotExist:
             raise ErrorException(
                 detail="No cart found for the user.",
-                code='not_found',
+                code="not_found",
                 status_code=status.HTTP_404_NOT_FOUND
             )
-        cart_items, validated_response = validate_cart(cart, include_shop=True)
-        if validated_response['items'] == []:
+        
+        # validate input
+        serializer = CheckoutSerializer(
+            data=request.data, context={"request": request})
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
             raise ErrorException(
-                detail="Cart is empty.",
-                code='empty_cart'
+                detail="Checkout failed. Invalid request data.",
+                code="validation_error",
+                errors=serializer.errors
             )
-        if not validated_response['is_valid']:
+            
+        # validate cart items
+        cart_items = cart.items.select_related(
+            "product__inventory", "product__shop"
+        )
+        validated = validate_cart(cart_items)
+        # cart_items, validated = validate_cart(cart, include_shop=True)
+        if not validated["is_valid"]:
+            raise ErrorException(
+                detail="Cart contains invalid items.",
+                code="invalid_cart",
+                errors=[item for item in validated["items"]
+                        if item["status"] != "available"]
+            )
+        
+        service = CheckoutService(
+            user=request.user,
+            cart=cart,
+            cart_items=cart_items,
+            shipping_address=serializer.validated_data["shipping_address"],
+            payment_method=serializer.validated_data["payment_method"],
+            fulfillment_method=serializer.validated_data["fulfillment_method"],
+        )
+        try:
+            order_group = service.execute()
+        except EmptyCartError:
+            raise ErrorException(
+               detail="Cart is empty.",
+                code="empty_cart"
+            )
+        except InvalidCartError as e:
             raise ErrorException(
                 detail="Cart contains invalid items.",
                 code='invalid_cart',
-                errors=[item for item in validated_response['items']
-                        if item['status'] != 'available']
+                errors=e.errors
             )
-
-
-        errors = {}
-        
-        # shipping address
-        ship_add_id = request.data.get('shipping_address', None)
-        if not ship_add_id:
-            errors.setdefault('shipping_address', []).append('This field is required.')
-        else:
-            try:
-                valid = validate_id(ship_add_id, "shipping address")
-            except ErrorException as e:
-                errors.setdefault('shipping_address', []).append(e.detail) 
-            if valid:
-                ship_add = ShippingAddress.objects.select_related(
-                    'city__state__country'
-                ).filter(user=request.user, id=ship_add_id).first()
-                if not ship_add:
-                    errors.setdefault('shipping_address', []).append(
-                        "No shipping address matching the given ID found.")
-        
-        # fulfullment method
-        fulfillment_method = request.data.get('fulfillment_method', '').upper().strip()
-        if not fulfillment_method or fulfillment_method not in ['PICKUP', 'DELIVERY']:
-            errors.setdefault('fulfillment_method', []).append(
-                "The fulfillment method must be either 'PICKUP' or 'DELIVERY'.")
-
-        # payment method
-        payment_method = request.data.get('payment_method', '').upper().strip()
-        if not payment_method or payment_method not in ['CASH', 'DIGITAL']:
-            errors.setdefault('payment_method', []).append(
-                "The payment method must be either 'CASH' or 'DIGITAL'.")
-            
-        if errors:
-            raise ErrorException(
-                detail="Invalid request data.",
-                code='missing_or_invalid_fields',
-                errors=errors
-            )
-            
-        order_group = create_orders_from_cart(
-            user=request.user,
-            shipping_address=ship_add,
-            fulfillment_method=fulfillment_method,
-            payment_method=payment_method,
-            cart_items=cart_items
-        )
         
         return Response(SuccessAPIResponse(
             message="Checkout successful. Orders have been created.",
             data=OrderGroupSerializer(order_group).data
         ).to_dict(), status=status.HTTP_201_CREATED)
+        
