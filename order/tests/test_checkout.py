@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.urls import reverse
 from rest_framework import status
 
+import uuid
 import pytest
 
 from order.services.checkout import CheckoutService
@@ -580,3 +581,95 @@ def test_checkout_fails_with_no_cart(client,
     assert res.data['status'] == "error"
     assert res.data['code'] == "not_found"
     assert res.data['message'] == "No cart found for the user."
+
+
+# ===================================================
+# Test Checkout with incorrect shipping address
+# ===================================================
+def test_checkout_fails_without_shipping_address(client, customer):
+    """
+    Test when no shipping address is passed.
+    """
+
+    payload = {
+        'fulfillment_method': 'DELIVERY',
+        'payment_method': 'CASH'
+    }
+
+    client.force_authenticate(user=customer)
+    res = client.post(CHECKOUT_URL, data=payload, format='json')
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+
+    errors = data["errors"]
+    assert "shipping_address" in errors
+    assert errors["shipping_address"] == ["This field is required."]
+
+
+@pytest.mark.parametrize(
+    "invalid_shipping",
+    ["string", "23456", "12332.43", ""],
+    ids=["string", "int", "float", "blank"]
+)
+def test_checkout_fails_with_invalid_shipping_address(client,
+                                                      customer,
+                                                      invalid_shipping):
+    """
+    Test that chackout fails when a non-uuid value is
+    passed as the shipping adddress.
+    """
+    payload = {
+        "shipping_address": invalid_shipping,
+        "fulfillment_method": "DELIVERY",
+        "payment_method": "CASH"
+    }
+
+    client.force_authenticate(user=customer)
+
+    res = client.post(CHECKOUT_URL, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+    errors = data["errors"]
+    assert errors["shipping_address"] == ["Must be a valid UUID."]
+
+
+@pytest.mark.parametrize(
+    "invalid_shipping",
+    [uuid.uuid4(), True, False],
+    ids=["invalid_uuid", "boolean_true", "boolean_true"]
+)
+def test_checkout_fails_when_shipping_address_non_existent(client,
+                                                           customer,
+                                                           invalid_shipping):
+    """
+    Test when the shipping address uuid is not associated with a
+    shipping address.
+    """
+    payload = {
+        "shipping_address": invalid_shipping,
+        "fulfillment_method": "DELIVERY",
+        "payment_method": "CASH"
+    }
+    client.force_authenticate(user=customer)
+
+    res = client.post(CHECKOUT_URL, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    data = res.data
+    assert data['status'] == "error"
+    assert data['code'] == "validation_error"
+    assert data['message'] == "Checkout failed. Invalid request data."
+    assert "errors" in data
+    errors = data["errors"]
+    assert errors["shipping_address"] == ["No shipping address matching the given ID found."]
