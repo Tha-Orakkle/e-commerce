@@ -12,7 +12,7 @@ from order.api.v1.routes import (
 
 urlpatterns = [
     path('checkout/', CheckoutView.as_view(), name='checkout'),
-    path('order-groups/', CustomerOrderGroupListView.as_view(), name='user-groups'),
+    path('order-groups/', CustomerOrderGroupListView.as_view(), name='order-groups'),
     path('order-groups/<str:order_group_id>/', CustomerOrderGroupView.as_view(), name='order-group'), 
     path('order-groups/<str:order_group_id>/cancel/', CancelCustomerOrderGroupView.as_view(), name='cancel-order'),
     
