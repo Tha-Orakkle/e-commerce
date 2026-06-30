@@ -387,3 +387,99 @@ def test_get_all_shop_orders_ordered_by_created_at(
         str(order2.id),
         str(order1.id)
     ]
+
+
+def test_get_all_shop_orders_ordered_and_filtered(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test getting all shop orders are ordered and filtered
+    by the query string passed. Testing both funtionality.
+    """
+    shop = shopowner.owned_shop
+    group = order_group_factory()
+
+    order1 = order_factory(group=group, shop=shop, status="PENDING")
+    order_factory(group=group, shop=shop, status="PROCESSING")
+    order2 = order_factory(group=group, shop=shop, status="PENDING")
+
+    url = GET_SHOP_ORDERS_URL + "?status=pending&ordering=-created_at"
+
+    client.force_authenticate(user=shopowner)
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_200_OK
+    results = res.data["data"]["results"]
+    returned_ids = [order["id"] for order in results]
+
+    assert returned_ids == [str(order2.id), str(order1.id)]
+
+
+def test_get_all_shop_orders_ordered_by_multiple_parameters(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test getting all shop orders with more than one ordering
+    values.
+    """
+    shop = shopowner.owned_shop
+    group = order_group_factory()
+
+    order1 = order_factory(group=group, shop=shop, status="SHIPPED")
+    order2 = order_factory(group=group, shop=shop, status="PROCESSING")
+    order3 = order_factory(group=group, shop=shop, status="PENDING")
+    order4 = order_factory(group=group, shop=shop, status="PENDING")
+    order5 = order_factory(group=group, shop=shop, status="PROCESSING")
+
+    url = GET_SHOP_ORDERS_URL + "?ordering=status,created_at"
+    client.force_authenticate(user=shopowner)
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_200_OK
+    results = res.data["data"]["results"]
+    returned_ids = [order["id"] for order in results]
+    assert returned_ids == [
+        str(order3.id),
+        str(order4.id),
+        str(order2.id),
+        str(order5.id),
+        str(order1.id)
+    ]
+
+
+def test_get_all_shop_orders_ordered_by_invalid_ordering_parameter(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test getting shop orders with invalid ordering query parameter.
+    Test that it resolves to default.
+    """
+
+    shop = shopowner.owned_shop
+    group = order_group_factory()
+
+    order1 = order_factory(group=group, shop=shop, status="SHIPPED")
+    order2 = order_factory(group=group, shop=shop, status="PENDING")
+    order3 = order_factory(group=group, shop=shop, status="PROCESSING")
+
+    url = GET_SHOP_ORDERS_URL + "?ordering=invalid"
+    client.force_authenticate(user=shopowner)
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_200_OK
+    results = res.data["data"]["results"]
+    returned_ids = [order["id"] for order in results]
+    assert returned_ids == [
+        str(order2.id),
+        str(order3.id),
+        str(order1.id)
+    ]
