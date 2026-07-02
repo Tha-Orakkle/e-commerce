@@ -17,6 +17,6 @@ urlpatterns = [
     path('order-groups/<str:order_group_id>/cancel/', CancelCustomerOrderGroupView.as_view(), name='cancel-order'),
     
     path('shop/orders/', ShopOrderView.as_view(), name='shop-orders'), # Get all orders for a shop
-    path('shop/orders/<str:order_id>/', ShopOrderDetailView.as_view(), name='get-shop-order'),
+    path('shop/orders/<str:order_id>/', ShopOrderDetailView.as_view(), name='shop-order'),
     path('shop/orders/<str:order_id>/update-status/', ShopOrderStatusUpdateView.as_view(), name='update-order-status')
 ]
