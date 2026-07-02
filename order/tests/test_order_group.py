@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 
 import pytest
+import uuid
 
 # ======================================================
 # TEST GET ORDER GROUP LIST
@@ -313,3 +314,38 @@ def test_get_order_group_by_unauthenticated_user(
     assert res.data['status'] == "error"
     assert res.data['code'] == "unauthorized"
     assert res.data['message'] == "Token is invalid or expired"
+
+
+def test_get_order_group_with_non_existent_order_id(
+    client,
+    customer
+):
+    """
+    Test getting order group with non-existent order id.
+    """
+    url = reverse("order-group", args=[uuid.uuid4()])
+    client.force_authenticate(user=customer)
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "not_found"
+    expected_msg = "No order group matching the given ID found."
+    assert res.data["message"] == expected_msg
+
+
+def test_get_order_group_with_invalid_uuid(
+    client,
+    customer
+):
+    """
+    Test getting order group with invalid order id.
+    """
+    url = reverse("order-group", args=["invalid-uuid"])
+    client.force_authenticate(user=customer)
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "invalid_uuid"
+    assert res.data["message"] == "Invalid order group id."
