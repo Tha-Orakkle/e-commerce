@@ -663,7 +663,6 @@ def test_get_shop_order_with_invalid_uuid(
     assert res.data["message"] == "Invalid order id."
 
 
-
 def test_get_shop_order_by_unauthenticated_user(
     client,
     populated_order_group_factory
@@ -691,4 +690,3 @@ def test_get_shop_order_by_unauthenticated_user(
     assert res.data['status'] == "error"
     assert res.data['code'] == "unauthorized"
     assert res.data['message'] == "Token is invalid or expired"
-    
