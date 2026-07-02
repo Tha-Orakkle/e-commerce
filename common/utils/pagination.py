@@ -1,7 +1,9 @@
 from rest_framework.pagination import PageNumberPagination as PNP
-
-import os
+from django.conf import settings
 
 
 class Pagination(PNP):
-    page_size = os.getenv('PAGE_SIZE')
+
+    @property
+    def page_size(self):
+        return settings.REST_FRAMEWORK["PAGE_SIZE"]

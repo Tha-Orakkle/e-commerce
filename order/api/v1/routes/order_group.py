@@ -22,13 +22,19 @@ from order.api.v1.swagger import (
 class CustomerOrderGroupListView(APIView):
     permission_classes = [IsCustomer]
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return OrderGroup.objects.all()
+        return user.order_groups.all()
+
     @extend_schema(**get_order_groups_schema)
     def get(self, request):
         """
         Get a list of user's order groups 
         """
         paginator = Pagination()
-        queryset = request.user.order_groups.all()
+        queryset = self.get_queryset()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
         serializers = OrderGroupListSerializer(paginated_queryset, many=True)
         return Response(SuccessAPIResponse(
@@ -39,6 +45,13 @@ class CustomerOrderGroupListView(APIView):
 
 class CustomerOrderGroupView(APIView):
     permission_classes = [IsCustomer]
+    
+    def get_object(self, order_group_id):
+        user = self.request.user
+        if user.is_superuser:
+            return OrderGroup.objects.filter(id=order_group_id).first()
+        
+        return user.order_groups.filter(id=order_group_id).first()
 
     @extend_schema(**get_order_group_schema)
     def get(self, request, order_group_id):
@@ -46,14 +59,15 @@ class CustomerOrderGroupView(APIView):
         Get a specific order group.
         """
         validate_id(order_group_id, 'order group')
-        o_grp = OrderGroup.objects.filter(id=order_group_id).first()
-        if not o_grp or (o_grp and o_grp.user != request.user and not request.user.is_superuser):
+
+        order_group = self.get_object(order_group_id)
+        if not order_group:
             raise ErrorException(
                 detail="No order group matching the given ID found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND
             )
-        serializer = OrderGroupSerializer(o_grp)
+        serializer = OrderGroupSerializer(order_group)
         return Response(SuccessAPIResponse(
             message="Order group retrieved successfully.",
             data=serializer.data

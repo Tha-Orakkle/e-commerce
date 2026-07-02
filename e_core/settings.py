@@ -179,10 +179,10 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'common.authentication.backends.CookieJWTAuthentication',
     ],
+    'PAGE_SIZE': os.getenv("PAGE_SIZE", 20),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'common.utils.error_handlers.custom_exception_handler',
 }
-
 
 JWT_AUTH_HTTPONLY = True
 

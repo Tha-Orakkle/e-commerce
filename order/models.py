@@ -70,6 +70,9 @@ class OrderGroup(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     
+    class Meta:
+        ordering = ["created_at"]
+    
     
     def __str__(self):
         return f"<OrderGroup: {self.id}> {self.total_amount} - {self.status}"

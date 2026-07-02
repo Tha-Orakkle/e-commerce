@@ -45,7 +45,7 @@ class ShopOrderView(APIView):
         else:
             shop = user.shop
 
-        return shop.orders.all()            
+        return shop.orders.all()
 
 
     @extend_schema(**get_shop_orders_schema)
