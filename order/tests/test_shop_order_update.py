@@ -129,6 +129,78 @@ def test_update_shop_order_from_cancelled_to_other_statuses(
     assert res.data["message"] == expected_msg
 
 
+@pytest.mark.parametrize(
+    "new_status",
+    ["PENDING", "INVALID_STATUS", ""],
+    ids=["PENDING", "INVALID_STATUS", "EMPTY_STRING"]
+)
+def test_update_shop_order_with_invalid_status(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory,
+    new_status
+):
+    """
+    Test updating a shop order with an invalid status fails.
+    """
+    group = order_group_factory()
+    order = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+    )
+    payload = {
+        **PAYLOAD,
+        "status": new_status
+    }
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "invalid_status"
+    assert res.data["message"] == "Invalid status provided."
+
+
+@pytest.mark.parametrize(
+    "new_status",
+    ["PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"],
+    ids=["PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"]
+)
+def test_update_shop_order_with_self_transition(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory,
+    new_status
+):
+    """
+    Test updating a shop order with the same status fails.
+    """
+    group = order_group_factory()
+    order = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status=new_status
+    )
+    payload = {
+        **PAYLOAD,
+        "status": new_status
+    }
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "invalid_status_transition"
+    expected_msg = f"Order {str(order.id)} is already in {new_status} state."
+    assert res.data["message"] == expected_msg
+
+
 # ===================================================
 # CASH PAYMENT TRANSACTIONS
 # ===================================================
