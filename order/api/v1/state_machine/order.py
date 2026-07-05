@@ -146,8 +146,9 @@ class OrderStateMachine:
             return True 
         return False   
 
-    def _update_is_paid_for_completed_cash_order(self, new_status):
-        if new_status == 'COMPLETED' and self.group.payment_method == 'CASH' and self.payment_status:
+    def _update_is_paid_cash_order(self, new_status):
+        allowed = ['COMPLETED', 'PROCESSING', 'SHIPPED']
+        if new_status in allowed and self.group.payment_method == 'CASH' and self.payment_status:
             self.order.is_paid = True
             self.order.paid_at = now()
             return True
@@ -215,7 +216,7 @@ class OrderStateMachine:
             self._update_timestamp(rules)
             f = self._update_is_delivered_or_picked(new_status)
             uf = rules.get('update_field')
-            pf = self._update_is_paid_for_completed_cash_order(new_status)
+            pf = self._update_is_paid_cash_order(new_status)
             
             if f:
                 update_fields.append(f)
