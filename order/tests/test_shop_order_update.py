@@ -229,6 +229,7 @@ def test_update_shop_order_group_status_to_partially_fulfilled(
         **PAYLOAD,
         "status": "PROCESSING"
     }
+    
 
     url = reverse("update-shop-order-status", args=[order1.id])
     client.force_authenticate(user=shopowner)
@@ -279,7 +280,7 @@ def test_update_shop_order_group_status_to_fulfilled(
 
     group.refresh_from_db()
     assert group.status == "FULFILLED"
-
+    assert group.completed_at is not None
 
 
 # ===================================================
