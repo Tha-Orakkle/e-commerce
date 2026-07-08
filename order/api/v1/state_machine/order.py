@@ -137,6 +137,7 @@ class OrderStateMachine:
         if total == completed:
             if self.group.status != 'FULFILLED':
                 self.group.status = 'FULFILLED'
+                self.group.completed_at = now()
                 # implement on commit operation to anonymise user data if user is deleted
                 return True
             return False
@@ -231,7 +232,7 @@ class OrderStateMachine:
             self.order.save(update_fields=update_fields)
             
             if self._update_group_status(new_status):
-                self.group.save(update_fields=['status'])
+                self.group.save(update_fields=['status', 'completed_at'])
             
             if new_status == 'CANCELLED':
                 transaction.on_commit(
