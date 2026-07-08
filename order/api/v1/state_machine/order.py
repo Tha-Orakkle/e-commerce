@@ -140,10 +140,12 @@ class OrderStateMachine:
                 # implement on commit operation to anonymise user data if user is deleted
                 return True
             return False
-
-        if completed > 0 and self.group.status != 'PARTIALLY_FULFILLED':
+        
+        processed = qs.filter(status__in=['PROCESSING', 'SHIPPED', 'COMPLETED']).count()
+        if processed > 0 and self.group.status != 'PARTIALLY_FULFILLED':
             self.group.status = 'PARTIALLY_FULFILLED'
-            return True 
+            return True
+
         return False   
 
     def _update_is_paid_cash_order(self, new_status):
