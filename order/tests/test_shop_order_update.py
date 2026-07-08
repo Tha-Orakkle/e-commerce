@@ -201,6 +201,87 @@ def test_update_shop_order_with_self_transition(
     assert res.data["message"] == expected_msg
 
 
+def test_update_shop_order_group_status_to_partially_fulfilled(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test that when the shop order status is updated,
+    the order group status is also updated accordingly.
+    Order group status is updated to PARTIALLY_FULFILLED when
+    one order is PROCESSING, SHIPPED OR COMPLETED.
+    """
+    group = order_group_factory()
+    order1 = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PENDING"
+    )
+    order2 = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PENDING"
+    )
+
+    payload = {
+        **PAYLOAD,
+        "status": "PROCESSING"
+    }
+
+    url = reverse("update-shop-order-status", args=[order1.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_200_OK
+    group.refresh_from_db()
+    assert group.status == "PARTIALLY_FULFILLED"
+
+
+def test_update_shop_order_group_status_to_fulfilled(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test that when all shop orders in a group are updated to COMPLETED,
+    the order group status is also updated to FULFILLED.
+    """
+    group = order_group_factory()
+    order1 = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    order2 = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+
+    payload = {
+        **PAYLOAD,
+        "status": "COMPLETED",
+        "payment_status": True
+    }
+
+    url1 = reverse("update-shop-order-status", args=[order1.id])
+    url2 = reverse("update-shop-order-status", args=[order2.id])
+    client.force_authenticate(user=shopowner)
+
+    res1 = client.post(url1, data=payload, format="json")
+    assert res1.status_code == status.HTTP_200_OK
+
+    res2 = client.post(url2, data=payload, format="json")
+    assert res2.status_code == status.HTTP_200_OK
+
+    group.refresh_from_db()
+    assert group.status == "FULFILLED"
+
+
+
 # ===================================================
 # CASH PAYMENT TRANSACTIONS
 # ===================================================
