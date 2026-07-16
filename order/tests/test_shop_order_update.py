@@ -128,6 +128,42 @@ def test_update_shop_order_from_cancelled_to_other_statuses(
     expected_msg = f"Invalid transition from CANCELLED to {new_status}."
     assert res.data["message"] == expected_msg
 
+@pytest.mark.parametrize(
+    "old_status",
+    ["PENDING", "PROCESSING"],
+    ids=["PENDING", "PROCESSING"]
+)
+def test_update_shop_order_to_cancelled(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory,
+    old_status
+):
+    """
+    Test updating a shop order to cancelled succeeds.
+    """
+    group = order_group_factory()
+    order = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status=old_status
+    )
+
+    payload = {
+        **PAYLOAD,
+        "status": "CANCELLED"
+    }
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_200_OK
+    data = res.data["data"]
+    assert data["status"] == "CANCELLED"
+    assert data["cancelled_at"] is not None
+
 
 @pytest.mark.parametrize(
     "new_status",
@@ -201,7 +237,7 @@ def test_update_shop_order_with_self_transition(
     assert res.data["message"] == expected_msg
 
 
-def test_update_shop_order_group_status_to_partially_fulfilled(
+def test_update_shop_order_group_status_to_processing(
     client,
     shopowner,
     order_group_factory,
@@ -210,8 +246,8 @@ def test_update_shop_order_group_status_to_partially_fulfilled(
     """
     Test that when the shop order status is updated,
     the order group status is also updated accordingly.
-    Order group status is updated to PARTIALLY_FULFILLED when
-    one order is PROCESSING, SHIPPED OR COMPLETED.
+    Order group status is updated to PROCESSING when
+    at least one order is already PROCESSING.
     """
     group = order_group_factory()
     order1 = order_factory(
@@ -230,14 +266,101 @@ def test_update_shop_order_group_status_to_partially_fulfilled(
         "status": "PROCESSING"
     }
     
-
     url = reverse("update-shop-order-status", args=[order1.id])
     client.force_authenticate(user=shopowner)
     res = client.post(url, data=payload, format="json")
 
     assert res.status_code == status.HTTP_200_OK
     group.refresh_from_db()
+    assert group.status == "PROCESSING"
+
+
+def test_update_shop_order_group_status_to_partially_fulfilled(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test that when at least one shop order in a group is updated to COMPLETED,
+    the order group status is also updated to PARTIALLY_FULFILLED.
+    """
+    group = order_group_factory()
+    order1 = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+
+    payload = {
+        **PAYLOAD,
+        "status": "COMPLETED",
+        "payment_status": True
+    }
+
+    url = reverse("update-shop-order-status", args=[order1.id])
+    client.force_authenticate(user=shopowner)
+
+    res = client.post(url, data=payload, format="json")
+    assert res.status_code == status.HTTP_200_OK
+
+    group.refresh_from_db()
     assert group.status == "PARTIALLY_FULFILLED"
+
+
+def test_update_shop_order_group_status_to_fulfilled_with_cancellations(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test that when all shop orders in a group are COMPLETED with some
+    orders that have been CANCELLED, the order group status is updated
+    to FULFILLED_WITH_CANCELLATIONS.
+    """
+    group = order_group_factory()
+    order1 = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    order2 = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+
+    payload_completed = {
+        **PAYLOAD,
+        "status": "COMPLETED",
+        "payment_status": True
+    }
+
+    payload_cancelled = {
+        **PAYLOAD,
+        "status": "CANCELLED"
+    }
+
+    url1 = reverse("update-shop-order-status", args=[order1.id])
+    url2 = reverse("update-shop-order-status", args=[order2.id])
+    client.force_authenticate(user=shopowner)
+
+    res1 = client.post(url1, data=payload_completed, format="json")
+    assert res1.status_code == status.HTTP_200_OK
+
+    res2 = client.post(url2, data=payload_cancelled, format="json")
+    assert res2.status_code == status.HTTP_200_OK
+
+    assert group.completed_at is None
+    group.refresh_from_db()
+    assert group.status == "FULFILLED_WITH_CANCELLATIONS"
+    assert group.completed_at is not None
 
 
 def test_update_shop_order_group_status_to_fulfilled(
@@ -282,6 +405,47 @@ def test_update_shop_order_group_status_to_fulfilled(
     assert group.status == "FULFILLED"
     assert group.completed_at is not None
 
+
+def test_update_shop_order_group_status_to_cancelled(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test that when all shop orders in a group are updated to CANCELLED,
+    the order group status is also updated to CANCELLED.
+    """
+    group = order_group_factory()
+    order1 = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    order2 = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+
+    payload = {
+        **PAYLOAD,
+        "status": "CANCELLED"
+    }
+
+    url1 = reverse("update-shop-order-status", args=[order1.id])
+    url2 = reverse("update-shop-order-status", args=[order2.id])
+    client.force_authenticate(user=shopowner)
+
+    res1 = client.post(url1, data=payload, format="json")
+    assert res1.status_code == status.HTTP_200_OK
+
+    res2 = client.post(url2, data=payload, format="json")
+    assert res2.status_code == status.HTTP_200_OK
+
+    assert group.status != "CANCELLED"
+    group.refresh_from_db()
+    assert group.status == "CANCELLED"
 
 # ===================================================
 # CASH PAYMENT TRANSACTIONS
