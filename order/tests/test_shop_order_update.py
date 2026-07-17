@@ -1,6 +1,7 @@
 from django.urls import reverse
 from django.utils.timezone import now
 from rest_framework import status
+from unittest.mock import patch
 
 import pytest
 
@@ -128,6 +129,7 @@ def test_update_shop_order_from_cancelled_to_other_statuses(
     expected_msg = f"Invalid transition from CANCELLED to {new_status}."
     assert res.data["message"] == expected_msg
 
+
 @pytest.mark.parametrize(
     "old_status",
     ["PENDING", "PROCESSING"],
@@ -163,6 +165,31 @@ def test_update_shop_order_to_cancelled(
     data = res.data["data"]
     assert data["status"] == "CANCELLED"
     assert data["cancelled_at"] is not None
+
+
+@pytest.mark.django_db(transaction=True)
+def test_update_shop_order_to_cancelled_calls_restocks_inventory_task(
+    client,
+    shopowner,
+    populated_order_group_factory
+):
+    """
+    Test that when a shop order is cancelled, the restock inventory task
+    is called.
+    """
+    shop = shopowner.owned_shop
+    group = populated_order_group_factory(shop=shop)
+    order = group.orders.first()
+    
+    payload = {"status": "CANCELLED"}
+    client.force_authenticate(user=shopowner)
+    
+    with patch("order.tasks.restock_inventory_with_cancelled_order.delay") as mock_restock:
+        url = reverse("update-shop-order-status", args=[order.id])
+        res = client.post(url, data=payload, format="json")
+        
+        assert res.status_code == status.HTTP_200_OK    
+        mock_restock.assert_called_once()    
 
 
 @pytest.mark.parametrize(
