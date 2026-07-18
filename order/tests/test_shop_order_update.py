@@ -1,5 +1,5 @@
 from django.urls import reverse
-from django.utils.timezone import now
+from django.utils.timezone import now, timedelta
 from rest_framework import status
 from unittest.mock import patch
 
@@ -180,16 +180,18 @@ def test_update_shop_order_to_cancelled_calls_restocks_inventory_task(
     shop = shopowner.owned_shop
     group = populated_order_group_factory(shop=shop)
     order = group.orders.first()
-    
+
     payload = {"status": "CANCELLED"}
     client.force_authenticate(user=shopowner)
-    
-    with patch("order.tasks.restock_inventory_with_cancelled_order.delay") as mock_restock:
+
+    with patch(
+        "order.tasks.restock_inventory_with_cancelled_order.delay"
+    ) as mock_restock:
         url = reverse("update-shop-order-status", args=[order.id])
         res = client.post(url, data=payload, format="json")
-        
-        assert res.status_code == status.HTTP_200_OK    
-        mock_restock.assert_called_once()    
+
+        assert res.status_code == status.HTTP_200_OK
+        mock_restock.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -292,7 +294,7 @@ def test_update_shop_order_group_status_to_processing(
         **PAYLOAD,
         "status": "PROCESSING"
     }
-    
+
     url = reverse("update-shop-order-status", args=[order1.id])
     client.force_authenticate(user=shopowner)
     res = client.post(url, data=payload, format="json")
@@ -473,6 +475,7 @@ def test_update_shop_order_group_status_to_cancelled(
     assert group.status != "CANCELLED"
     group.refresh_from_db()
     assert group.status == "CANCELLED"
+
 
 # ===================================================
 # CASH PAYMENT TRANSACTIONS
@@ -1088,7 +1091,8 @@ def test_update_shop_digital_delivery_order_status_from_shipped_to_completed(
     order_factory
 ):
     """
-    Test updating a shop digital delivery order status from shipped to completed.
+    Test updating a shop digital delivery order status from
+    shipped to completed.
     """
     group = order_group_factory(
         fulfillment_method="DELIVERY",
@@ -1232,3 +1236,241 @@ def test_update_shop_digital_pickup_order_status_from_processing_to_shipped(
     assert res.data["code"] == "invalid_status_transition"
     expected_msg = f"PICKUP orders can not be shipped."
     assert res.data["message"] == expected_msg
+
+
+# =================================================
+# TEST INPUT FIELDS
+# =================================================
+
+# payment
+@pytest.mark.parametrize(
+    "payment_status",
+    ["true", "yes", "1", "on"],
+    ids=["true", "yes", "1", "on"]
+)
+def test_update_shop_order_with_valid_payment_status(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory,
+    payment_status
+):
+    """
+    Test updating a shop order with variants of a
+    valid payment status succeeds.
+    """
+    group = order_group_factory()
+    order = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    payload = {
+        "status": "COMPLETED",
+        "payment_status": payment_status
+    }
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_200_OK
+    data = res.data["data"]
+    assert data["is_paid"] is True
+
+
+# status
+@pytest.mark.parametrize(
+    "invalid_status",
+    ["", "INVALID_STATUS", "PENDING"],
+    ids=["EMPTY_STRING", "INVALID_STATUS", "PENDING"]
+)
+def test_update_shop_order_with_invalid_status(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory,
+    invalid_status
+):
+    """
+    Test updating a shop order with an invalid status fails.
+    """
+    group = order_group_factory()
+    order = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    payload = {
+        "status": invalid_status
+    }
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "invalid_status"
+    assert res.data["message"] == "Invalid status provided."
+
+
+# delivery_date
+@pytest.mark.parametrize(
+    "invalid_delivery_date",
+    ["", None],
+    ids=["EMPTY_STRING", "None"]
+)
+def test_update_shop_delivery_order_without_delivery_date(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory,
+    invalid_delivery_date
+):
+    """
+    Test updating a shop order with a missing delivery date fails.
+    """
+    group = order_group_factory(fulfillment_method="DELIVERY")
+    order = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    payload = {
+        "status": "SHIPPED",
+        "delivery_date": invalid_delivery_date
+    }
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "missing_field"
+    expected_msg == "Delivery date is required for 'DELIVERY' " \
+        "orders ready to be shipped."
+    assert res.data["message"] == expected_msg
+
+
+@pytest.mark.parametrize(
+    "invalid_delivery_date",
+    [
+        "2023-13-01", "2023-02-30",
+        "2023-04-31", "2023-02-29",
+        "2023/01/01", "01-01-2023",
+        "26-08-09", "    ",
+        "String", 1234, 1234.56
+    ],
+    ids=[
+        "INVALID_MONTH", "INVALID_DAY",
+        "INVALID_DAY_2", "NON_LEAP_YEAR_FEB_29",
+        "WRONG_FORMAT_SLASH", "WRONG_FORMAT_DD_MM_YYYY",
+        "WRONG_FORMAT_SINGLE_YEAR", "WHITESPACES",
+        "STRING", "INTEGER", "FLOAT"
+    ]
+)
+def test_update_shop_order_with_invalid_delivery_date_format(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory,
+    invalid_delivery_date
+):
+    """
+    Test updating a shop order with an invalid delivery date
+    format fails.
+    """
+    group = order_group_factory(fulfillment_method="DELIVERY")
+    order = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    payload = {
+        "status": "SHIPPED",
+        "delivery_date": invalid_delivery_date
+    }
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "invalid_date_format"
+    assert res.data["message"] == "Invalid delivery date format. " \
+        "Please use the format 'YYYY-MM-DD'."
+
+
+def test_update_shop_order_with_past_delivery_date(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test updating a shop order with a past delivery date fails.
+    """
+    group = order_group_factory(fulfillment_method="DELIVERY")
+    order = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    past_date = (now() - timedelta(days=1)).date().isoformat()
+    payload = {
+        "status": "SHIPPED",
+        "delivery_date": past_date
+    }
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "invalid_delivery_date"
+    expected_msg = "Delivery date cannot be in the past."
+    assert res.data["message"] == expected_msg
+
+
+@pytest.mark.parametrize(
+    "delivery_date",
+    ["2026-09-08", "2026-09-8", "2026-9-08"],
+    ids=["CORRECT_FORMAT", "SINGLE_DAY_DIGIT", "SINGLE_MONTH_DIGIT"]
+)
+def test_update_shop_order_with_valid_delivery_dates(
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory,
+    delivery_date
+):
+    """
+    Test updating a delievery shop order with variants of
+    valid delivery dates.
+    """
+    group = order_group_factory(fulfillment_method="DELIVERY")
+    order = order_factory(
+        group=group,
+        shop=shopowner.owned_shop,
+        status="PROCESSING"
+    )
+    payload = {
+        "payment_status": True,
+        "status": "SHIPPED",
+        "delivery_date": delivery_date
+    }
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=payload, format="json")
+
+    assert res.status_code == status.HTTP_200_OK
+
+
+# =============================================
+# SHOP UPDATE AUTHORIZATION TESTS
+# =============================================
