@@ -4,6 +4,7 @@ from rest_framework import status
 from unittest.mock import patch
 
 import pytest
+import uuid
 
 PAYLOAD = {
     "payment_status": False,
@@ -1591,3 +1592,37 @@ def test_update_shop_order_status_by_unauthenticated_user(
     res = client.post(url, data=PAYLOAD, format="json")
     assert res.status_code == status.HTTP_401_UNAUTHORIZED
     assert res.data['message'] == "Token is invalid or expired"
+
+
+# ===============================================
+# ORDER ID TESTS
+# ===============================================
+def test_update_shop_order_status_with_invalid_shop_uuid(client, shopowner):
+    """
+    Test that updating shop order with an invalid order id fails.
+    """
+    url = reverse("update-shop-order-status", args=["invalid_uuid"])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=PAYLOAD, format="json")
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "invalid_uuid"
+    assert res.data["message"] == "Invalid order id."
+
+
+def test_update_shop_order_status_with_non_existent_order_id(
+    client,
+    shopowner
+):
+    """
+    Test that updating shop order with a non-existent order id fails.
+    """
+    url = reverse("update-shop-order-status", args=[uuid.uuid4()])
+    client.force_authenticate(user=shopowner)
+    res = client.post(url, data=PAYLOAD, format="json")
+
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "not_found"
+    assert res.data["message"] == "No order matching the given ID found."
