@@ -1626,3 +1626,53 @@ def test_update_shop_order_status_with_non_existent_order_id(
     assert res.data["status"] == "error"
     assert res.data["code"] == "not_found"
     assert res.data["message"] == "No order matching the given ID found."
+
+
+# ===============================================
+# ATOMICNESS TEST
+# ===============================================
+def test_update_shop_order_status_rolls_back_on_failure(
+    mocker,
+    client,
+    shopowner,
+    order_group_factory,
+    order_factory
+):
+    """
+    Test that updating shop order status rolls back on failure.
+    """
+    shop = shopowner.owned_shop
+    group = order_group_factory()
+    order = order_factory(
+        group=group,
+        shop=shop,
+        status="PROCESSING"
+    )
+
+    payload = {
+        "status": "COMPLETED",
+        "payment_status": True
+    }
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shopowner)
+
+    mocker.patch(
+        "order.api.v1.state_machine.order.OrderGroup.save",
+        side_effect=Exception("DB Failure")
+    )
+    assert group.status != "COMPLETED"
+    assert group.completed_at is None
+    assert order.status == "PROCESSING"
+    assert order.is_paid is False
+    assert order.paid_at is None
+    assert order.completed_at is None
+
+    with pytest.raises(Exception):
+        client.post(url, data=payload, format="json")
+
+    assert group.status != "COMPLETED"
+    assert group.completed_at is None
+    assert order.status == "PROCESSING"
+    assert order.is_paid is False
+    assert order.paid_at is None
+    assert order.completed_at is None
