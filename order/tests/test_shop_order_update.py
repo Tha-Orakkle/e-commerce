@@ -1349,7 +1349,7 @@ def test_update_shop_delivery_order_without_delivery_date(
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data["status"] == "error"
     assert res.data["code"] == "missing_field"
-    expected_msg == "Delivery date is required for 'DELIVERY' " \
+    expected_msg = "Delivery date is required for 'DELIVERY' " \
         "orders ready to be shipped."
     assert res.data["message"] == expected_msg
 
@@ -1474,3 +1474,120 @@ def test_update_shop_order_with_valid_delivery_dates(
 # =============================================
 # SHOP UPDATE AUTHORIZATION TESTS
 # =============================================
+
+def test_update_shop_order_status_by_shop_staff(
+    client,
+    shop_staff,
+    populated_order_group_factory
+):
+    """
+    Test that updating shop order status by a shop staff succeeds.
+    """
+    shop = shop_staff.shop
+    group = populated_order_group_factory(shop=shop)
+    order = group.orders.first()
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=shop_staff)
+    res = client.post(url, data=PAYLOAD, format="json")
+
+    assert res.status_code == status.HTTP_200_OK
+
+
+def test_update_shop_order_status_by_super_user(
+    client,
+    super_user,
+    populated_order_group_factory
+):
+    """
+    Test that updating shop order status by a super user succeeds.
+    """
+    group = populated_order_group_factory()
+    order = group.orders.first()
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=super_user)
+    res = client.post(url, data=PAYLOAD, format="json")
+
+    assert res.status_code == status.HTTP_200_OK
+
+
+def test_update_shop_order_status_by_customer(
+    client,
+    customer,
+    populated_order_group_factory
+):
+    """
+    Test that updating shop order status by customer fails
+    """
+    group = populated_order_group_factory()
+    order = group.orders.first()
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=customer)
+    res = client.post(url, data=PAYLOAD, format="json")
+
+    assert res.status_code == status.HTTP_403_FORBIDDEN
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "forbidden"
+    expected_msg = "You do not have permission to perform this action."
+    assert res.data["message"] == expected_msg
+
+
+@pytest.mark.parametrize(
+    "user_type",
+    ["shop_staff", "shopowner"],
+    ids=["shop_staff", "shopowner"]
+)
+def test_update_shop_order_status_by_different_shop_staff_and_owner(
+    client,
+    all_users,
+    populated_order_group_factory,
+    user_type
+):
+    """
+    Test updating shop order status by a different shopowner
+    and staff fails. Shop owner and staff can only update
+    orders from their associated shops.
+    """
+    user = all_users[user_type]
+
+    # create group
+    group = populated_order_group_factory()
+    order = group.orders.first()
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    client.force_authenticate(user=user)
+    res = client.post(url, data=PAYLOAD, format="json")
+
+    assert res.status_code == status.HTTP_404_NOT_FOUND
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "not_found"
+    expected_msg = "No order matching the given ID found."
+    assert res.data["message"] == expected_msg
+
+
+def test_update_shop_order_status_by_unauthenticated_user(
+    client,
+    populated_order_group_factory
+):
+    """
+    Test updating shop order status by an unathenticated user
+    fails. Test without and with invalid access token.
+    """
+    group = populated_order_group_factory()
+    order = group.orders.first()
+
+    url = reverse("update-shop-order-status", args=[order.id])
+    res = client.post(url, data=PAYLOAD, format="json")
+
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data["status"] == "error"
+    assert res.data["code"] == "unauthorized"
+    expected_msg = "Authentication credentials were not provided."
+    assert res.data["message"] == expected_msg
+
+    client.cookies['access_token'] = 'invalidtoken'
+    res = client.post(url, data=PAYLOAD, format="json")
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert res.data['message'] == "Token is invalid or expired"
