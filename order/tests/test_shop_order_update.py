@@ -72,7 +72,7 @@ def test_update_shop_order_from_completed_to_other_statuses(
     """
     Test updating completed orders to other statuses fails.
     """
-    group = order_group_factory()
+    group = order_group_factory(status="COMPLETED")
     order = order_factory(
         group=group,
         shop=shopowner.owned_shop,
@@ -93,6 +93,12 @@ def test_update_shop_order_from_completed_to_other_statuses(
     expected_msg = f"Invalid transition from COMPLETED to {new_status}."
     assert res.data["message"] == expected_msg
 
+    group.refresh_from_db()
+    assert group.status == "COMPLETED"
+
+    order.refresh_from_db()
+    assert order.status == "COMPLETED"
+
 
 @pytest.mark.parametrize(
     "new_status",
@@ -109,7 +115,7 @@ def test_update_shop_order_from_cancelled_to_other_statuses(
     """
     Test updating cancelled orders to other statuses fails.
     """
-    group = order_group_factory()
+    group = order_group_factory(status="CANCELLED")
     order = order_factory(
         group=group,
         shop=shopowner.owned_shop,
@@ -129,6 +135,12 @@ def test_update_shop_order_from_cancelled_to_other_statuses(
     assert res.data["code"] == "invalid_status_transition"
     expected_msg = f"Invalid transition from CANCELLED to {new_status}."
     assert res.data["message"] == expected_msg
+
+    group.refresh_from_db()
+    assert group.status == "CANCELLED"
+
+    order.refresh_from_db()
+    assert order.status == "CANCELLED"
 
 
 @pytest.mark.parametrize(
@@ -166,6 +178,14 @@ def test_update_shop_order_to_cancelled(
     data = res.data["data"]
     assert data["status"] == "CANCELLED"
     assert data["cancelled_at"] is not None
+
+    group.refresh_from_db()
+    assert group.status == "CANCELLED"
+    assert group.cancelled_at is not None
+
+    order.refresh_from_db()
+    assert order.status == "CANCELLED"
+    assert order.cancelled_at is not None
 
 
 @pytest.mark.django_db(transaction=True)
@@ -228,6 +248,9 @@ def test_update_shop_order_with_invalid_status(
     assert res.data["status"] == "error"
     assert res.data["code"] == "invalid_status"
     assert res.data["message"] == "Invalid status provided."
+
+    order.refresh_from_db()
+    assert order.status != new_status
 
 
 @pytest.mark.parametrize(
@@ -303,6 +326,10 @@ def test_update_shop_order_group_status_to_processing(
     assert res.status_code == status.HTTP_200_OK
     group.refresh_from_db()
     assert group.status == "PROCESSING"
+
+    order1.refresh_from_db()
+    assert order1.status == "PROCESSING"
+    assert order1.processing_at is not None
 
 
 def test_update_shop_order_group_status_to_partially_fulfilled(
@@ -533,6 +560,13 @@ def test_update_shop_cash_order_status_from_pending_to_processing(
     assert data["is_paid"] is True
     assert data["paid_at"] is not None
 
+    order.refresh_from_db()
+    assert order.status == "PROCESSING"
+    assert order.processing_at is not None
+
+    group.refresh_from_db()
+    assert group.status == "PROCESSING"
+
 
 @pytest.mark.parametrize(
     "new_status",
@@ -565,6 +599,11 @@ def test_update_shop_cash_order_status_from_pending_to_other_statuses(
     assert res.data["code"] == "invalid_status_transition"
     expected_msg = f"Invalid transition from PENDING to {new_status}."
     assert res.data["message"] == expected_msg
+
+    order.refresh_from_db()
+    assert order.status != new_status
+    timestamp = getattr(order, f"{new_status.lower()}_at")
+    assert timestamp is None
 
 
 def test_update_shop_cash_pickup_order_status_from_processing_to_completed(
@@ -605,6 +644,10 @@ def test_update_shop_cash_pickup_order_status_from_processing_to_completed(
     assert data["is_picked_up"] is True
     assert data["delivery_date"] is None
 
+    order.refresh_from_db()
+    assert order.status == "COMPLETED"
+    assert order.completed_at is not None
+
 
 def test_update_shop_cash_pickup_order_status_from_processing_to_completed_without_payment(
     client,
@@ -638,6 +681,14 @@ def test_update_shop_cash_pickup_order_status_from_processing_to_completed_witho
     expected_msg = "Cash orders must be marked paid before completing."
     assert data["message"] == expected_msg
 
+    order.refresh_from_db()
+    assert order.status == "PROCESSING"
+    assert order.completed_at is None
+
+    group.refresh_from_db()
+    assert group.status != "COMPLETED"
+    assert group.completed_at is None
+
 
 def test_update_shop_cash_pickup_order_status_from_processing_to_shipped(
     client,
@@ -670,6 +721,10 @@ def test_update_shop_cash_pickup_order_status_from_processing_to_shipped(
     assert res.data["code"] == "invalid_status_transition"
     expected_msg = "PICKUP orders can not be shipped."
     assert res.data["message"] == expected_msg
+
+    order.refresh_from_db()
+    assert order.status == "PROCESSING"
+    assert order.shipped_at is None
 
 
 def test_update_shop_cash_delivery_order_status_from_processing_to_shipped(
@@ -728,6 +783,10 @@ def test_update_shop_cash_delivery_order_status_from_processing_to_shipped(
     assert data["is_paid"] is True
     assert data["paid_at"] is not None
 
+    order.refresh_from_db()
+    assert order.status == "SHIPPED"
+    assert order.shipped_at is not None
+
 
 def test_update_shop_cash_delivery_order_status_from_processing_to_completed(
     client,
@@ -761,6 +820,10 @@ def test_update_shop_cash_delivery_order_status_from_processing_to_completed(
     assert res.data["code"] == "invalid_status_transition"
     expected_msg = f"Invalid transition from PROCESSING to COMPLETED."
     assert res.data["message"] == expected_msg
+
+    order.refresh_from_db()
+    assert order.status == "PROCESSING"
+    assert order.completed_at is None
 
 
 def test_shop_cash_delivery_order_status_from_shipped_to_completed(
@@ -799,6 +862,14 @@ def test_shop_cash_delivery_order_status_from_shipped_to_completed(
     assert data["is_delivered"] is True
     assert data["is_picked_up"] is False
 
+    order.refresh_from_db()
+    assert order.status == "COMPLETED"
+    assert order.completed_at is not None
+
+    group.refresh_from_db()
+    assert group.status == "FULFILLED"
+    assert group.completed_at is not None
+
 
 def test_shop_cash_delivery_order_status_from_shipped_to_completed_without_payment(
     client,
@@ -830,6 +901,14 @@ def test_shop_cash_delivery_order_status_from_shipped_to_completed_without_payme
     assert res.data["code"] == "invalid_payment_status"
     expected_msg = "Cash orders must be marked paid before completing."
     assert res.data["message"] == expected_msg
+
+    order.refresh_from_db()
+    assert order.status == "SHIPPED"
+    assert order.completed_at is None
+
+    group.refresh_from_db()
+    assert group.status != "COMPLETED"
+    assert group.completed_at is None
 
 
 @pytest.mark.parametrize(
@@ -870,6 +949,14 @@ def test_update_shop_cash_delivery_order_status_from_shipped_to_other_statuses(
     assert res.data["code"] == "invalid_status_transition"
     expected_msg = f"Invalid transition from SHIPPED to {new_status}."
     assert res.data["message"] == expected_msg
+
+    order.refresh_from_db()
+    assert order.status == "SHIPPED"
+    timestamp = getattr(order, f"{new_status.lower()}_at")
+    assert timestamp is None
+
+    group.refresh_from_db()
+    group.cancelled_at is None
 
 
 # ===================================================
@@ -925,6 +1012,11 @@ def test_update_shop_digital_order_status_without_payment(
     assert res.data["code"] == "invalid_payment_status"
     expected_msg = "Digital orders must be paid before transition."
     assert res.data["message"] == expected_msg
+    
+    order.refresh_from_db()
+    assert order.status == old_status
+    timestamp = getattr(order, f"{new_status.lower()}_at")
+    assert timestamp is None
 
 
 @pytest.mark.parametrize(
@@ -970,6 +1062,10 @@ def test_update_shop_digital_order_status_from_pending_to_processing(
     assert data["is_picked_up"] is False
     assert data["delivery_date"] is None
 
+    order.refresh_from_db()
+    order.status == "PROCESSING"
+    order.processing_at is not None
+
 
 @pytest.mark.parametrize(
     "new_status",
@@ -1012,6 +1108,11 @@ def test_update_shop_digital_order_status_from_pending_to_other_statuses(
     expected_msg = f"Invalid transition from PENDING to {new_status}."
     assert res.data["message"] == expected_msg
 
+    order.refresh_from_db()
+    assert order.status == "PENDING"
+    timestamp = getattr(order, f"{new_status.lower()}_at")
+    assert timestamp is None
+
 
 def test_update_shop_digital_delivery_order_status_from_processing_to_shipped(
     client,
@@ -1046,6 +1147,10 @@ def test_update_shop_digital_delivery_order_status_from_processing_to_shipped(
     assert res.status_code == status.HTTP_200_OK
     data = res.data["data"]
     assert data["status"] == "SHIPPED"
+
+    order.refresh_from_db()
+    assert order.status == "SHIPPED"
+    assert order.shipped_at is not None
 
 
 def test_update_shop_digital_delivery_order_status_from_processing_to_completed(
@@ -1084,6 +1189,10 @@ def test_update_shop_digital_delivery_order_status_from_processing_to_completed(
     expected_msg = f"Invalid transition from PROCESSING to COMPLETED."
     assert res.data["message"] == expected_msg
 
+    order.refresh_from_db()
+    assert order.status == "PROCESSING"
+    assert order.completed_at is None
+
 
 def test_update_shop_digital_delivery_order_status_from_shipped_to_completed(
     client,
@@ -1121,6 +1230,10 @@ def test_update_shop_digital_delivery_order_status_from_shipped_to_completed(
     assert data["is_paid"] is True
     assert data["paid_at"] is not None
     assert data["completed_at"] is not None
+
+    order.refresh_from_db()
+    assert order.status == "COMPLETED"
+    assert order.completed_at is not None
 
 
 @pytest.mark.parametrize(
@@ -1164,6 +1277,11 @@ def test_update_shop_digital_delivery_order_status_from_shipped_to_other_statuse
     assert res.data["code"] == "invalid_status_transition"
     expected_msg = f"Invalid transition from SHIPPED to {new_status}."
     assert res.data["message"] == expected_msg
+ 
+    order.refresh_from_db()
+    assert order.status == "SHIPPED"
+    timestamp = getattr(order, f"{new_status.lower()}_at")
+    assert timestamp is None
 
 
 def test_update_shop_digital_pickup_order_status_from_processing_to_completed(
@@ -1201,6 +1319,10 @@ def test_update_shop_digital_pickup_order_status_from_processing_to_completed(
     assert data["status"] == "COMPLETED"
     assert data["completed_at"] is not None
 
+    order.refresh_from_db()
+    assert order.status == "COMPLETED"
+    assert order.completed_at is not None
+
 
 def test_update_shop_digital_pickup_order_status_from_processing_to_shipped(
     client,
@@ -1237,6 +1359,10 @@ def test_update_shop_digital_pickup_order_status_from_processing_to_shipped(
     assert res.data["code"] == "invalid_status_transition"
     expected_msg = f"PICKUP orders can not be shipped."
     assert res.data["message"] == expected_msg
+
+    order.refresh_from_db()
+    assert order.status == "PROCESSING"
+    assert order.shipped_at is None
 
 
 # =================================================
