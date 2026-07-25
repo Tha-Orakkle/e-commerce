@@ -108,6 +108,18 @@ class ShopOrderStatusUpdateView(APIView):
     Admin endpoint to update order status.
     """
     permission_classes = [IsStaff]
+    
+    def get_object(self, order_id):
+        user = self.request.user
+        if user.is_superuser:
+            return Order.objects.select_related(
+                'group__payment'
+            ).filter(id=order_id).first()
+
+        shop = user.owned_shop if user.is_shopowner else user.shop
+        return shop.orders.select_related(
+            'group__payment'
+        ).filter(id=order_id).first()
 
     @extend_schema(**update_shop_order_status_schema)
     def post(self, request, order_id):
@@ -115,7 +127,7 @@ class ShopOrderStatusUpdateView(APIView):
         Update the status of an order.
         """
         validate_id(order_id, 'order')
-        order = Order.objects.select_related('group__payment').filter(id=order_id).first()
+        order = self.get_object(order_id)
         if not order:
             raise ErrorException(
                 detail="No order matching the given ID found.",

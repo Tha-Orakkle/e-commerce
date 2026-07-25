@@ -14,6 +14,7 @@ pytest_plugins = [
     'cart.tests.fixtures',
     'order.tests.fixtures',
     'product.tests.fixtures',
+    'payment.tests.fixtures',
     'user.tests.fixtures'
 ]
 

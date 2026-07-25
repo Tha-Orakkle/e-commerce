@@ -125,29 +125,53 @@ class OrderStateMachine:
                 field = 'is_picked_up'
             return field
         return None
-
+    
     def _update_group_status(self, new_status):
         qs = self.group.orders.all()
-        total = qs.count()
-        completed = qs.filter(status='COMPLETED').count()
+        total_orders_count = qs.count()
+        updated_fields = set()
 
-        if total == 0:
-            return False
+        if total_orders_count == 0:
+            return updated_fields
 
-        if total == completed:
-            if self.group.status != 'FULFILLED':
-                self.group.status = 'FULFILLED'
-                # implement on commit operation to anonymise user data if user is deleted
-                return True
-            return False
+        # completed orders
+        if self.group.is_fulfilled():
+            if self.group.status != OrderGroupStatus.FULFILLED:
+                self.group.status = OrderGroupStatus.FULFILLED
+                self.group.completed_at = now()
+                updated_fields.update({"completed_at", "status"})
 
-        if completed > 0 and self.group.status != 'PARTIALLY_FULFILLED':
-            self.group.status = 'PARTIALLY_FULFILLED'
-            return True 
-        return False   
+        # partially fulfilled orders
+        elif self.group.is_partially_fulfilled():
+            if self.group.status != OrderGroupStatus.PARTIALLY_FULFILLED:
+                self.group.status = OrderGroupStatus.PARTIALLY_FULFILLED
+                updated_fields.add("status")
 
-    def _update_is_paid_for_completed_cash_order(self, new_status):
-        if new_status == 'COMPLETED' and self.group.payment_method == 'CASH' and self.payment_status:
+        # processing orders
+        elif self.group.is_processing():
+            if self.group.status != OrderGroupStatus.PROCESSING:
+                self.group.status = OrderGroupStatus.PROCESSING
+                updated_fields.add("status")
+
+        # completed with cancellations
+        elif self.group.is_fulfilled_with_cancellations():
+            if self.group.status != OrderGroupStatus.FULFILLED_WITH_CANCELLATIONS:
+                self.group.status = OrderGroupStatus.FULFILLED_WITH_CANCELLATIONS
+                self.group.completed_at = now()
+                updated_fields.update({"completed_at", "status"})
+
+        # cancelled orders
+        elif self.group.is_cancelled():
+            if self.group.status != OrderGroupStatus.CANCELLED:
+                self.group.status = OrderGroupStatus.CANCELLED
+                self.group.cancelled_at = now()
+                updated_fields.update({"cancelled_at", "status"})
+    
+        return updated_fields
+
+    def _update_is_paid_cash_order(self, new_status):
+        allowed = ['COMPLETED', 'PROCESSING', 'SHIPPED']
+        if new_status in allowed and self.group.payment_method == 'CASH' and self.payment_status:
             self.order.is_paid = True
             self.order.paid_at = now()
             return True
@@ -215,7 +239,7 @@ class OrderStateMachine:
             self._update_timestamp(rules)
             f = self._update_is_delivered_or_picked(new_status)
             uf = rules.get('update_field')
-            pf = self._update_is_paid_for_completed_cash_order(new_status)
+            pf = self._update_is_paid_cash_order(new_status)
             
             if f:
                 update_fields.append(f)
@@ -227,8 +251,9 @@ class OrderStateMachine:
             update_fields = list(dict.fromkeys(update_fields))  # dedupe duplicate fields
             self.order.save(update_fields=update_fields)
             
-            if self._update_group_status(new_status):
-                self.group.save(update_fields=['status'])
+            group_update_fields = self._update_group_status(new_status)
+            if group_update_fields:
+                self.group.save(update_fields=list(group_update_fields))
             
             if new_status == 'CANCELLED':
                 transaction.on_commit(

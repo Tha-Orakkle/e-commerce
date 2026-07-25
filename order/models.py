@@ -13,7 +13,9 @@ User = get_user_model()
 
 class OrderGroupStatus(models.TextChoices):
     PENDING = 'PENDING', 'Pending'
+    PROCESSING = 'PROCESSING', 'Processing'
     PARTIALLY_FULFILLED = 'PARTIALLY_FULFILLED', 'Partially Fulfilled'
+    FULFILLED_WITH_CANCELLATIONS = 'FULFILLED_WITH_CANCELLATIONS', 'Fulfilled with Cancellations'
     FULFILLED = 'FULFILLED', 'Fulfilled'
     CANCELLED = 'CANCELLED', 'Cancelled'
 
@@ -42,7 +44,7 @@ class OrderGroup(models.Model):
     """
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
-    status = models.CharField(max_length=20, choices=OrderGroupStatus.choices, default=OrderGroupStatus.PENDING)
+    status = models.CharField(max_length=30, choices=OrderGroupStatus.choices, default=OrderGroupStatus.PENDING)
     payment_method = models.CharField(max_length=15, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     fulfillment_method = models.CharField(max_length=9, choices=FulFillmentMethod.choices, default=FulFillmentMethod.PICKUP)
@@ -82,7 +84,37 @@ class OrderGroup(models.Model):
     def is_paid(self):
         return all(order.is_paid for order in self.orders.all())
     
+    def is_processing(self):
+        orders = self.orders.all()
+        order_statuses = [order.status for order in orders]
+        return any(status == OrderStatus.PROCESSING for status in order_statuses)
     
+    def is_fulfilled(self):
+        orders = self.orders.all()
+        order_statuses = [order.status for order in orders]
+        return all(status == OrderStatus.COMPLETED for status in order_statuses)
+
+    def is_partially_fulfilled(self):
+        orders = self.orders.all()
+        order_statuses = [order.status for order in orders]
+        return (any(status == OrderStatus.COMPLETED for status in order_statuses)
+                and any(status in [
+                    OrderStatus.PENDING, OrderStatus.PROCESSING, OrderStatus.SHIPPED
+                ] for status in order_statuses))
+        
+    def is_fulfilled_with_cancellations(self):
+        qs = self.orders.all()
+        total = qs.count()
+        cancelled = qs.filter(status=OrderStatus.CANCELLED).count()
+        completed = qs.filter(status=OrderStatus.COMPLETED).count()
+        return cancelled > 0 and completed > 0 and total == (cancelled + completed)
+
+    def is_cancelled(self):
+        orders = self.orders.all()
+        order_statuses = [order.status for order in orders]
+        return all(status == OrderStatus.CANCELLED for status in order_statuses)
+    
+
     def _denormalize_shipping_address(self):
         """
         Denormalize data in case the Shipping Address object is deleted.

@@ -16,9 +16,9 @@ def validate_delivery_date(delivery_date):
         )
     try:
         delivery_date = datetime.strptime(delivery_date, '%Y-%m-%d').date()
-    except ValueError:
+    except (ValueError, TypeError):
         raise ErrorException(
-            detail="Invalid date format. Use ISO format (YYYY-MM-DD).",
+            detail="Invalid delivery date format. Please use the format 'YYYY-MM-DD'.",
             code='invalid_date_format'
         )
     

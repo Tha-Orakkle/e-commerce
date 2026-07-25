@@ -27,11 +27,12 @@ def order_group_factory(customer_factory, shipping_address_factory):
 
 
 @pytest.fixture
-def order_factory():
+def order_factory(shopowner_factory):
     """
     Factory to create order for each shopowner.
     """
-    def create_order(group, shop, **kwargs):
+    def create_order(group, shop=None, **kwargs):
+        shop = shop or shopowner_factory().owned_shop
         return Order.objects.create(
             group=group,
             shop=shop,
