@@ -14,7 +14,7 @@ urlpatterns = [
     path('checkout/', CheckoutView.as_view(), name='checkout'),
     path('order-groups/', CustomerOrderGroupListView.as_view(), name='order-groups'),
     path('order-groups/<str:order_group_id>/', CustomerOrderGroupView.as_view(), name='order-group'), 
-    path('order-groups/<str:order_group_id>/cancel/', CancelCustomerOrderGroupView.as_view(), name='cancel-order'),
+    path('order-groups/<str:order_group_id>/cancel/', CancelCustomerOrderGroupView.as_view(), name='cancel-order-group'),
     
     path('shop/orders/', ShopOrderView.as_view(), name='shop-orders'), # Get all orders for a shop
     path('shop/orders/<str:order_id>/', ShopOrderDetailView.as_view(), name='shop-order'),
