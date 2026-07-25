@@ -11,12 +11,18 @@ from common.exceptions import ErrorException
 from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
 from order.api.v1.swagger import cancel_customer_order_group_schema
-from order.models import Order
+from order.models import OrderGroup, Order
 from order.tasks import restock_inventory_with_cancelled_order
 
 
 class CancelCustomerOrderGroupView(APIView):
     permission_classes = [IsCustomer]
+    
+    def get_object(self, group_id):
+        user = self.request.user
+        if user.is_superuser:
+            return OrderGroup.objects.filter(id=group_id).first()
+        return user.order_groups.filter(id=group_id).first()
 
     @extend_schema(**cancel_customer_order_group_schema)
     def post(self, request, order_group_id):
@@ -25,7 +31,7 @@ class CancelCustomerOrderGroupView(APIView):
         processed and not more than 4 hours.
         """
         validate_id(order_group_id, 'order group')
-        o_group = request.user.order_groups.filter(id=order_group_id).first()
+        o_group = self.get_object(order_group_id)
         if not o_group:
             raise ErrorException(
                 detail="No order group matching the given ID found.",
