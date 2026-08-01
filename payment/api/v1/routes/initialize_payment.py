@@ -1,5 +1,6 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -8,9 +9,9 @@ from common.exceptions import ErrorException
 from common.permissions import IsCustomer
 from common.cores.validators import validate_id
 from order.models import OrderGroup, OrderGroupStatus, PaymentMethod
+from payment.api.v1.serializers import InitializePaymentSerializer
 from payment.api.v1.swagger import initialize_payment_schema
 from payment.domain.exceptions import DuplicatePaymentError, PaymentProviderError
-from payment.services import PAYMENT_SERVICES
 
 
 class InitializePaymentView(APIView):
@@ -69,18 +70,23 @@ class InitializePaymentView(APIView):
         self.validate_order_group_payment_method(order_group)
         self.validate_order_group_status(order_group)
 
-    def get_payment_service(self, service_type):
+    def get_payment_service(self):
         """
         Get the class for the payment service type passed.
         If no service_type is found, raise Error.
         """
-        service = PAYMENT_SERVICES.get(service_type)
-        if not service:
+        serializer = InitializePaymentSerializer(
+            data=self.request.data
+        )
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
             raise ErrorException(
-                detail="Please input a supported service type.",
-                code="invalid_service_type"
+                detail="Payment initialization failed.",
+                code="validation_error",
+                errors=e.detail
             )
-        return service
+        return serializer.validated_data["service"]
 
 
     @extend_schema(**initialize_payment_schema)
@@ -89,9 +95,8 @@ class InitializePaymentView(APIView):
 
         order_group = self.get_order_group_object(order_group_id)
         self.validate_order_group(order_group)
-        service_type = request.data.get("service", "").lower()
 
-        service = self.get_payment_service(service_type)
+        service = self.get_payment_service()
         service = service(user=order_group.user, group=order_group)
 
         try:
