@@ -124,7 +124,7 @@ class CheckoutService:
                 price=price
             ))
             
-    def _finalise(self):
+    def _finalize(self):
         """
         Hit DB with the new orders and items.
         """
@@ -157,6 +157,6 @@ class CheckoutService:
             self._validate_and_prepare()
             self._create_order_group()
             self._create_orders_and_items()
-            self._finalise()
+            self._finalize()
             
         return self.order_group

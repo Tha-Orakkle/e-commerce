@@ -95,7 +95,7 @@ class InitializePaymentView(APIView):
         service = service(user=order_group.user, group=order_group)
 
         try:
-            authorization_url = service.initialise_payment()
+            authorization_url = service.initialize_payment()
         except (DuplicatePaymentError, PaymentProviderError) as e:
             raise ErrorException(
                 detail=e.detail,

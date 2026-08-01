@@ -85,9 +85,9 @@ class PaystackService(BasePaymentService):
         response_data = self._make_paystack_request(data)
         return response_data["data"]["authorization_url"]
 
-    def initialise_payment(self):
+    def initialize_payment(self):
         """
-        Initialise payment: verify payment and get authorization url
+        Initialize payment: verify payment and get authorization url
         from Paystack.
         """
         self.payment = self._verify_order_group_payment()
