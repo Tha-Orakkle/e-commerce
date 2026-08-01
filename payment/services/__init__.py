@@ -1,5 +1,5 @@
 from .paystack import PaystackService
 
-PAYMENT_SERVICES = {
+SERVICE_MAP = {
     "paystack": PaystackService
 }
