@@ -24,7 +24,7 @@ class PaystackService(BasePaymentService):
             response = requests.post(
                 settings.PAYSTACK_INITIALIZE_URL,
                 json=data,
-                # headers=self.headers,
+                headers=self.headers,
                 timeout=5
             )
             response.raise_for_status()
@@ -59,8 +59,8 @@ class PaystackService(BasePaymentService):
 
         except requests.ConnectionError:
             raise PaystackError(
-                detail="Unable to connect to Paystack.",
-                code="payment_connection_error",
+                detail="Failed to connect to Paystack. Please try again.",
+                code="paystack_connection_error",
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
@@ -85,9 +85,9 @@ class PaystackService(BasePaymentService):
         response_data = self._make_paystack_request(data)
         return response_data["data"]["authorization_url"]
 
-    def initialise_payment(self):
+    def initialize_payment(self):
         """
-        Initialise payment: verify payment and get authorization url
+        Initialize payment: verify payment and get authorization url
         from Paystack.
         """
         self.payment = self._verify_order_group_payment()
