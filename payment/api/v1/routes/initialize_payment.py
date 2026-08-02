@@ -93,10 +93,11 @@ class InitializePaymentView(APIView):
     def post(self, request, order_group_id):
         validate_id(order_group_id, "order group")
 
+        service = self.get_payment_service()
+
         order_group = self.get_order_group_object(order_group_id)
         self.validate_order_group(order_group)
 
-        service = self.get_payment_service()
         service = service(user=order_group.user, group=order_group)
 
         try:
