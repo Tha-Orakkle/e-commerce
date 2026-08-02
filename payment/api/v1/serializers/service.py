@@ -14,6 +14,6 @@ class InitializePaymentSerializer(serializers.Serializer):
 
         if value not in SERVICE_MAP:
             raise serializers.ValidationError(
-                "Input a supported service type."
+                f"{value} is not a supported service type."
             )
         return SERVICE_MAP[value]
