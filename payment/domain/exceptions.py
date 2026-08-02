@@ -31,7 +31,6 @@ class DuplicatePaymentError(Exception):
     Raised when a duplicate payment transaction is carried.
     """
     def __init__(self):
-        super().__init__(self.detail)
         self.detail = "Payment has already been verified."
         self.code = "duplicate_transaction"
         self.status_code = status.HTTP_400_BAD_REQUEST
