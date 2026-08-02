@@ -37,13 +37,24 @@ class VerifyPaymentView(APIView):
     """
     permission_classes = [IsCustomer]
 
+    def get_object(self, reference):
+        """
+        Get payment object by reference.
+        """
+        user = self.request.user
+        if user.is_superuser:
+            return Payment.objects.filter(reference=reference).first()
+        return Payment.objects.filter(
+            reference=reference, order_group__user=user
+        ).first()
+
     @extend_schema(**verify_payment_schema)
     def get(self, request, reference):
         """"
         Verify payment from paystack.
         """
         validate_id(reference, "payment reference")
-        payment = Payment.objects.filter(reference=reference).first()
+        payment = self.get_object(reference)
         if not payment:
             raise ErrorException(
                 detail="No payment matching the given reference found.",
