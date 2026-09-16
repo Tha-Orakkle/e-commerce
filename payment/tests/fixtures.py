@@ -19,3 +19,11 @@ def payment_factory():
         )
 
     return create_payment
+
+
+@pytest.fixture
+def mock_paystack_post(mocker):
+    """
+    Mocks the post request to the external payment services.
+    """
+    return mocker.patch("payment.services.paystack.requests.post")    

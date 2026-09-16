@@ -25,7 +25,7 @@ class PasswordUpdateSerializer(serializers.Serializer):
     
     def __init__(self, *args, **kwargs):
         """
-        Initialises the update password serializer.
+        Initializes the update password serializer.
         """
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
