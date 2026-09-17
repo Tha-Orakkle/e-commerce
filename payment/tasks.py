@@ -3,11 +3,14 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.timezone import now
 
+import logging
 import requests
 
-from e_core import logger
 from order.models import Order
 from payment.models import Payment
+
+logger = logging.getLogger(__name__)
+
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def verify_paystack_payment(self, data):
