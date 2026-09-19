@@ -1,0 +1,9 @@
+{
+  "status": true,
+  "message": "Authorization URL created",
+  "data": {
+    "authorization_url": "https://checkout.paystack.com/rwie8z2vsylitvk",
+    "access_code": "rwie8z2vsylitvk",
+    "reference": "776f6867-2d95-4e35-b680-4dec913503d3"
+  }
+}
