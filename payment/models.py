@@ -47,7 +47,7 @@ class PaymentStatus(models.TextChoices):
     VERIFIED = "VERIFIED", "Verified"
 
 
-class TransactionStatus(models.TextChoices):
+class PaymentTransactionStatus(models.TextChoices):
     PENDING = "PENDING", "Pending"
     SUCCESS = "SUCCESS", "Success"
     FAILED = "FAILED", "Failed"
@@ -106,15 +106,15 @@ class PaymentTransaction(models.Model):
         choices=PaymentProvider.choices,
         null=False
     )
-    transaction_id = models.CharField(max_length=12)
+    provider_transaction_id = models.CharField(max_length=12)
     channel = models.CharField(max_length=20)
     currency = models.CharField(max_length=3)
     amount = models.PositiveBigIntegerField()
 
     status = models.CharField(
         max_length=10,
-        choices=TransactionStatus.choices,
-        default=TransactionStatus.PENDING
+        choices=PaymentTransactionStatus.choices,
+        default=PaymentTransactionStatus.PENDING
     )
     paid_at = models.DateTimeField(null=True)
     expires_at = models.DateTimeField()
