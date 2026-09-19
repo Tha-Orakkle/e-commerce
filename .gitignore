@@ -18,6 +18,6 @@ geodata.meta.json
 user/api/v1/routes/google_oauth.py
 test.rest
 todo.txt
-alias.sh
+# alias.sh
 media/
 req.py
