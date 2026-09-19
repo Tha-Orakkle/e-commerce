@@ -1,5 +1,4 @@
-from decimal import Decimal
-from typing import Protocol, Any
+from typing import Protocol
 
 
 class PaymentGateway(Protocol):
@@ -11,10 +10,10 @@ class PaymentGateway(Protocol):
         self,
         *,
         reference: str,
-        amount: Decimal,
+        amount: int,
         currency: str,
-        customer_email: str,
-        metadata: dict[str, Any]
+        email: str,
+        metadata: dict[str, str]
     ):
         """
         Initialize payment and get authorization url

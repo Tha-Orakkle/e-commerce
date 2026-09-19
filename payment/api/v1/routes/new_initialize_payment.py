@@ -8,6 +8,7 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.exceptions import ErrorException
 from order.models import OrderGroup, OrderGroupStatus, PaymentMethod
 from payment.api.v1.serializers.payment import InitializePaymentSerializer
+from payment.domain.exceptions import DuplicatePaymentError, PaymentProviderError
 from payment.gateways.registry import PaymentGatewayRegistry
 from payment.services import InitializePaymentService
 
@@ -87,27 +88,29 @@ class PaymentCreateView(APIView):
 
         provider = self.get_validated_provider()
         
-        gateway_factory = PaymentGatewayRegistry()
+        gateway_registry = PaymentGatewayRegistry()
 
         service = InitializePaymentService(
-            gateway_fatory=gateway_factory
+            gateway_registry=gateway_registry
         )
 
         try:
-            payment, gateway_response = service.initialize_payment(
+            transaction = service.initialize(
                 order_group=order_group,
                 provider=provider,
             )
-        except:
-            pass
+        except (DuplicatePaymentError, PaymentProviderError) as exc:
+            raise ErrorException(
+                detail=exc.detail,
+                code=exc.code,
+                status_code=exc.status_code
+            )
 
         return Response(SuccessAPIResponse(
             message="Payment initialized successfully.",
             data={
-                "reference": payment.reference,
-                "provider": payment.provider,
-                "authorization_url": (
-                    gateway_response["authorization_url"]
-                )
+                "reference": transaction.reference,
+                "provider": transaction.provider,
+                "authorization_url": transaction.authorization_url
             }
         ), status=status.HTTP_201_CREATED)
