@@ -5,7 +5,7 @@ class PaymentGateway(Protocol):
     def verify_transaction(self, reference: str):
         """Verify payment with provider."""
         ...
-        
+
     def initialize_payment(
         self,
         *,
