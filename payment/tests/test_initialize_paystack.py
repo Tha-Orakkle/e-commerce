@@ -1,13 +1,12 @@
-from django.utils.timezone import now
-from django.urls import reverse
-from rest_framework import status
+import uuid
 
 import pytest
 import requests
-import uuid
+from django.urls import reverse
+from django.utils.timezone import now
+from rest_framework import status
 
-from order.models import PaymentMethod, OrderGroupStatus
-from payment.domain.exceptions import PaystackError
+from order.models import OrderGroupStatus, PaymentMethod
 
 PAYMENT_PAYLOAD = {"service": "paystack"}
 
