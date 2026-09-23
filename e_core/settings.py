@@ -10,11 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from datetime import timedelta
-from dotenv import load_dotenv
 from pathlib import Path
 
-import os
+from dotenv import load_dotenv
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -271,7 +271,7 @@ PAYSTACK_VERIFY_URL="https://api.paystack.co/transaction/verify/"
 
 
 PAYSTACK = {
-    "SECREY_KEY": os.getenv('PAYSTACK_SECRET_KEY'),
+    "SECRET_KEY": os.getenv('PAYSTACK_SECRET_KEY'),
     "PUBLIC_KEY": os.getenv('PAYSTACK_PUBLIC_KEY'),
     "INITIALIZE_URL": "https://api.paystack.co/transaction/initialize",
     "VERIFY_URL": "https://api.paystack.co/transaction/verify/"
