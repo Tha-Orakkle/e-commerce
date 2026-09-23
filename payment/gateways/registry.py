@@ -1,6 +1,7 @@
-from .ports import PaymentGateway
 from payment.models import PaymentProvider
+
 from .paystack import PaystackGateway
+from .ports import PaymentGateway
 
 
 class PaymentGatewayRegistry:
