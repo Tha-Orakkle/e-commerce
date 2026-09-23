@@ -1,5 +1,5 @@
+from .initialize import InitializePaymentSerializer
 from .payment import PaymentSerializer
-from .service import InitializePaymentSerializer
 
 __all__ = [
     "InitializePaymentSerializer",
