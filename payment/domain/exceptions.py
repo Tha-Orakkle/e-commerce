@@ -1,36 +1,45 @@
 from rest_framework import status
 
+from common.exceptions import ApplicationError
 
-class PaymentProviderError(Exception):
-    """
-    Raise error errors from requests to payment services
-    APIs.
-    """
+
+class PaymentError(ApplicationError):
+    """Base exception for payment-related errors."""
+
+
+class PaymentGatewayError(PaymentError):
+    """An external payment gateway operation failed."""
+
     code = "payment_provider_error"
     status_code = status.HTTP_502_BAD_GATEWAY
 
-    def __init__(self, detail, code=None, status_code=None):
-        super().__init__(detail)
-        self.detail = detail
-        self.code = self.code if code is None else code
-        self.status_code = (
-            self.status_code
-            if status_code is None
-            else status_code)
 
+class DuplicatePaymentError(PaymentError):
+    """
+    Raised for duplicate payment transaction.
+    """
 
-class PaystackError(PaymentProviderError):
-    """
-    Raised for errors from requests to Paystack APIs.
-    """
-    code = "paystack_error"
+    code = "duplicate_transaction"
+    status_code = status.HTTP_409_CONFLICT
 
-
-class DuplicatePaymentError(Exception):
-    """
-    Raised when a duplicate payment transaction is carried.
-    """
     def __init__(self):
-        self.detail = "Payment has already been verified."
-        self.code = "duplicate_transaction"
-        self.status_code = status.HTTP_400_BAD_REQUEST
+        super().__init__("Payment has already been verified.")
+
+
+class PaymentTransactionStatusError(PaymentError):
+    """Raised for invalid payment transaction status."""
+
+    code = "invalid_payment_transaction_status"
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+
+class PaymentTransactionStateChangedError(PaymentError):
+    """Raise for changed payment transaction state"""
+
+    code = "payment_state_changed"
+    status_code = status.HTTP_409_CONFLICT
+
+    def __init__(self):
+        super().__init__(
+            "Payment transaction changed while initializing."
+        )
