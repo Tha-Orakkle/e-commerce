@@ -9,7 +9,12 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Payment
-        fields = ['reference', 'verified', 'amount', 'paid_at']
+        fields = [  # noqa: RUF012
+            "amount",
+            "currency",
+            "paid_at",
+            "status"
+        ]
 
     @extend_schema_field(OpenApiTypes.FLOAT)
     def get_amount(self, obj):
