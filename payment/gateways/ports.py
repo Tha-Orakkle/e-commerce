@@ -1,10 +1,7 @@
-from typing import Protocol
+from typing import Any, Protocol
 
 
 class PaymentGateway(Protocol):
-    def verify_transaction(self, reference: str):
-        """Verify payment with provider."""
-        ...
 
     def initialize_payment(
         self,
@@ -14,9 +11,17 @@ class PaymentGateway(Protocol):
         currency: str,
         email: str,
         metadata: dict[str, str]
-    ):
+    ) -> dict[str, Any]:
         """
         Initialize payment and get authorization url
         from provider.
         """
+        ...
+
+    def verify_payment(
+        self,
+        *,
+        reference: str
+    ) -> dict[str, Any]:
+        """Verify payment with provider."""
         ...
