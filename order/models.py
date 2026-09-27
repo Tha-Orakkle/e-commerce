@@ -161,6 +161,7 @@ class Order(models.Model):
     is_picked_up = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     delivery_date = models.DateField(blank=True, null=True)
     paid_at = models.DateTimeField(blank=True, null=True)
     processing_at = models.DateTimeField(blank=True, null=True)
