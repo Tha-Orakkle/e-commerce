@@ -11,14 +11,13 @@ from common.utils.api_responses import SuccessAPIResponse
 from order.models import OrderGroup, OrderGroupStatus, PaymentMethod
 from payment.api.v1.serializers import InitializePaymentSerializer
 from payment.api.v1.swagger import initialize_payment_schema
-from payment.domain.exceptions import DuplicatePaymentError, PaymentError
+from payment.domain.exceptions import PaymentError
 from payment.gateways.registry import PaymentGatewayRegistry
-from payment.models import PaymentTransactionStatus
 from payment.services import InitializePaymentService
 
 
 class InitializePaymentView(APIView):
-    permission_classes = [IsCustomer]
+    permission_classes = [IsCustomer]  # noqa: RUF012
 
     def get_order_group_object(self, id):
         """
@@ -109,14 +108,6 @@ class InitializePaymentView(APIView):
                 provider=provider,
             )
         except PaymentError as exc:
-            raise ErrorException(
-                detail=exc.detail,
-                code=exc.code,
-                status_code=exc.status_code
-            )
-
-        if result.status == PaymentTransactionStatus.SUCCESS:
-            exc = DuplicatePaymentError()
             raise ErrorException(
                 detail=exc.detail,
                 code=exc.code,
