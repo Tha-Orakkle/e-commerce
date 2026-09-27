@@ -20,6 +20,9 @@ class PaymentTransactionStatus(models.TextChoices):
     SUCCESS = "SUCCESS", "Success"
     FAILED = "FAILED", "Failed"
     EXPIRED = "EXPIRED", "Expired"
+    INITIALIZATION_FAILED = "INITIALIZATION_FAILED", "Initialization Failed"
+    INCONSISTENT = "INCONSISTENT", "Inconsistent"
+    REVERSED = "REVERSED", "Reversed"
 
 
 class Payment(models.Model):
@@ -75,13 +78,17 @@ class PaymentTransaction(models.Model):
         choices=PaymentProvider.choices,
         null=False
     )
-    provider_transaction_id = models.CharField(max_length=12)
+    # provider_transaction_id = models.CharField(max_length=12)
     channel = models.CharField(max_length=20)
     currency = models.CharField(max_length=3)
     amount = models.PositiveBigIntegerField()
+    provider_status = models.CharField(
+        max_length=10,
+        null=True
+    )
 
     status = models.CharField(
-        max_length=10,
+        max_length=24,
         choices=PaymentTransactionStatus.choices,
         default=PaymentTransactionStatus.PENDING
     )
@@ -91,10 +98,10 @@ class PaymentTransaction(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     verified_at = models.DateTimeField(null=True, blank=True)
-    verification_failure_code = models.CharField(max_length=64)
-    verification_failure_reason = models.CharField(max_length=255)
+    verification_failure_reason = models.CharField(max_length=255, null=True)
 
     metadata = models.JSONField(null=True, blank=True)
+    provider_response = models.JSONField(null=True, blank=True)
     authorization_url = models.URLField(
         max_length=500,
         blank=True,
@@ -105,4 +112,4 @@ class PaymentTransaction(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"<Payment: {self.id}> {self.amount} {self.status}"
+        return f"<PaymentTransaction: {self.id}> {self.amount} {self.status}"
