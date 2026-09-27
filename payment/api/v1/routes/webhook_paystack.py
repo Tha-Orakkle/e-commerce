@@ -1,17 +1,18 @@
-from drf_spectacular.utils import extend_schema
+import hashlib
+import hmac
+import json
+
 from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-
-import hmac, hashlib, json
+from rest_framework.views import APIView
 
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
-from payment.models import Payment
 from payment.api.v1.swagger import paystack_webhook_schema
 from payment.tasks import verify_paystack_payment
 
@@ -21,7 +22,7 @@ class PaystackWebhookView(APIView):
     """
     Webhook to catch successful payments events triggered by Paystack.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # noqa: RUF012
 
     @extend_schema(**paystack_webhook_schema)
     def post(self, request):
