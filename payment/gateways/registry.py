@@ -1,3 +1,4 @@
+from payment.domain.exceptions import UnsupportedPaymentProviderError
 from payment.models import PaymentProvider
 
 from .paystack import PaystackGateway
@@ -14,6 +15,6 @@ class PaymentGatewayRegistry:
         try:
             return self._gateways[provider]
         except KeyError:
-            raise ValueError(
+            raise UnsupportedPaymentProviderError(
                 f"Unsupported payment provider: {provider}"
             )
