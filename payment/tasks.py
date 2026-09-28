@@ -1,66 +1,50 @@
-from celery import shared_task
-from django.conf import settings
-from django.db import transaction
-from django.utils.timezone import now
-
 import logging
-import requests
+from uuid import UUID
 
-from order.models import Order
-from payment.models import Payment
+from celery import shared_task
+
+from payment.domain.exceptions import (
+    PaymentGatewayConnectionError,
+    PaymentGatewayTimeoutError,
+)
+from payment.models import PaymentTransaction
+from payment.services.verification import get_payment_verification_service
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def verify_paystack_payment(self, data):
+@shared_task(
+    bind=True,
+    autoretry_for=(
+        PaymentGatewayTimeoutError,
+        PaymentGatewayConnectionError
+    ),
+    retry_backoff=True,
+    max_retries=3
+)
+def verify_payment_task(self, reference: str | UUID):
     """
-    Celery task to verify Paystack payment.
-    This task can be used to verify payments in the background.
+    Background task to verify Paystack payment.
     """
-    if not data or not data.get('reference'):
-        logger.error("Missing payment reference in Paystack webhook data.")
+
+    if not reference:
+        logger.error("Missing reference in provider webhook payload.")
         return
-    reference = data['reference']
 
-    try:
-        payment = Payment.objects.select_related('order_group').filter(reference=reference).first()
-        if not payment:
-            logger.error(f"Payment with reference {reference} not found.")
-            return
-        if payment.verified:
-            logger.info(f"Payment with reference {reference} is already verified.")
-            return
-        
-        verify_url = f"{settings.PAYSTACK_VERIFY_URL}{reference}"
-        headers = {'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}'}
-        res = requests.get(verify_url, headers=headers)
-        res_json = res.json()
-        
-        if res.status_code == 200 and res_json['data']['status'] == 'success':
-            with transaction.atomic():
-                _now = now()
-                paid_at = res_json.get('paid_at', None)
-                if paid_at:
-                    _now = now().fromisoformat(paid_at)
-                    
-                payment.paid_at = _now
-                payment.verified = True
-                orders = list(payment.order_group.orders.all())
-                for order in orders:
-                    order.is_paid = True
-                    order.paid_at = _now
-                Order.objects.bulk_update(orders, ['is_paid', 'paid_at'])
-                payment.save(update_fields=['paid_at', 'verified'])
+    tx = (
+        PaymentTransaction.objects
+        .filter(reference=reference)
+        .first()
+    )
+    if tx is None:
+        logger.error(
+            "No payment transaction associated with provider reference: %s",
+            reference
+        )
+        return
 
-            logger.info(f"Payment with reference {reference} verified successfully.")
-        else:
-            logger.error(f"Payment verification failed for reference {reference}: {res_json.get('message', 'Paystack error')}")
-            raise self.retry(exc=Exception(res_json.get('message', 'Payment verification failed')))
+    verification_service = get_payment_verification_service()
 
-    except requests.RequestException as e:
-        logger.error(f"Error verifying payment with reference {reference}: {str(e)}")
-        raise self.retry(exc=e)
-    except Exception as e:
-        logger.error(f"Unexpected error verifying payment with reference {reference}: {str(e)}")
-        raise self.retry(exc=e)
+    verification_service(
+        transaction_id=tx.id
+    )
