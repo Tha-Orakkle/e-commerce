@@ -45,6 +45,6 @@ def verify_payment_task(self, reference: str | UUID):
 
     verification_service = get_payment_verification_service()
 
-    verification_service(
+    verification_service.verify(
         transaction_id=tx.id
     )
