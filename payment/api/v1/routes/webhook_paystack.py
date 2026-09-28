@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 from payment.api.v1.swagger import paystack_webhook_schema
-from payment.tasks import verify_paystack_payment
+from payment.tasks import verify_payment_task
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -24,24 +24,31 @@ class PaystackWebhookView(APIView):
     """
     permission_classes = [AllowAny]  # noqa: RUF012
 
+    def _extract_reference(self, event):
+        data = event.get("data")
+        return data.get("reference")        
+
     @extend_schema(**paystack_webhook_schema)
     def post(self, request):
         # Check if the request is a valid Paystack webhook
         signature = request.headers.get('x-paystack-signature')
         computed = hmac.new(
-            settings.PAYSTACK_SECRET_KEY.encode(),
+            settings.PAYSTACK.get("SECRET_KEY").encode(),
             request.body,
             hashlib.sha512
         ).hexdigest()
         if computed != signature:
-            raise ErrorException(detail="Invalid signature.", code='invalid_signature')
+            raise ErrorException(
+                detail="Rejected.",
+                code='invalid_signature'
+            )
 
         event = json.loads(request.body)
         if event.get('event') == 'charge.success':
-            data = event.get('data')
+            reference = self._extract_reference(event)
             # perform verification of the payment in the background
-            verify_paystack_payment.delay(data=data)
+            verify_payment_task.delay(reference=reference)
 
         return Response(SuccessAPIResponse(
-            message="Webhook processed successfully."
+            message="Accepted."
         ).to_dict(), status=status.HTTP_200_OK)
