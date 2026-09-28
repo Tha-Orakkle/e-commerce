@@ -505,10 +505,13 @@ class PaymentVerificationService:
         except PaymentGatewayError:
             raise
 
-        self._validate_provider_reference(
+        reference_result = self._validate_provider_reference(
             tx=tx,
             provider_data=provider_data
         )
+
+        if reference_result is not None:
+            return reference_result
 
         return self._process_provider_data(
             tx=tx,
