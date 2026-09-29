@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
@@ -22,6 +23,8 @@ from payment.services.verification import (
     PaymentVerificationResult,
     get_payment_verification_service,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class InitializationOperation(StrEnum):
@@ -85,6 +88,9 @@ class InitializePaymentService:
             )
 
             if decision.action == InitializationAction.NEW_ATTEMPT:
+                logger.INFO(
+                    "Retrying the initialization attempt"
+                )
                 continue
 
             if decision.action == InitializationAction.RETURN:
