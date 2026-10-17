@@ -55,6 +55,15 @@ class Payment(models.Model):
     refunded = models.BooleanField(default=False)
     refund_timestamp = models.DateTimeField(null=True)
 
+    class Meta:
+        ordering = ["-created_at"]  # noqa: RUF012
+
+    def __str__(self):
+        return (
+            f"<Payment: {self.id}> {self.currency} "
+            f"{self.amount} {self.status}"
+        )
+
 
 class PaymentTransaction(models.Model):
     """
@@ -109,7 +118,7 @@ class PaymentTransaction(models.Model):
     )
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["-created_at"]  # noqa: RUF012
 
     def __str__(self):
         return f"<PaymentTransaction: {self.id}> {self.amount} {self.status}"
