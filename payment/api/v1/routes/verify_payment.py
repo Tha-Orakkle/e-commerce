@@ -1,16 +1,16 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from common.cores.validators import validate_id
 from common.exceptions import ErrorException
 from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
-from payment.models import Payment
-from payment.api.v1.swagger import verify_payment_schema
 from payment.api.v1.serializers import PaymentSerializer
+from payment.api.v1.swagger import verify_payment_schema
+from payment.models import Payment
 
 
 class TempCallback(APIView):
@@ -20,7 +20,7 @@ class TempCallback(APIView):
     after a successful payment.
     This view is only for testing purposes and should be removed later.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # noqa: RUF012
 
     def get(self, request):
         """
@@ -35,7 +35,7 @@ class VerifyPaymentView(APIView):
     """
     Verify payment.
     """
-    permission_classes = [IsCustomer]
+    permission_classes = [IsCustomer]  # noqa: RUF012
 
     def get_object(self, reference):
         """
@@ -60,14 +60,14 @@ class VerifyPaymentView(APIView):
                 detail="No payment matching the given reference found.",
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
-        
+
         serializer = PaymentSerializer(payment)
         if payment.verified:
             return Response(SuccessAPIResponse(
                 message="Payment is verified.",
                 data=serializer.data
             ).to_dict(), status=status.HTTP_200_OK)
-        
+
         return Response(SuccessAPIResponse(
             message="Payment not verified yet.",
             data=serializer.data
