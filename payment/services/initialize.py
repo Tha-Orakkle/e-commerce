@@ -13,6 +13,7 @@ from payment.domain.exceptions import (
     PaymentTransactionStatusError,
 )
 from payment.gateways.ports import PaymentGateway
+from payment.gateways.registry import PaymentGatewayRegistry
 from payment.models import (
     Payment,
     PaymentStatus,
@@ -68,7 +69,7 @@ class InitializePaymentService:
         PaymentTransactionStatus.INITIALIZATION_FAILED
     }
 
-    def __init__(self, gateway_registry):
+    def __init__(self, gateway_registry:  PaymentGatewayRegistry):
         self.gateway_registry = gateway_registry
 
     def initialize(
@@ -81,6 +82,12 @@ class InitializePaymentService:
         gateway = self.gateway_registry.get(provider)
 
         for _ in range(self.MAX_STATE_RECONCILIATION_RETRIES + 1):
+            logger.info(
+                "Starting payment initialization | "
+                "order_group_id=%s | provider=%s",
+                str(order_group.id), provider,
+            )
+
             decision = self._initialize_attempt(
                 order_group=order_group,
                 provider=provider,
@@ -88,14 +95,23 @@ class InitializePaymentService:
             )
 
             if decision.action == InitializationAction.NEW_ATTEMPT:
-                logger.INFO(
-                    "Retrying the initialization attempt"
-                )
                 continue
 
             if decision.action == InitializationAction.RETURN:
+                logger.info(
+                    "Payment initialization complete | "
+                    "order_group_id=%s | provider=%s | "
+                    "reference=%s",
+                    str(order_group.id), provider,
+                    str(decision.result.reference)
+                )
                 return decision.result
 
+        logger.error(
+            "Payment initialization failed after maximum retries | "
+            "order_group_id=%s | provider=%s",
+            str(order_group.id), provider
+        )
         raise PaymentTransactionStateChangedError()
 
     def _initialize_attempt(
@@ -115,6 +131,12 @@ class InitializePaymentService:
             )
 
             if payment.status == PaymentStatus.VERIFIED:
+                logger.info(
+                    "Payment initialization rejected because "
+                    "payment is already verified |"
+                    "payment_id=%s",
+                    str(payment.id)
+                )
                 raise PaymentAlreadyVerifiedError()
 
             metadata = {
@@ -135,9 +157,19 @@ class InitializePaymentService:
                 operation = InitializationOperation.INITIALIZE
 
             elif tx.status == PaymentTransactionStatus.PENDING:
+                logger.info(
+                    "Existing pending payment transaction found | "
+                    "payment_id=%s | transaction_id=%s",
+                    str(payment.id), str(tx.id)
+                )
                 operation = InitializationOperation.VERIFY
 
             else:
+                logger.error(
+                    "Payment transaction has an unexpected status |"
+                    "payment_id=%s | transaction_id=%s | transaction_status=%s",
+                    str(payment.id), str(tx.id), str(tx.status)
+                )
                 raise PaymentTransactionStatusError(
                     f"Unknown transaction status: {tx.status}"
                 )
@@ -166,6 +198,12 @@ class InitializePaymentService:
             )
 
             if payment.status == PaymentStatus.VERIFIED:
+                logger.info(
+                    "Payment initialization rejected because "
+                    "payment is already verified |"
+                    "payment_id=%s",
+                    str(payment.id)
+                )
                 raise PaymentAlreadyVerifiedError()
 
             tx = (
@@ -175,10 +213,18 @@ class InitializePaymentService:
             )
 
             if payment.active_transaction_id != transaction_id:
-
+                logger.warning(
+                    "Payment active transaction changed during "
+                    "provider operation | operation=%s | "
+                    "payment_id=%s | previous_transaction_id=%s | "
+                    "current_transaction_id=%s",
+                    str(operation), str(payment.id), str(transaction_id),
+                    str(payment.active_transaction_id)
+                )
+                
                 return self._handle_transaction_changed(
                     payment=payment,
-                    operaion=operation,
+                    operation=operation,
                     previous_tx=tx
                 )
 
@@ -202,6 +248,7 @@ class InitializePaymentService:
         metadata: dict[str, str]
     ) -> PaymentTransaction:
 
+
         expires_at = now() + timedelta(minutes=30)
 
         tx = PaymentTransaction.objects.create(
@@ -221,6 +268,12 @@ class InitializePaymentService:
                 "updated_at"
             ]
         )
+        logger.info(
+            "Payment transaction created | payment_id=%s | "
+            "transaction_id=%s",
+            str(payment.id),
+            str(tx.id)
+        )
         return tx
 
     def _mark_previous_transaction_expired(
@@ -239,6 +292,10 @@ class InitializePaymentService:
                 "verification_failure_reason",
                 "updated_at"
             ]
+        )
+        logger.info(
+            "Previous transaction marked as expired | transaction_id=%s",
+            str(tx.id)
         )
 
     def _handle_transaction_changed(
@@ -263,7 +320,6 @@ class InitializePaymentService:
             )
 
         elif current_tx.status == PaymentTransactionStatus.PENDING:
-
             if current_tx.authorization_url:
                 return InitializationDecision(
                     action=InitializationAction.RETURN,
@@ -275,6 +331,12 @@ class InitializePaymentService:
             return InitializationDecision(
                 action=InitializationAction.NEW_ATTEMPT
             )
+
+        logger.error(
+            "Payment active transaction has an unexpected status | "
+            "payment_id=%s | transaction_id=%s | transaction_status=%s",
+            str(payment.id), str(current_tx.id), str(current_tx.status)
+        )
 
         raise PaymentTransactionStatusError(
             f"Unexpected transaction status: {current_tx.status}"
@@ -304,6 +366,7 @@ class InitializePaymentService:
         tx: PaymentTransaction,
         provider_data: dict[str, Any]
     ) -> InitializationDecision:
+
         tx.authorization_url = provider_data.get("authorization_url")
         tx.save(
             update_fields=[
@@ -311,6 +374,13 @@ class InitializePaymentService:
                 "updated_at"
             ]
         )
+
+        logger.info(
+            "Payment initialization reconciled with provider response | "
+            "transaction_id=%s",
+            str(tx.id)
+        )
+
         return InitializationDecision(
             action=InitializationAction.RETURN,
             result=PaymentInitializationResult.from_transaction(tx)
@@ -324,6 +394,12 @@ class InitializePaymentService:
     ) -> InitializationDecision:
 
         if result.is_success:
+            logger.info(
+                "Payment initialization rejected because "
+                "payment is already verified |"
+                "payment_id=%s",
+                str(tx.payment.id)
+            )
             raise PaymentAlreadyVerifiedError()
 
         if result.is_pending:
@@ -338,6 +414,13 @@ class InitializePaymentService:
             or result.is_reversed
             or result.is_inconsistent
         ):
+
+            logger.info(
+                 "Payment verification returned %s transaction state | "
+                 "transaction_id=%s",
+                 result.status,
+                 str(tx.id)
+            )
             return InitializationDecision(
                 action=InitializationAction.NEW_ATTEMPT,
             )

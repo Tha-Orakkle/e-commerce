@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -15,6 +16,7 @@ from payment.domain.exceptions import (
     PaymentGatewayError,
     PaymentMetadataMismatchError,
     PaymentProviderStatusError,
+    PaymentReferenceMismatchError,
     PaymentReferenceNotFoundError,
     PaymentTransactionStateChangedError,
     PaymentVerificationError,
@@ -27,6 +29,7 @@ from payment.models import (
     PaymentTransactionStatus,
 )
 
+logger = logging.getLogger(__name__)
 
 class VerificationStatus(StrEnum):
     SUCCESS = "success"
@@ -150,10 +153,7 @@ class PaymentVerificationService:
             locked_tx = self._get_locked_transaction(id=tx.id)
 
             if locked_tx.status == PaymentTransactionStatus.SUCCESS:
-                return PaymentVerificationResult(
-                    status=VerificationStatus.SUCCESS,
-                    transaction_id=str(locked_tx.id),
-                )
+                return PaymentVerificationResult.success(locked_tx)
 
             locked_tx.status = PaymentTransactionStatus.INITIALIZATION_FAILED
             locked_tx.verification_failure_reason(
@@ -167,6 +167,12 @@ class PaymentVerificationService:
                     "verification_failure_reason",
                     "updated_at"
                 ]
+            )
+
+            logger.warning(
+                "Payment provider could not find transaction reference | "
+                "transaction_id=%s | reference=%s",
+                str(locked_tx.id), str(locked_tx.reference)
             )
 
         return PaymentVerificationResult.reference_not_found(tx)
@@ -195,6 +201,12 @@ class PaymentVerificationService:
                     "provider_response",
                     "updated_at"
                 ]
+            )
+
+            logger.info(
+                "Payment transaction is still pending | "
+                "transaction_id=%s | provider_status=%s",
+                transaction_id, provider_data.get("status")
             )
 
             return PaymentVerificationResult.pending(locked_tx)
@@ -231,6 +243,11 @@ class PaymentVerificationService:
                     "updated_at"
                 ]
             )
+            logger.info(
+                "Payment verification determined transaction failed | "
+                "transaction_id=%s | provider_status=%s",
+                transaction_id, provider_data.get("status")
+            )
 
             return PaymentVerificationResult.failed(locked_tx)
 
@@ -260,6 +277,12 @@ class PaymentVerificationService:
                     "provider_response",
                     "updated_at"
                 ]
+            )
+
+            logger.warning(
+                "Payment verification determined transaction was reversed | "
+                "transaction_id=%s",
+                transaction_id
             )
 
             return PaymentVerificationResult.reversed(locked_tx)
@@ -305,6 +328,14 @@ class PaymentVerificationService:
                 return PaymentVerificationResult.success(locked_tx)
 
             if payment.active_transaction_id != locked_tx.id:
+                logger.warning(
+                    "Payment active transaction changed during "
+                    "verification | payment_id=%s | "
+                    "previous_transaction_id=%s | "
+                    "current_transaction_id=%s",
+                    str(payment.id), str(transaction_id),
+                    str(payment.active_transaction_id)
+                )
                 raise PaymentTransactionStateChangedError(
                     action="verifying"
                 )
@@ -347,6 +378,11 @@ class PaymentVerificationService:
                 payment=payment,
                 paid_at=paid_at
             )
+            logger.info(
+                "Payment verification completed successfully | "
+                "payment_id=%s | transaction_id=%s",
+                str(payment.id), transaction_id
+            )
 
             return PaymentVerificationResult.success(locked_tx)
 
@@ -355,14 +391,10 @@ class PaymentVerificationService:
         *,
         tx: PaymentTransaction,
         provider_data: dict[str, Any]
-    ) -> PaymentVerificationResult | None:
+    ) -> None:
 
         if provider_data.get("reference") != str(tx.reference):
-            return self._handle_inconsistency_error(
-                tx=tx,
-                provider_data=provider_data,
-                error="Payment verification reference does not match."
-            )
+            raise PaymentReferenceMismatchError()
 
     def _validate_provider_data(
         self,
@@ -421,6 +453,11 @@ class PaymentVerificationService:
                     "updated_at"
                 ]
             )
+            logger.info(
+                "Payment verification detected inconsistent provider data"
+                "transaction_id=%s | reason=%s",
+                str(locked_tx.id), str(error)
+            )
 
             return PaymentVerificationResult.inconsistent(locked_tx)
 
@@ -477,7 +514,13 @@ class PaymentVerificationService:
                 transaction_id=str(tx.id),
                 provider_data=provider_data
             )
+        
+        logger.error(
+            "Payment provider returned an unrecognized transaction status | "
+            "transaction_id=%s | provider_status=%s",
+            str(tx.id), provider_status 
 
+        )
         raise PaymentProviderStatusError()
 
     def verify(
@@ -485,9 +528,19 @@ class PaymentVerificationService:
         *,
         transaction_id: str | UUID
     ) -> PaymentVerificationResult:
+        logger.info(
+            "Starting payment verification | transaction_id=%s",
+            transaction_id
+        )
         tx = self._get_transaction(id=transaction_id)
+        
 
         if tx.status == PaymentTransactionStatus.SUCCESS:
+            logger.info(
+                "Payment transaction is already successful | "
+                "transaction_id=%s",
+                transaction_id
+            )
             return PaymentVerificationResult.success(tx)
 
         gateway = self.gateway_registry.get(tx.provider)
@@ -505,13 +558,18 @@ class PaymentVerificationService:
         except PaymentGatewayError:
             raise
 
-        reference_result = self._validate_provider_reference(
-            tx=tx,
-            provider_data=provider_data
-        )
+        try:
+            self._validate_provider_reference(
+                tx=tx,
+                provider_data=provider_data,
+            )
 
-        if reference_result is not None:
-            return reference_result
+        except PaymentReferenceMismatchError as exc:
+            return self._handle_inconsistency_error(
+                tx=tx,
+                provider_data=provider_data,
+                error=exc
+            )
 
         return self._process_provider_data(
             tx=tx,
@@ -520,5 +578,7 @@ class PaymentVerificationService:
 
 
 def get_payment_verification_service() -> PaymentVerificationService:
-    gateway_registry = PaymentGatewayRegistry()
-    return PaymentVerificationService(gateway_registry=gateway_registry)
+    # gateway_registry = PaymentGatewayRegistry
+    return PaymentVerificationService(
+        gateway_registry=PaymentGatewayRegistry
+    )
