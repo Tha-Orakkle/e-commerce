@@ -26,7 +26,7 @@ class PaystackWebhookView(APIView):
 
     def _extract_reference(self, event):
         data = event.get("data")
-        return data.get("reference")        
+        return data.get("reference")
 
     @extend_schema(**paystack_webhook_schema)
     def post(self, request):
