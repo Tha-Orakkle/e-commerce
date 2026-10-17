@@ -7,6 +7,24 @@ class PaymentError(ApplicationError):
     """Base exception for payment-related errors."""
 
 
+class PaymentNotFoundError(PaymentError):
+    """
+    Raised when an order group that should have a
+    payment record has none.
+    
+    Payments are created at checkout for digital orders, so this signals
+    inconsistent data rather than a bad client request.
+    """
+    
+    code = "payment_not_found"
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    def __init__(self):
+        super().__init__(
+            "No payment record exists for this order group."
+        )
+
+
 class PaymentTransactionStatusError(PaymentError):
     """Raised for invalid payment transaction status."""
 
