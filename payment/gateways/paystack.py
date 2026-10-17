@@ -84,7 +84,7 @@ class PaystackGateway:
             code="invalid_paystack_response",
         )
 
-    def _raise_timeout_error(self, reference: str):
+    def _raise_timeout_error(self, exc: Exception, reference: str):
         logger.warning(
             "Paystack request timed out",
             extra={
