@@ -1,8 +1,8 @@
-from decimal import Decimal
-from django.db import models
-from django.contrib.auth import get_user_model
-
 import uuid
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.db import models
 
 from address.models import ShippingAddress
 from product.models import Product
@@ -73,7 +73,7 @@ class OrderGroup(models.Model):
     cancelled_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
-        ordering = ["created_at"]
+        ordering = ["created_at"]  # noqa: RUF012
     
     
     def __str__(self):
@@ -150,7 +150,7 @@ class Order(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
     group = models.ForeignKey(OrderGroup, on_delete=models.CASCADE, related_name='orders')
     status = models.CharField(max_length=12, choices=OrderStatus.choices, default=OrderStatus.PENDING)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal(0.00))
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     is_paid = models.BooleanField(default=False)
     
     # shop and the denomalized data
@@ -170,7 +170,7 @@ class Order(models.Model):
     cancelled_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-created_at']  # noqa: RUF012
 
     def __str__(self):
         return f"<Order: {self.id}> - {self.total_amount} - {self.status}"
@@ -204,7 +204,7 @@ class OrderItem(models.Model):
     # product
 
     class Meta:
-        ordering = ['created_at']
+        ordering = ['created_at']  # noqa: RUF012
     
     def __str__(self):
         return f"<OrderItem: {self.id}> - {self.product.name} * {self.quantity}"
