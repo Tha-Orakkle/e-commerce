@@ -1,8 +1,12 @@
 import uuid
+from decimal import ROUND_HALF_UP
 
 from django.db import models
 
 from order.models import OrderGroup
+
+DEFAULT_CURRENCY = "NGN"
+MINOR_UNITS_PER_MAJOR_UNIT = 100
 
 
 class PaymentProvider(models.TextChoices):
@@ -13,6 +17,34 @@ class PaymentProvider(models.TextChoices):
 class PaymentStatus(models.TextChoices):
     PENDING = "PENDING", "Pending"
     VERIFIED = "VERIFIED", "Verified"
+
+
+class PaymentManager(models.Manager):
+
+    def create_for_order_group(
+        self,
+        order_group: OrderGroup,
+        currency: str = DEFAULT_CURRENCY
+    ) -> "Payment":
+        """
+        Create the payment owed for an order group.
+
+        The amount is stored in minor units (kobo) and snapshotted from
+        the order group total, so call this once the total is final.
+        Intended to run in the same transaction that creates the order
+        group. A second call for the same group raises IntegrityError
+        because the relation is one-to-one.
+        """
+        amount = int(
+            (order_group.total_amount * MINOR_UNITS_PER_MAJOR_UNIT)
+            .to_integral_value(rounding=ROUND_HALF_UP)
+        )
+
+        return self.create(
+            order_group=order_group,
+            amount=amount,
+            currency=currency
+        )
 
 
 class PaymentTransactionStatus(models.TextChoices):
@@ -54,6 +86,8 @@ class Payment(models.Model):
     refund_requested = models.BooleanField(default=False)
     refunded = models.BooleanField(default=False)
     refund_timestamp = models.DateTimeField(null=True)
+
+    objects = PaymentManager()
 
     class Meta:
         ordering = ["-created_at"]  # noqa: RUF012
