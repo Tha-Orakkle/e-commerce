@@ -156,7 +156,7 @@ class PaymentVerificationService:
                 return PaymentVerificationResult.success(locked_tx)
 
             locked_tx.status = PaymentTransactionStatus.INITIALIZATION_FAILED
-            locked_tx.verification_failure_reason(
+            locked_tx.verification_failure_reason = (
                 "The payment provider could not locate "
                 "the transaction reference"
             )
@@ -264,7 +264,7 @@ class PaymentVerificationService:
             )
 
             if locked_tx.status == PaymentTransactionStatus.SUCCESS:
-                PaymentVerificationResult.success(locked_tx)
+                return PaymentVerificationResult.success(locked_tx)
 
             locked_tx.status = PaymentTransactionStatus.REVERSED
             locked_tx.provider_status = provider_data.get("status")
