@@ -1,6 +1,5 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,9 +8,8 @@ from common.exceptions import ErrorException
 from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
 from order.models import OrderGroup, OrderGroupStatus, PaymentMethod
-from payment.api.v1.serializers import InitializePaymentSerializer
 from payment.api.v1.swagger import initialize_payment_schema
-from payment.domain.exceptions import PaymentError
+from payment.domain.exceptions import PaymentError, UnsupportedPaymentProviderError
 from payment.gateways.registry import PaymentGatewayRegistry
 from payment.services import InitializePaymentService
 
@@ -72,20 +70,18 @@ class InitializePaymentView(APIView):
         self.validate_order_group_payment_method(order_group)
         self.validate_order_group_status(order_group)
 
-    def get_validated_provider(self):
-        serializer = InitializePaymentSerializer(
-            data=self.request.data
-        )
+    def get_payment_provider(self):
+        
+        provider = self.request.data.get("provider")
+        
         try:
-            serializer.is_valid(raise_exception=True)
-        except ValidationError as exc:
+            return PaymentGatewayRegistry.check_provider(provider)
+        except UnsupportedPaymentProviderError as exc:
             raise ErrorException(
-                detail="Payment initialization failed.",
-                code="validation_error",
-                errors=exc.detail
+                detail=exc.detail,
+                code=exc.code,
+                status_code=exc.status_code
             )
-
-        return serializer.validated_data["provider"]
 
     @extend_schema(**initialize_payment_schema)
     def post(self, request, order_group_id):
@@ -94,12 +90,12 @@ class InitializePaymentView(APIView):
         order_group = self.get_order_group_object(order_group_id)
         self.validate_order_group(order_group)
 
-        provider = self.get_validated_provider()
+        provider = self.get_payment_provider()
 
-        gateway_registry = PaymentGatewayRegistry()
+        # gateway_registry = PaymentGatewayRegistry()
 
         service = InitializePaymentService(
-            gateway_registry=gateway_registry
+            gateway_registry=PaymentGatewayRegistry
         )
 
         try:
@@ -121,4 +117,4 @@ class InitializePaymentView(APIView):
                 "provider": provider,
                 "authorization_url": result.authorization_url
             }
-        ).to_dict(), status=status.HTTP_201_CREATED)
+        ).to_dict(), status=status.HTTP_200_OK)
