@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
     retry_backoff=True,
     max_retries=3
 )
-def verify_payment_task(self, reference: str | UUID):
+def verify_payment_task(self, reference: str):
     """
     Background task to verify Paystack payment.
     """
