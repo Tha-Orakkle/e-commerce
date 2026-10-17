@@ -9,6 +9,7 @@ from django.utils.timezone import now, timedelta
 from order.models import OrderGroup
 from payment.domain.exceptions import (
     PaymentAlreadyVerifiedError,
+    PaymentNotFoundError,
     PaymentTransactionStateChangedError,
     PaymentTransactionStatusError,
 )
@@ -114,6 +115,30 @@ class InitializePaymentService:
         )
         raise PaymentTransactionStateChangedError()
 
+    def _get_locked_payment(
+        self,
+        order_group: OrderGroup
+    ) -> Payment:
+        """
+        Lock and return the payment for an order group.
+        Must be called inside a transaction.
+        """
+        try:
+            return (
+                Payment.objects
+                .select_for_update()
+                .select_related("active_transaction")
+                .get(order_group=order_group)
+            )
+        except Payment.DoesNotExist:
+            logger.error(
+                "No payment record found for order group | "
+                "order_group_id=%s",
+                str(order_group.id)
+            )
+            raise PaymentNotFoundError()
+
+
     def _initialize_attempt(
         self,
         *,
@@ -123,12 +148,7 @@ class InitializePaymentService:
     ) -> InitializationDecision:
 
         with transaction.atomic():
-            payment = (
-                Payment.objects
-                .select_for_update()
-                .select_related("active_transaction")
-                .get(order_group=order_group)
-            )
+            payment = self._get_locked_payment(order_group)
 
             if payment.status == PaymentStatus.VERIFIED:
                 logger.info(
@@ -190,12 +210,7 @@ class InitializePaymentService:
             )
 
         with transaction.atomic():
-            payment = (
-                Payment.objects
-                .select_for_update()
-                .select_related("active_transaction")
-                .get(order_group=order_group)
-            )
+            payment = self._get_locked_payment(order_group)
 
             if payment.status == PaymentStatus.VERIFIED:
                 logger.info(
