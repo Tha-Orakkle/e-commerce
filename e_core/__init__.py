@@ -6,6 +6,7 @@ __all__ = ['celery_app']
 
 logging.basicConfig(
     level=logging.INFO,
+    filename="app.log",
     format=(
         "%(asctime)s | "
         "%(levelname)s | "
