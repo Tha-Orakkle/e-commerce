@@ -8,9 +8,9 @@ from common.cores.validators import validate_id
 from common.exceptions import ErrorException
 from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
-from payment.api.v1.serializers import PaymentSerializer
+from payment.api.v1.serializers import PaymentStatusSerializer
 from payment.api.v1.swagger import verify_payment_schema
-from payment.models import Payment
+from payment.models import PaymentStatus, PaymentTransaction
 
 
 class TempCallback(APIView):
@@ -33,36 +33,46 @@ class TempCallback(APIView):
 
 class VerifyPaymentView(APIView):
     """
-    Verify payment.
+   Report the status of a payment transaction.
+
+    The reference is the one returned when the payment was initialized.
+    This endpoint is read-only: it reports what is stored and never
+    contacts the payment provider. Verification happens through the
+    provider webhook.
     """
     permission_classes = [IsCustomer]  # noqa: RUF012
 
     def get_object(self, reference):
         """
-        Get payment object by reference.
+        Get the payment transaction by reference.
+        Customers only see their own; superusers see any.
         """
         user = self.request.user
-        if user.is_superuser:
-            return Payment.objects.filter(reference=reference).first()
-        return Payment.objects.filter(
-            reference=reference, order_group__user=user
-        ).first()
+        queryset = PaymentTransaction.objects.select_related(
+            "payment__order_group"
+        )
+        if not user.is_superuser:
+            queryset = queryset.filter(payment__order_group__user=user)
+        return queryset.filter(reference=reference).first()
 
     @extend_schema(**verify_payment_schema)
     def get(self, request, reference):
-        """"
-        Verify payment from paystack.
         """
-        validate_id(reference, "payment reference")
-        payment = self.get_object(reference)
-        if not payment:
+        Get the status of a payment transaction.
+        """
+        validate_id(reference, "payment transaction reference")
+        tx = self.get_object(reference)
+        if not tx:
             raise ErrorException(
-                detail="No payment matching the given reference found.",
+                detail=(
+                    "No payment transaction matching the given "
+                    "reference found."
+                ),
                 code='not_found',
                 status_code=status.HTTP_404_NOT_FOUND)
 
-        serializer = PaymentSerializer(payment)
-        if payment.verified:
+        serializer = PaymentStatusSerializer(tx)
+        if tx.payment.status == PaymentStatus.VERIFIED:
             return Response(SuccessAPIResponse(
                 message="Payment is verified.",
                 data=serializer.data
