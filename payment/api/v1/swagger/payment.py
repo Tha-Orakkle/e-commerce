@@ -2,14 +2,13 @@ from rest_framework import serializers
 
 from common.swagger import (
     ForbiddenSerializer,
-    make_success_schema_response,
+    build_invalid_id_error,
     make_error_schema_response,
     make_not_found_error_schema_response,
+    make_success_schema_response,
     make_unauthorized_error_schema_response,
-    build_invalid_id_error
 )
-from payment.api.v1.serializers import PaymentSerializer
-
+from payment.api.v1.serializers import PaymentStatusSerializer
 
 
 class InitializePaymentResponseData(serializers.Serializer):
@@ -52,20 +51,23 @@ initialize_payment_schema = {
 
 
 vf_errors = {
-    'not_found': 'No payment matching the given reference found.'
+    'not_found': 'No payment transaction matching the given reference found.'
 }
 
 verify_payment_schema = {
     'summary': 'Verify a payment',
-    'description': 'Verifies a payment using the payment reference. \
-        The payment reference will be passed as part of the url path.',
+    'description': 'Returns the status of a payment transaction using the \
+        transaction reference returned when the payment was initialized. \
+        The reference is passed as part of the url path. This endpoint only \
+        reports stored state; the payment provider confirms payments \
+        through its webhook.',
     'tags': ['Payment'],
     'operation_id': 'verify_payment',
     'request': None,
     'responses': {
         200: make_success_schema_response(
             'Payment is (not) verified.', 
-            PaymentSerializer),
+            PaymentStatusSerializer),
         401: make_unauthorized_error_schema_response(),
         403: ForbiddenSerializer,
         404: make_error_schema_response(vf_errors)
