@@ -8,7 +8,7 @@ from uuid import UUID
 from django.db import transaction
 from django.utils.timezone import now
 
-from order.models import Order
+from order.models import Order, OrderGroup, OrderGroupStatus
 from payment.domain.exceptions import (
     PaymentAmountMismatchError,
     PaymentCurrencyMismatchError,
@@ -30,6 +30,7 @@ from payment.models import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 class VerificationStatus(StrEnum):
     SUCCESS = "success"
@@ -175,7 +176,7 @@ class PaymentVerificationService:
                 str(locked_tx.id), str(locked_tx.reference)
             )
 
-        return PaymentVerificationResult.reference_not_found(tx)
+            return PaymentVerificationResult.reference_not_found(tx)
 
     def _handle_pending(
         self,
@@ -365,19 +366,39 @@ class PaymentVerificationService:
             payment.paid_at = paid_at
             payment.active_transaction = None
 
-            payment.save(
-                update_fields=[
-                    "status",
-                    "paid_at",
-                    "active_transaction",
-                    "updated_at"
-                ]
+            order_group = (
+                OrderGroup.objects
+                .select_for_update()
+                .get(id=payment.order_group.id)
             )
 
-            self._mark_orders_paid(
-                payment=payment,
-                paid_at=paid_at
-            )
+            refund_needed = order_group.status == OrderGroupStatus.CANCELLED
+
+            update_fields = [
+                "status",
+                "paid_at",
+                "active_transaction",
+                "updated_at"
+            ]
+
+            if refund_needed:
+                payment.refund_requested = True
+                update_fields.append("refund_requested")
+
+            payment.save(update_fields=update_fields)
+
+            if refund_needed:
+                logger.warning(
+                    "Payment succeeded for a cancelled order group; "
+                    "refund requested | payment_id=%s | order_group=%s",
+                    str(payment.id), str(order_group.id)
+                )
+            else:
+                self._mark_orders_paid(
+                    payment=payment,
+                    paid_at=paid_at
+                )
+
             logger.info(
                 "Payment verification completed successfully | "
                 "payment_id=%s | transaction_id=%s",
@@ -514,11 +535,11 @@ class PaymentVerificationService:
                 transaction_id=str(tx.id),
                 provider_data=provider_data
             )
-        
+
         logger.error(
             "Payment provider returned an unrecognized transaction status | "
             "transaction_id=%s | provider_status=%s",
-            str(tx.id), provider_status 
+            str(tx.id), provider_status
 
         )
         raise PaymentProviderStatusError()
@@ -533,7 +554,6 @@ class PaymentVerificationService:
             transaction_id
         )
         tx = self._get_transaction(id=transaction_id)
-        
 
         if tx.status == PaymentTransactionStatus.SUCCESS:
             logger.info(
