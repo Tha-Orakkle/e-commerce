@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 from django.db import transaction
 from django.utils.timezone import now
 from drf_spectacular.utils import extend_schema
@@ -11,13 +12,14 @@ from common.exceptions import ErrorException
 from common.permissions import IsCustomer
 from common.utils.api_responses import SuccessAPIResponse
 from order.api.v1.swagger import cancel_customer_order_group_schema
-from order.models import OrderGroup, Order
+from order.models import Order, OrderGroup, OrderGroupStatus, OrderStatus
 from order.tasks import restock_inventory_with_cancelled_order
+from payment.models import Payment, PaymentStatus
 
 
 class CancelCustomerOrderGroupView(APIView):
-    permission_classes = [IsCustomer]
-    
+    permission_classes = [IsCustomer]  # noqa: RUF012
+
     def get_object(self, group_id):
         user = self.request.user
         if user.is_superuser:
@@ -48,25 +50,46 @@ class CancelCustomerOrderGroupView(APIView):
                 code='cancellation_time_expired'
             )
         with transaction.atomic():
-            n = now()
-            o_group.status = 'CANCELLED'
-            o_group.cancelled_at = n
+            payment = (
+                Payment.objects
+                .select_for_update()
+                .filter(order_group=o_group)
+                .first()
+            )
+            o_group = (
+                OrderGroup.objects.select_for_update().get(id=order_group_id)
+            )
+
+            timestamp = now()
+            o_group.status = OrderGroupStatus.CANCELLED
+            o_group.cancelled_at = timestamp
             o_group.save()
-            
+
             orders = list(o_group.orders.all())
             for order in orders:
-                order.status = 'CANCELLED'
-                order.cancelled_at = n
-            Order.objects.bulk_update(orders, ['status', 'cancelled_at'])
-    
-            if o_group.payment_method == 'DIGITAL' and hasattr(o_group, 'payment') and o_group.payment.verified:
-                o_group.payment.refund_requested = True
-                o_group.payment.save()
+                order.status = OrderStatus.CANCELLED
+                order.cancelled_at = timestamp
+            Order.objects.bulk_update(
+                orders,
+                ["status", "cancelled_at", "updated_at"]
+            )
+
+            if (
+                payment is not None
+                and payment.status == PaymentStatus.VERIFIED
+            ):
+                payment.refund_requested = True
+                payment.save(update_fields=["refund_requested", "updated_at"])
             transaction.on_commit(
-                lambda: restock_inventory_with_cancelled_order.delay(str(o_group.id), order_group=True)
+                lambda: restock_inventory_with_cancelled_order.delay(
+                    str(o_group.id), order_group=True
+                )
             )
 
         # restock_inventory_with_cancelled_order.delay(order.id)
         return Response(SuccessAPIResponse(
-            message="Order cancelled. A refund will be processed shortly if payment was already made."
+            message=(
+                "Order cancelled. A refund will be processed shortly "
+                "if payment was already made."
+            )
         ).to_dict(), status=status.HTTP_200_OK)

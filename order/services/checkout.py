@@ -1,15 +1,13 @@
-from collections import defaultdict
 from decimal import Decimal
-from django.db import transaction
-from django.db.models import F
 
+from django.db import transaction
 
 from cart.utils.validators import validate_cart
-from order.models import OrderGroup, Order, OrderItem
 from order.domain.exceptions import EmptyCartError, InvalidCartError
+from order.models import Order, OrderGroup, OrderItem, PaymentMethod
 from order.utils.delivery import calculate_delivery_fee
+from payment.models import Payment
 from product.models import Inventory
-
 
 
 class CheckoutService:
@@ -53,7 +51,7 @@ class CheckoutService:
         inventories = Inventory.objects.select_for_update().filter(id__in=inv_ids)
         self.inventory_map = {inv.id: inv for inv in inventories}
         
-    def _validate_and_prepare(self):
+    def _validate_and_prepare_cart(self):
         """
         Validate cart items with the locked inventory data.
         validate that the products are still valid and available and 
@@ -146,6 +144,17 @@ class CheckoutService:
         
         self.cart_items.delete()
 
+
+    def _create_payment(self):
+        """
+        Create Payment for order group.
+        """
+        if self.payment_method != PaymentMethod.DIGITAL:
+            return
+
+        Payment.objects.create_for_order_group(self.order_group)
+
+
     def execute(self):
         """
         Implement checkout in an atomic transaction to handle race conditions.
@@ -154,9 +163,11 @@ class CheckoutService:
         
         with transaction.atomic():
             self._lock_inventory()
-            self._validate_and_prepare()
+            self._validate_and_prepare_cart()
             self._create_order_group()
             self._create_orders_and_items()
             self._finalize()
+
+            self._create_payment()
             
         return self.order_group

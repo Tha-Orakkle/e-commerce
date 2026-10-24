@@ -1,0 +1,84 @@
+{
+  "status": true,
+  "message": "Verification successful",
+  "data": {
+    "id": 5098021355,
+    "domain": "test",
+    "status": "failed",
+    "reference": "057b5548-5c9e-42ce-a155-046d2bc30090",
+    "receipt_number": null,
+    "amount": 9900000000,
+    "message": null,
+    "gateway_response": "Insufficient Funds",
+    "gateway_response_code": null,
+    "response_code": null,
+    "paid_at": null,
+    "created_at": "2025-06-28T15:45:26.000Z",
+    "channel": "card",
+    "currency": "NGN",
+    "ip_address": "105.112.188.201",
+    "metadata": "",
+    "log": {
+      "start_time": 1751125540,
+      "time_spent": 6,
+      "attempts": 1,
+      "errors": 1,
+      "success": false,
+      "mobile": false,
+      "input": [],
+      "history": [
+        {
+          "type": "action",
+          "message": "Attempted to pay with card",
+          "time": 5
+        },
+        {
+          "type": "error",
+          "message": "Error: Insufficient Funds",
+          "time": 6
+        }
+      ]
+    },
+    "fees": null,
+    "fees_split": null,
+    "authorization": {
+      "authorization_code": "AUTH_zjr0s9mw1r",
+      "bin": "408408",
+      "last4": "4081",
+      "exp_month": "12",
+      "exp_year": "2030",
+      "channel": "card",
+      "card_type": "visa ",
+      "bank": "TEST BANK",
+      "country_code": "NG",
+      "brand": "visa",
+      "reusable": true,
+      "signature": "SIG_UdZ8zsyftnbLuhKwSsvs",
+      "account_name": null
+    },
+    "customer": {
+      "id": 287398776,
+      "first_name": null,
+      "last_name": null,
+      "email": "admin-user@email.com",
+      "customer_code": "CUS_79vh1mnzzw3uan8",
+      "phone": null,
+      "metadata": null,
+      "risk_action": "default",
+      "international_format_phone": null
+    },
+    "plan": null,
+    "split": {},
+    "order_id": null,
+    "paidAt": null,
+    "createdAt": "2025-06-28T15:45:26.000Z",
+    "requested_amount": 9900000000,
+    "pos_transaction_data": null,
+    "source": null,
+    "fees_breakdown": null,
+    "connect": null,
+    "transaction_date": "2025-06-28T15:45:26.000Z",
+    "plan_object": {},
+    "subaccount": {}
+  }
+}

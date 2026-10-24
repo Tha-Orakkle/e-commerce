@@ -1,9 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-
+from rest_framework.views import APIView
 
 from cart.utils.validators import validate_cart
 from common.exceptions import ErrorException
@@ -13,7 +12,6 @@ from order.api.v1.serializers import CheckoutSerializer, OrderGroupSerializer
 from order.domain.exceptions import EmptyCartError, InvalidCartError
 from order.services import CheckoutService
 
-
 User = get_user_model()
 
 class CheckoutView(APIView):
@@ -21,7 +19,7 @@ class CheckoutView(APIView):
     Endpoint for checking out. 
     Creates order from the items in the cart.
     """
-    permission_classes = [IsCustomer]
+    permission_classes = [IsCustomer]  # noqa: RUF012
     
     def post(self, request):
         try:
@@ -39,7 +37,7 @@ class CheckoutView(APIView):
 
         try:
             serializer.is_valid(raise_exception=True)
-        except ValidationError as e:
+        except ValidationError:
             raise ErrorException(
                 detail="Checkout failed. Invalid request data.",
                 code="validation_error",

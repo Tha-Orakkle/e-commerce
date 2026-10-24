@@ -1,15 +1,17 @@
-from django.urls import reverse
-from django.utils.timezone import now, timedelta
-from rest_framework import status
+import uuid
 from unittest.mock import patch
 
 import pytest
-import uuid
+from django.urls import reverse
+from django.utils.timezone import now, timedelta
+from rest_framework import status
+
+from common.exceptions import ApplicationError
 
 PAYLOAD = {
     "payment_status": False,
     "status": "PROCESSING",
-    "delivery_date": "2026-08-05"
+    "delivery_date": (now() + timedelta(days=3)).strftime("%Y-%m-%d")
 }
 
 
@@ -217,44 +219,6 @@ def test_update_shop_order_to_cancelled_calls_restocks_inventory_task(
 
 @pytest.mark.parametrize(
     "new_status",
-    ["PENDING", "INVALID_STATUS", ""],
-    ids=["PENDING", "INVALID_STATUS", "EMPTY_STRING"]
-)
-def test_update_shop_order_with_invalid_status(
-    client,
-    shopowner,
-    order_group_factory,
-    order_factory,
-    new_status
-):
-    """
-    Test updating a shop order with an invalid status fails.
-    """
-    group = order_group_factory()
-    order = order_factory(
-        group=group,
-        shop=shopowner.owned_shop,
-    )
-    payload = {
-        **PAYLOAD,
-        "status": new_status
-    }
-
-    url = reverse("update-shop-order-status", args=[order.id])
-    client.force_authenticate(user=shopowner)
-    res = client.post(url, data=payload, format="json")
-
-    assert res.status_code == status.HTTP_400_BAD_REQUEST
-    assert res.data["status"] == "error"
-    assert res.data["code"] == "invalid_status"
-    assert res.data["message"] == "Invalid status provided."
-
-    order.refresh_from_db()
-    assert order.status != new_status
-
-
-@pytest.mark.parametrize(
-    "new_status",
     ["PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"],
     ids=["PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"]
 )
@@ -286,7 +250,7 @@ def test_update_shop_order_with_self_transition(
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data["status"] == "error"
     assert res.data["code"] == "invalid_status_transition"
-    expected_msg = f"Order {str(order.id)} is already in {new_status} state."
+    expected_msg = f"Order {order.id!s} is already in {new_status} state."
     assert res.data["message"] == expected_msg
 
 
@@ -308,7 +272,7 @@ def test_update_shop_order_group_status_to_processing(
         shop=shopowner.owned_shop,
         status="PENDING"
     )
-    order2 = order_factory(
+    order_factory(
         group=group,
         shop=shopowner.owned_shop,
         status="PENDING"
@@ -818,7 +782,7 @@ def test_update_shop_cash_delivery_order_status_from_processing_to_completed(
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data["status"] == "error"
     assert res.data["code"] == "invalid_status_transition"
-    expected_msg = f"Invalid transition from PROCESSING to COMPLETED."
+    expected_msg = "Invalid transition from PROCESSING to COMPLETED."
     assert res.data["message"] == expected_msg
 
     order.refresh_from_db()
@@ -956,7 +920,7 @@ def test_update_shop_cash_delivery_order_status_from_shipped_to_other_statuses(
     assert timestamp is None
 
     group.refresh_from_db()
-    group.cancelled_at is None
+    assert group.cancelled_at is None
 
 
 # ===================================================
@@ -1012,7 +976,7 @@ def test_update_shop_digital_order_status_without_payment(
     assert res.data["code"] == "invalid_payment_status"
     expected_msg = "Digital orders must be paid before transition."
     assert res.data["message"] == expected_msg
-    
+
     order.refresh_from_db()
     assert order.status == old_status
     timestamp = getattr(order, f"{new_status.lower()}_at")
@@ -1063,8 +1027,8 @@ def test_update_shop_digital_order_status_from_pending_to_processing(
     assert data["delivery_date"] is None
 
     order.refresh_from_db()
-    order.status == "PROCESSING"
-    order.processing_at is not None
+    assert order.status == "PROCESSING"
+    assert order.processing_at is not None
 
 
 @pytest.mark.parametrize(
@@ -1186,7 +1150,7 @@ def test_update_shop_digital_delivery_order_status_from_processing_to_completed(
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data["status"] == "error"
     assert res.data["code"] == "invalid_status_transition"
-    expected_msg = f"Invalid transition from PROCESSING to COMPLETED."
+    expected_msg = "Invalid transition from PROCESSING to COMPLETED."
     assert res.data["message"] == expected_msg
 
     order.refresh_from_db()
@@ -1277,7 +1241,7 @@ def test_update_shop_digital_delivery_order_status_from_shipped_to_other_statuse
     assert res.data["code"] == "invalid_status_transition"
     expected_msg = f"Invalid transition from SHIPPED to {new_status}."
     assert res.data["message"] == expected_msg
- 
+
     order.refresh_from_db()
     assert order.status == "SHIPPED"
     timestamp = getattr(order, f"{new_status.lower()}_at")
@@ -1357,7 +1321,7 @@ def test_update_shop_digital_pickup_order_status_from_processing_to_shipped(
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data["status"] == "error"
     assert res.data["code"] == "invalid_status_transition"
-    expected_msg = f"PICKUP orders can not be shipped."
+    expected_msg = "PICKUP orders can not be shipped."
     assert res.data["message"] == expected_msg
 
     order.refresh_from_db()
@@ -1441,8 +1405,12 @@ def test_update_shop_order_with_invalid_status(
     assert res.data["code"] == "invalid_status"
     assert res.data["message"] == "Invalid status provided."
 
+    order.refresh_from_db()
+    assert order.status != invalid_status
 
 # delivery_date
+
+
 @pytest.mark.parametrize(
     "invalid_delivery_date",
     ["", None],
@@ -1563,9 +1531,25 @@ def test_update_shop_order_with_past_delivery_date(
     assert res.data["message"] == expected_msg
 
 
+def get_test_delivery_date_formats():
+    date = now() + timedelta(days=3)
+
+    while True:
+        valid = date.strftime("%Y-%m-%d")
+
+        if date.month < 10 and date.day < 10:
+            return [
+                valid,
+                f"{date.year:04d}-{date.month:02d}-{date.day}",
+                f"{date.year:04d}-{date.month}-{date.day:02d}",
+            ]
+
+        date += timedelta(days=1)
+
+
 @pytest.mark.parametrize(
     "delivery_date",
-    ["2026-09-08", "2026-09-8", "2026-9-08"],
+    get_test_delivery_date_formats(),
     ids=["CORRECT_FORMAT", "SINGLE_DAY_DIGIT", "SINGLE_MONTH_DIGIT"]
 )
 def test_update_shop_order_with_valid_delivery_dates(
@@ -1784,7 +1768,7 @@ def test_update_shop_order_status_rolls_back_on_failure(
 
     mocker.patch(
         "order.api.v1.state_machine.order.OrderGroup.save",
-        side_effect=Exception("DB Failure")
+        side_effect=ApplicationError("DB Failure")
     )
     assert group.status != "COMPLETED"
     assert group.completed_at is None
@@ -1793,7 +1777,7 @@ def test_update_shop_order_status_rolls_back_on_failure(
     assert order.paid_at is None
     assert order.completed_at is None
 
-    with pytest.raises(Exception):
+    with pytest.raises(ApplicationError):
         client.post(url, data=payload, format="json")
 
     assert group.status != "COMPLETED"

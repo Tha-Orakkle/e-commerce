@@ -1,37 +1,158 @@
-from django.db import models
-from django.conf import settings
-from django.urls import reverse
-
 import uuid
+from decimal import ROUND_HALF_UP
+
+from django.db import models
 
 from order.models import OrderGroup
 
+DEFAULT_CURRENCY = "NGN"
+MINOR_UNITS_PER_MAJOR_UNIT = 100
+
+
+class PaymentProvider(models.TextChoices):
+    PAYSTACK = "paystack", "Paystack"
+    STRIPE = "stripe", "Stripe"
+
+
+class PaymentStatus(models.TextChoices):
+    PENDING = "PENDING", "Pending"
+    VERIFIED = "VERIFIED", "Verified"
+
+
+class PaymentManager(models.Manager):
+
+    def create_for_order_group(
+        self,
+        order_group: OrderGroup,
+        currency: str = DEFAULT_CURRENCY
+    ) -> "Payment":
+        """
+        Create the payment owed for an order group.
+
+        The amount is stored in minor units (kobo) and snapshotted from
+        the order group total, so call this once the total is final.
+        Intended to run in the same transaction that creates the order
+        group. A second call for the same group raises IntegrityError
+        because the relation is one-to-one.
+        """
+        amount = int(
+            (order_group.total_amount * MINOR_UNITS_PER_MAJOR_UNIT)
+            .to_integral_value(rounding=ROUND_HALF_UP)
+        )
+
+        return self.create(
+            order_group=order_group,
+            amount=amount,
+            currency=currency
+        )
+
+
+class PaymentTransactionStatus(models.TextChoices):
+    PENDING = "PENDING", "Pending"
+    SUCCESS = "SUCCESS", "Success"
+    FAILED = "FAILED", "Failed"
+    EXPIRED = "EXPIRED", "Expired"
+    INITIALIZATION_FAILED = "INITIALIZATION_FAILED", "Initialization Failed"
+    INCONSISTENT = "INCONSISTENT", "Inconsistent"
+    REVERSED = "REVERSED", "Reversed"
+
 
 class Payment(models.Model):
-    """
-    Payment model.
-    """ 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
-    reference = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    email = models.EmailField()
+    order_group = models.OneToOneField(
+        OrderGroup,
+        on_delete=models.PROTECT,
+        related_name='payment'
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING
+    )
+    active_transaction = models.OneToOneField(
+        "PaymentTransaction",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+"
+    )
     amount = models.PositiveBigIntegerField()
-    verified = models.BooleanField(default=False)
-    paid_at = models.DateTimeField(null=True, blank=True)
+    currency = models.CharField(max_length=3, null=True)
+    paid_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    order_group = models.OneToOneField(OrderGroup, on_delete=models.CASCADE, related_name='payment')
+    updated_at = models.DateTimeField(auto_now=True)
 
     # to handle cancelled orders
     refund_requested = models.BooleanField(default=False)
     refunded = models.BooleanField(default=False)
     refund_timestamp = models.DateTimeField(null=True)
 
+    objects = PaymentManager()
+
+    class Meta:
+        ordering = ["-created_at"]  # noqa: RUF012
+
     def __str__(self):
-        return f"<Payment: {self.reference}> {self.verified}"
-    
-    def to_dict(self):
-        return {
-            'reference': str(self.reference),
-            'email': self.email,
-            'amount': float(self.amount),
-            'callback_url': f"{settings.BASE_URL}{reverse('temporary-callback')}",
-        }
+        return (
+            f"<Payment: {self.id}> {self.currency} "
+            f"{self.amount} {self.status}"
+        )
+
+
+class PaymentTransaction(models.Model):
+    """
+    Payment model. Records all payment transactions.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.PROTECT,
+        related_name="transactions"
+    )
+    reference = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True
+    )
+    customer_email = models.EmailField()
+
+    provider = models.CharField(
+        max_length=10,
+        choices=PaymentProvider.choices,
+        null=False
+    )
+    # provider_transaction_id = models.CharField(max_length=12)
+    channel = models.CharField(max_length=20)
+    currency = models.CharField(max_length=3)
+    amount = models.PositiveBigIntegerField()
+    provider_status = models.CharField(
+        max_length=10,
+        null=True
+    )
+
+    status = models.CharField(
+        max_length=24,
+        choices=PaymentTransactionStatus.choices,
+        default=PaymentTransactionStatus.PENDING
+    )
+    paid_at = models.DateTimeField(null=True)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verification_failure_reason = models.CharField(max_length=255, null=True)
+
+    metadata = models.JSONField(null=True, blank=True)
+    provider_response = models.JSONField(null=True, blank=True)
+    authorization_url = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]  # noqa: RUF012
+
+    def __str__(self):
+        return f"<PaymentTransaction: {self.id}> {self.amount} {self.status}"
