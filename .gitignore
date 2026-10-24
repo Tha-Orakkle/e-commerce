@@ -21,3 +21,4 @@ todo.txt
 # alias.sh
 media/
 req.py
+*.log
