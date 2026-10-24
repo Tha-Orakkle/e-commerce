@@ -31,8 +31,8 @@ class OrderStatus(models.TextChoices):
 class PaymentMethod(models.TextChoices):
     DIGITAL = 'DIGITAL', 'Digital Payment'
     CASH = 'CASH', 'Cash Payment'
-    
-    
+
+
 class FulFillmentMethod(models.TextChoices):
     PICKUP = 'PICKUP', 'Pickup'
     DELIVERY = 'DELIVERY', 'Delivery'
@@ -42,53 +42,58 @@ class OrderGroup(models.Model):
     """
     OrderGroup model.
     """
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
-    status = models.CharField(max_length=30, choices=OrderGroupStatus.choices, default=OrderGroupStatus.PENDING)
-    payment_method = models.CharField(max_length=15, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    fulfillment_method = models.CharField(max_length=9, choices=FulFillmentMethod.choices, default=FulFillmentMethod.PICKUP)
-    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    status = models.CharField(
+        max_length=30, choices=OrderGroupStatus.choices, default=OrderGroupStatus.PENDING)
+    payment_method = models.CharField(
+        max_length=15, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
+    total_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    fulfillment_method = models.CharField(
+        max_length=9, choices=FulFillmentMethod.choices, default=FulFillmentMethod.PICKUP)
+    delivery_fee = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'))
     # is_paid = models.BooleanField(default=False)
-    
+
     # user data including denormalized data
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='order_groups')
+    user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='order_groups')
     email = models.EmailField()
     full_name = models.CharField(max_length=60)
-    
+
     # shipping address data including denormalized data
-    shipping_address = models.ForeignKey(ShippingAddress, on_delete=models.SET_NULL, null=True)
+    shipping_address = models.ForeignKey(
+        ShippingAddress, on_delete=models.SET_NULL, null=True)
     shipping_full_name = models.CharField(max_length=32)
     shipping_telephone = models.CharField(max_length=20)
     shipping_street_address = models.CharField(max_length=256)
     shipping_city = models.CharField(max_length=52)
     shipping_state = models.CharField(max_length=32)
     shipping_country = models.CharField(max_length=30)
-    shipping_postal_code = models.CharField(max_length=20)    
-    
+    shipping_postal_code = models.CharField(max_length=20)
+
     # dates
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
-    
+
     class Meta:
         ordering = ["created_at"]  # noqa: RUF012
-    
-    
+
     def __str__(self):
         return f"<OrderGroup: {self.id}> {self.total_amount} - {self.status}"
-    
-    
+
     @property
     def is_paid(self):
         return all(order.is_paid for order in self.orders.all())
-    
+
     def is_processing(self):
         orders = self.orders.all()
         order_statuses = [order.status for order in orders]
         return any(status == OrderStatus.PROCESSING for status in order_statuses)
-    
+
     def is_fulfilled(self):
         orders = self.orders.all()
         order_statuses = [order.status for order in orders]
@@ -101,7 +106,7 @@ class OrderGroup(models.Model):
                 and any(status in [
                     OrderStatus.PENDING, OrderStatus.PROCESSING, OrderStatus.SHIPPED
                 ] for status in order_statuses))
-        
+
     def is_fulfilled_with_cancellations(self):
         qs = self.orders.all()
         total = qs.count()
@@ -113,7 +118,6 @@ class OrderGroup(models.Model):
         orders = self.orders.all()
         order_statuses = [order.status for order in orders]
         return all(status == OrderStatus.CANCELLED for status in order_statuses)
-    
 
     def _denormalize_shipping_address(self):
         """
@@ -127,7 +131,7 @@ class OrderGroup(models.Model):
             self.shipping_state = self.shipping_address.city.state.name
             self.shipping_country = self.shipping_address.city.state.country.name
             self.shipping_postal_code = self.shipping_address.postal_code
-            
+
     def _denormalize_user(self):
         """
         Denormalize data in case the User  object is deleted.
@@ -135,10 +139,16 @@ class OrderGroup(models.Model):
         if self.user:
             self.email = self.user.email
             self.full_name = f"{self.user.profile.first_name} {self.user.profile.last_name}"
-        
+
     def save(self, *args, **kwargs):
-        self._denormalize_shipping_address()
-        self._denormalize_user()
+        update_fields = kwargs.get("update_fields")
+
+        if update_fields is None or "shipping_address" in update_fields:
+            self._denormalize_shipping_address()
+
+        if update_fields is None or "user" in update_fields:
+            self._denormalize_user()
+
         super().save(*args, **kwargs)
 
 
@@ -148,15 +158,19 @@ class Order(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
-    group = models.ForeignKey(OrderGroup, on_delete=models.CASCADE, related_name='orders')
-    status = models.CharField(max_length=12, choices=OrderStatus.choices, default=OrderStatus.PENDING)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    group = models.ForeignKey(
+        OrderGroup, on_delete=models.CASCADE, related_name='orders')
+    status = models.CharField(
+        max_length=12, choices=OrderStatus.choices, default=OrderStatus.PENDING)
+    total_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'))
     is_paid = models.BooleanField(default=False)
-    
+
     # shop and the denomalized data
-    shop = models.ForeignKey(Shop, on_delete=models.SET_NULL, null=True, related_name='orders')
+    shop = models.ForeignKey(
+        Shop, on_delete=models.SET_NULL, null=True, related_name='orders')
     shop_name = models.CharField(max_length=40)
-    
+
     is_delivered = models.BooleanField(default=False)
     is_picked_up = models.BooleanField(default=False)
 
@@ -168,6 +182,10 @@ class Order(models.Model):
     shipped_at = models.DateTimeField(blank=True, null=True)
     completed_at = models.DateTimeField(blank=True, null=True)
     cancelled_at = models.DateTimeField(blank=True, null=True)
+
+    # Set once the order's items have been returned to stock, so a
+    # cancelled order can never be restocked twice
+    restocked_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ['-created_at']  # noqa: RUF012
@@ -181,7 +199,6 @@ class Order(models.Model):
         """
         if self.shop:
             self.shop_name = self.shop.name
-            
 
     def save(self, *args, **kwargs):
         self._denormalize_shop()
@@ -193,18 +210,19 @@ class OrderItem(models.Model):
     OrderItem model.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, null=False)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     product_name = models.CharField(max_length=50)
     product_description = models.TextField()
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     # product
 
     class Meta:
         ordering = ['created_at']  # noqa: RUF012
-    
+
     def __str__(self):
         return f"<OrderItem: {self.id}> - {self.product.name} * {self.quantity}"
