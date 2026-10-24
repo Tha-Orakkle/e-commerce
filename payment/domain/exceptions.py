@@ -54,6 +54,15 @@ class PaymentGatewayError(PaymentError):
     status_code = status.HTTP_502_BAD_GATEWAY
 
 
+class PaymentGatewayJSONError(PaymentGatewayError):
+    code = "invalid_payment_provider_response"
+
+    def __init__(self):
+        super().__init__(
+            "Received an invalid JSON response from provider"
+        )
+
+
 class UnsupportedPaymentProviderError(PaymentGatewayError):
     code = "unsupported_payment_provider"
     status_code = status.HTTP_400_BAD_REQUEST
@@ -85,7 +94,7 @@ class PaymentGatewayConnectionError(PaymentGatewayError):
 
 
 class PaymentGatewayResponseError(PaymentGatewayError):
-    code = "payment_gateway_response_error"
+    code = "payment_provider_response_error"
     status_code = status.HTTP_502_BAD_GATEWAY
 
 
