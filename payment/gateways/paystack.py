@@ -9,6 +9,7 @@ from rest_framework import status
 from payment.domain.exceptions import (
     PaymentGatewayConnectionError,
     PaymentGatewayError,
+    PaymentGatewayJSONError,
     PaymentGatewayTimeoutError,
 )
 
@@ -52,7 +53,7 @@ class PaystackGateway:
                     "Unable to process your request due to an "
                     "error communicating with Paystack."
                 ),
-                code="paystack_request_rejected"
+                code="payment_provider_request_rejected"
             )
 
         elif upstream >= 500:
@@ -67,7 +68,7 @@ class PaystackGateway:
 
             raise PaymentGatewayError(
                 detail="Payment service is temporarily unavailable.",
-                code="paystack_service_unavailable",
+                code="payment_provider_service_unavailable",
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
@@ -79,10 +80,7 @@ class PaystackGateway:
             }
         )
 
-        raise PaymentGatewayError(
-            detail="Received an invalid response from Paystack.",
-            code="invalid_paystack_response",
-        )
+        raise PaymentGatewayJSONError()
 
     def _raise_timeout_error(self, exc: Exception, reference: str):
         logger.warning(
@@ -94,7 +92,7 @@ class PaystackGateway:
         )
         raise PaymentGatewayTimeoutError()
 
-    def _raise_connection_error(self, reference: str):
+    def _raise_connection_error(self, exc: Exception, reference: str):
         logger.error(
             "Unable to connect to Paystack",
             extra={
@@ -113,9 +111,9 @@ class PaystackGateway:
         raise PaymentGatewayError(
             detail=(
                 "An unexpected error occurred while "
-                "communicating with Paystack."
+                "communicating with payment provider."
             ),
-            code="paystack_request_failed",
+            code="payment_provider_request_failed",
         )
 
     def initialize_payment(
@@ -236,14 +234,14 @@ class PaystackGateway:
         if not payload.get("status", False):
             provider_message = payload.get("message")
             logger.warning(
-                "Paystack rejected the payment initialization",
+                "Paystack rejected the payment verification",
                 extra={
                     "reference": reference,
                     "provider_message": provider_message,
                 },
             )
             raise PaymentGatewayError(
-                detail=provider_message or "Paystack error.",
+                detail=provider_message or "Payment provider error.",
                 status_code=status.HTTP_400_BAD_REQUEST
             )
 
