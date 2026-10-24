@@ -1,11 +1,13 @@
+import uuid
+
+import pytest
 from django.urls import reverse
 from freezegun import freeze_time
 from rest_framework import status
 
-import pytest
-import uuid
-
+from common.exceptions import ApplicationError
 from order.models import OrderGroupStatus, OrderStatus
+from payment.models import PaymentStatus
 
 
 def test_cancel_order_group_cash_payment(
@@ -58,9 +60,8 @@ def test_cancel_order_group_digital_payment_made(
         total_amount=10000
     )
     payment = payment_factory(
-        user=customer,
-        group=group,
-        verified=True
+        group,
+        status=PaymentStatus.VERIFIED
     )
     for _ in range(3):
         order_factory(group=group)
@@ -104,9 +105,8 @@ def test_cancel_order_group_digital_payment_not_made(
         total_amount=10000
     )
     payment = payment_factory(
-        user=customer,
-        group=group,
-        verified=False
+        group,
+        status=PaymentStatus.PENDING
     )
     for _ in range(3):
         order_factory(group=group)
@@ -210,13 +210,13 @@ def test_cancel_order_group_rolls_back_on_error(
     )
     mocker.patch(
         "order.api.v1.routes.cancel_order.Order.objects.bulk_update",
-        side_effect=Exception("DB Failure")
+        side_effect=ApplicationError("DB Failure")
     )
 
     url = reverse("cancel-order-group", args=[group.id])
     client.force_authenticate(user=customer)
 
-    with pytest.raises(Exception):
+    with pytest.raises(ApplicationError):
         client.post(url)
 
     group.refresh_from_db()
@@ -330,7 +330,7 @@ def test_cancel_order_group_by_superuser(
     assert res.data["message"] == expected_msg
 
     group.refresh_from_db()
-    group.status == OrderGroupStatus.CANCELLED
+    assert group.status == OrderGroupStatus.CANCELLED
     assert all(order.status == OrderStatus.CANCELLED
                for order in group.orders.all())
 
