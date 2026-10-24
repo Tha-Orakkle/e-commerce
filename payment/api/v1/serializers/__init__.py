@@ -1,5 +1,5 @@
-from .payment import PaymentSerializer
+from .payment import PaymentStatusSerializer
 
 __all__ = [
-    "PaymentSerializer",
+    "PaymentStatusSerializer",
 ]
