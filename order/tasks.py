@@ -38,24 +38,38 @@ def _restock_order(order_id):
             return None
 
         # Items whose product was deleted have no stock to return to.
-        items = [i for i in order.items.all() if i.product_id is not None]
+        restorable_items = [i for i in order.items.all() if i.product_id is not None]
+
+        product_ids = {item.product_id for item in restorable_items}
+        
         inventories = {
             inv.product_id: inv
             for inv in (
                 Inventory.objects
                 .select_for_update()
-                .filter(product_id__in={i.product_id for i in items})
-                .order_by('id')
+                .filter(product_id__in=product_ids)
+                .order_by("id")
             )
         }
-        for item in items:
-            inventory = inventories.get(item.product_id)
-            if inventory:
-                inventory.add(item.quantity, RESTOCK_HANDLE)
 
+        missing_inventories = product_ids - inventories.keys()
+
+        if missing_inventories:
+            raise Inventory.DoesNotExist(
+                "Cannot restock order because inventory is missing for "
+                f"product IDs: {sorted(map(str, missing_inventories))}"
+            )
+
+        for item in restorable_items:
+            inventories[item.product_id].add(
+                item.quantity,
+                RESTOCK_HANDLE
+            )
+        
         order.restocked_at = now()
         order.save(update_fields=["restocked_at", "updated_at"])
-        return len(items)
+
+        return len(restorable_items)
 
 
 @shared_task
