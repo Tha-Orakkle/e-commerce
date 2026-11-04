@@ -179,7 +179,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'common.authentication.backends.CookieJWTAuthentication',
     ],
-    'PAGE_SIZE': os.getenv("PAGE_SIZE", 20),
+    'PAGE_SIZE': int(os.getenv("PAGE_SIZE", "20")),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'common.utils.error_handlers.custom_exception_handler',
 }
@@ -262,12 +262,6 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 BASE_URL = "http://127.0.0.1:8000"
-
-# Paystack keys
-PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY')
-PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY')
-PAYSTACK_INITIALIZE_URL="https://api.paystack.co/transaction/initialize"
-PAYSTACK_VERIFY_URL="https://api.paystack.co/transaction/verify/"
 
 
 PAYSTACK = {
