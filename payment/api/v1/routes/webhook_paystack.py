@@ -32,12 +32,12 @@ class PaystackWebhookView(APIView):
     def post(self, request):
         # Check if the request is a valid Paystack webhook
         signature = request.headers.get('x-paystack-signature')
-        computed = hmac.new(
+        expected_signature = hmac.new(
             settings.PAYSTACK.get("SECRET_KEY").encode(),
             request.body,
             hashlib.sha512
         ).hexdigest()
-        if computed != signature:
+        if not hmac.compare_digest(expected_signature, signature):
             raise ErrorException(
                 detail="Rejected.",
                 code='invalid_signature'
