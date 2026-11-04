@@ -8,6 +8,8 @@ from order.models import (
     Order,
     OrderGroup,
     OrderGroupStatus,
+    OrderOutboxEvent,
+    OrderOutboxEventType,
     OrderStatus,
     PaymentMethod,
 )
@@ -152,10 +154,18 @@ def _cancel_group_if_still_unpaid(group_id, cutoff_time):
             order.cancelled_at = cancelled_at
             order.updated_at = cancelled_at
             item_count += order.items.count()
-            transaction.on_commit(
-                lambda order_id=str(order.id):
-                    restock_inventory_with_cancelled_order.delay(order_id)
+            # transaction.on_commit(
+            #     lambda order_id=str(order.id):
+            #         restock_inventory_with_cancelled_order.delay(order_id)
+            # )
+            OrderOutboxEvent.objects.get_or_create(
+                order=order,
+                event_type=OrderOutboxEventType.RESTOCK_CANCELLED_ORDER,
+                defaults={
+                    "payload": str(order.id)
+                },
             )
+
         Order.objects.bulk_update(
             orders, ['status', 'cancelled_at', 'updated_at']
         )
