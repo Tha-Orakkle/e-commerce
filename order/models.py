@@ -19,7 +19,7 @@ class OrderOutboxEventType(models.TextChoices):
     )
 
 
-class OrderOutboxStatus(models.TextChoices):
+class OrderOutboxEventStatus(models.TextChoices):
     PENDING = "PENDING", "Pending"
     PUBLISHED = "PUBLISHED", "Published"
 
@@ -51,8 +51,8 @@ class OrderOutboxEvent(models.Model):
 
     status = models.CharField(
         max_length=10,
-        choices=OrderOutboxStatus.choices,
-        default=OrderOutboxStatus.PENDING,
+        choices=OrderOutboxEventStatus.choices,
+        default=OrderOutboxEventStatus.PENDING,
         db_index=True
     )
 
@@ -88,7 +88,7 @@ class OrderOutboxEvent(models.Model):
         return f"{self.event_type} for order {self.order_id} ({self.status})"
 
     def mark_published(self):
-        self.status = OrderOutboxStatus.PUBLISHED
+        self.status = OrderOutboxEventStatus.PUBLISHED
         self.published_at = timezone.now()
         self.last_error = ""
         self.save(
