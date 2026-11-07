@@ -229,10 +229,13 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_BEAT_SCHEDULE = {
     'cancel_unpaid_orders_older_than_4_hours': {
         'task': 'order.tasks.cancel_unpaid_orders_older_than_4_hours',
-        'schedule': timedelta(hours=4)
+        'schedule': timedelta(minutes=5)
     },
+    'dispatch_order_outbox_events': {
+        'task': 'order.tasks.dispatch_order_outbox_events',
+        'schedule': timedelta(minutes=1)
+    }
 }
-
 
 
 # Email settings
