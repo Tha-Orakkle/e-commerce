@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from celery import shared_task
@@ -8,6 +9,9 @@ from order.models import (
     Order,
     OrderGroup,
     OrderGroupStatus,
+    OrderOutboxEvent,
+    OrderOutboxEventStatus,
+    OrderOutboxEventType,
     OrderStatus,
     PaymentMethod,
 )
@@ -16,6 +20,13 @@ from product.models import Inventory
 
 RESTOCK_HANDLE = 'sys_cancelled_order'
 UNPAID_ORDER_MAX_AGE = timedelta(hours=4)
+
+# Outbox
+OUTBOX_BATCH_SIZE = 100
+OUTBOX_RETRY_BASE_SECONDS = 30
+OUTBOX_RETRY_MAX_SECONDS = 60 * 60
+
+logger = logging.getLogger(__name__)
 
 
 def _restock_order(order_id):
@@ -38,24 +49,40 @@ def _restock_order(order_id):
             return None
 
         # Items whose product was deleted have no stock to return to.
-        items = [i for i in order.items.all() if i.product_id is not None]
+        restorable_items = [
+            i for i in order.items.all() if i.product_id is not None
+        ]
+
+        product_ids = {item.product_id for item in restorable_items}
+
         inventories = {
             inv.product_id: inv
             for inv in (
                 Inventory.objects
                 .select_for_update()
-                .filter(product_id__in={i.product_id for i in items})
-                .order_by('id')
+                .filter(product_id__in=product_ids)
+                .order_by("id")
             )
         }
-        for item in items:
-            inventory = inventories.get(item.product_id)
-            if inventory:
-                inventory.add(item.quantity, RESTOCK_HANDLE)
+
+        missing_inventories = product_ids - inventories.keys()
+
+        if missing_inventories:
+            raise Inventory.DoesNotExist(
+                "Cannot restock order because inventory is missing for "
+                f"product IDs: {sorted(map(str, missing_inventories))}"
+            )
+
+        for item in restorable_items:
+            inventories[item.product_id].add(
+                item.quantity,
+                RESTOCK_HANDLE
+            )
 
         order.restocked_at = now()
         order.save(update_fields=["restocked_at", "updated_at"])
-        return len(items)
+
+        return len(restorable_items)
 
 
 @shared_task
@@ -138,10 +165,13 @@ def _cancel_group_if_still_unpaid(group_id, cutoff_time):
             order.cancelled_at = cancelled_at
             order.updated_at = cancelled_at
             item_count += order.items.count()
-            transaction.on_commit(
-                lambda order_id=str(order.id):
-                    restock_inventory_with_cancelled_order.delay(order_id)
+
+            OrderOutboxEvent.objects.get_or_create(
+                order=order,
+                event_type=OrderOutboxEventType.RESTOCK_CANCELLED_ORDER,
+                defaults={"payload": str(order.id)},
             )
+
         Order.objects.bulk_update(
             orders, ['status', 'cancelled_at', 'updated_at']
         )
@@ -199,10 +229,10 @@ def update_group_status_for_orders(order_ids):
     )
     if not group_ids:
         return True
-    
+
     updated_grps = []
     s_conditions = [OrderStatus.CANCELLED, OrderStatus.COMPLETED]
-    
+
     with transaction.atomic():
         groups = (
             OrderGroup.objects.select_for_update()
@@ -226,3 +256,120 @@ def update_group_status_for_orders(order_ids):
             OrderGroup.objects.bulk_update(updated_grps, ['status'])
 
         return True
+
+
+def _outbox_retry_delay(attempts):
+    """
+    Exponential backoff:
+    30s, 60s, 120s, 240s ... capped at 1 hour.
+    """
+    delay = OUTBOX_RETRY_BASE_SECONDS * (2 ** (attempts - 1))
+    return min(delay, OUTBOX_RETRY_MAX_SECONDS)
+
+
+def _dispatch_order_outbox_event(event_id):
+    """
+    Publish one outbox event.
+
+    The event row remains locked while publishing and updating its state.
+    This prevents two dispatchers from publishing the same event
+    concurrently under normal operation.
+
+    Duplicate publication is still possible after a crash between broker
+    acceptance and database commit. Consumers must remain idempotent.
+    """
+    with transaction.atomic():
+        event = (
+            OrderOutboxEvent.objects
+            .select_for_update()
+            .filter(
+                id=event_id,
+                status=OrderOutboxEventStatus.PENDING,
+                next_attempt_at__lte=now()
+            )
+            .first()
+        )
+
+        if event is None:
+            return "skipped"
+
+        try:
+            if event.event_type == OrderOutboxEventType.RESTOCK_CANCELLED_ORDER:
+                restock_inventory_with_cancelled_order.apply_async(
+                    args=[str(event.order_id)],
+                    task_id=f"restock-{event.id}",
+                )
+            else:
+                raise ValueError(
+                    f"Unsupported outbox event type: {event.event_type}"
+                )
+        except Exception as exc:
+            event.attempts += 1
+            event.last_error = str(exc)[:4000]
+            event.next_attempt_at = (
+                now() + timedelta(
+                    seconds=_outbox_retry_delay(event.attempts)
+                )
+            )
+            event.save(
+                update_fields=[
+                    "attempts",
+                    "last_error",
+                    "next_attempt_at"
+                ]
+            )
+            logger.exception(
+                "Failed to dispatch outbox event %s (attempt %s)",
+                event.id,
+                event.attempts,
+            )
+            return "failed"
+
+        event.mark_published()
+        return "published"
+
+
+@shared_task
+def dispatch_order_outbox_events():
+    """
+    Dispatch due pending outbox events.
+
+    Safe to run periodically and concurrently from multiple workers.
+    """
+
+    event_ids = (
+        OrderOutboxEvent.objects
+        .filter(
+            status=OrderOutboxEventStatus.PENDING,
+            next_attempt_at__lte=now()
+        )
+        .order_by("created_at")
+        .values_list("id", flat=True)[:OUTBOX_BATCH_SIZE]
+    )
+
+    published = 0
+    skipped = 0
+    failed = 0
+
+    for event_id in event_ids:
+        result = _dispatch_order_outbox_event(event_id)
+
+        if result == "published":
+            published += 1
+        elif result == "failed":
+            failed += 1
+        else:
+            skipped += 1
+
+    logger.info(
+        "Outbox dispatch complete: published=%s failed=%s skipped=%s",
+        published,
+        failed,
+        skipped,
+    )
+
+    return {
+        "published": published,
+        "failed": failed,
+        "skipped": skipped
+    }

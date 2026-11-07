@@ -179,7 +179,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'common.authentication.backends.CookieJWTAuthentication',
     ],
-    'PAGE_SIZE': os.getenv("PAGE_SIZE", 20),
+    'PAGE_SIZE': int(os.getenv("PAGE_SIZE", "20")),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'common.utils.error_handlers.custom_exception_handler',
 }
@@ -229,10 +229,13 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_BEAT_SCHEDULE = {
     'cancel_unpaid_orders_older_than_4_hours': {
         'task': 'order.tasks.cancel_unpaid_orders_older_than_4_hours',
-        'schedule': timedelta(hours=4)
+        'schedule': timedelta(minutes=5)
     },
+    'dispatch_order_outbox_events': {
+        'task': 'order.tasks.dispatch_order_outbox_events',
+        'schedule': timedelta(minutes=1)
+    }
 }
-
 
 
 # Email settings
@@ -262,12 +265,6 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 BASE_URL = "http://127.0.0.1:8000"
-
-# Paystack keys
-PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY')
-PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY')
-PAYSTACK_INITIALIZE_URL="https://api.paystack.co/transaction/initialize"
-PAYSTACK_VERIFY_URL="https://api.paystack.co/transaction/verify/"
 
 
 PAYSTACK = {

@@ -3,12 +3,97 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 
 from address.models import ShippingAddress
 from product.models import Product
 from shop.models import Shop
 
 User = get_user_model()
+
+
+class OrderOutboxEventType(models.TextChoices):
+    RESTOCK_CANCELLED_ORDER = (
+        "RESTOCK_CANCELLED_ORDER",
+        "Restock cancelled order",
+    )
+
+
+class OrderOutboxEventStatus(models.TextChoices):
+    PENDING = "PENDING", "Pending"
+    PUBLISHED = "PUBLISHED", "Published"
+
+
+class OrderOutboxEvent(models.Model):
+    """
+    Durable record of an event that must be published to the task broker.
+
+    The database transaction that changes the order state should also
+    create this event. A dispatcher later publishes pending events.
+    """
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+
+    event_type = models.CharField(
+        max_length=30,
+        choices=OrderOutboxEventType.choices,
+    )
+
+    order = models.ForeignKey(
+        "order.Order",
+        on_delete=models.PROTECT,
+        related_name="outbox_events"
+    )
+
+    status = models.CharField(
+        max_length=10,
+        choices=OrderOutboxEventStatus.choices,
+        default=OrderOutboxEventStatus.PENDING,
+        db_index=True
+    )
+
+    # Keep the payload versioned so consumers can evolve safely.
+    payload = models.JSONField(default=dict)
+
+    attempts = models.PositiveIntegerField(default=0)
+    next_attempt_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    last_error = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["created_at"]  # noqa: RUF012
+
+        constraints = [  # noqa: RUF012
+            models.UniqueConstraint(
+                fields=["order", "event_type"],
+                name="uniq_order_outbox_event_type",
+            ),
+        ]
+
+        indexes = [  # noqa: RUF012
+            models.Index(
+                fields=["status", "next_attempt_at"],
+                name="outbox_pending_due_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.event_type} for order {self.order_id} ({self.status})"
+
+    def mark_published(self):
+        self.status = OrderOutboxEventStatus.PUBLISHED
+        self.published_at = timezone.now()
+        self.last_error = ""
+        self.save(
+            update_fields=["status", "published_at", "last_error"]
+        )
 
 
 class OrderGroupStatus(models.TextChoices):

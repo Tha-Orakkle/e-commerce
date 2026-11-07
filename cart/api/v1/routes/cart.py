@@ -39,6 +39,12 @@ class CartDetailView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND)
             
         product_id = request.data.get('product_id')
+        if not product_id or not product_id.strip():
+            raise ErrorException(
+                detail="Missing product ID.",
+                code="missing_product"
+            )
+
         validate_id(product_id, "product")
         product = Product.objects.select_related('inventory').filter(
             id=product_id,

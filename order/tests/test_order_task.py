@@ -1,13 +1,17 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from decimal import Decimal
+from threading import Barrier
 
 import pytest
+from django.db import close_old_connections
 from django.utils.timezone import now
 
 from order.models import (
     Order,
     OrderGroup,
     OrderGroupStatus,
+    OrderOutboxEvent,
     OrderStatus,
     PaymentMethod,
 )
@@ -17,31 +21,14 @@ from order.tasks import (
     restock_inventory_with_cancelled_order,
 )
 from payment.models import PaymentStatus
+from product.models import Inventory
 
-DELAY_PATH = "order.tasks.restock_inventory_with_cancelled_order.delay"
+DELAY_PATH = "order.tasks.OrderOutboxEvent.objects.get_or_create"
 
 
 # ==========================================================
 # HELPERS
 # ==========================================================
-@pytest.fixture
-def cancelled_order_with_items(shopowner, order_group_factory, order_factory,
-                               order_item_factory, product_factory):
-    """
-    Build a cancelled order with one item of quantity 3 for a product
-    holding 10 units. Returns (order, product).
-    """
-    def build(status=OrderStatus.CANCELLED):
-        shop = shopowner.owned_shop
-        product = product_factory(shop=shop)
-        product.inventory.add(qty=10, handle="test")
-        group = order_group_factory()
-        order = order_factory(group=group, shop=shop, status=status)
-        order_item_factory(order=order, product=product, quantity=3)
-        return order, product
-
-    return build
-
 
 def stock_of(product):
     product.inventory.refresh_from_db()
@@ -147,14 +134,12 @@ def test_group_restock_then_order_restock_does_not_double_count(
 # CANCEL UNPAID ORDERS
 # ==========================================================
 def test_cancel_task_cancels_old_unpaid_digital_group(
-    mocker, django_capture_on_commit_callbacks, customer,
-    order_group_factory, order_factory, payment_factory
+    customer, order_group_factory, order_factory, payment_factory
 ):
     """
     Test that an old, unpaid DIGITAL group and its orders are cancelled
     and each order is queued for restock.
     """
-    mock_delay = mocker.patch(DELAY_PATH)
     group = order_group_factory(
         user=customer,
         payment_method=PaymentMethod.DIGITAL,
@@ -164,17 +149,22 @@ def test_cancel_task_cancels_old_unpaid_digital_group(
     orders = [order_factory(group=group) for _ in range(2)]
     age(group, hours=5)
 
-    with django_capture_on_commit_callbacks(execute=True):
-        result = cancel_unpaid_orders_older_than_4_hours()
+    assert all(
+        not order.outbox_events.all()
+        for order in orders
+    )
+
+    result = cancel_unpaid_orders_older_than_4_hours()
 
     group.refresh_from_db()
+
     assert group.status == OrderGroupStatus.CANCELLED
     assert group.cancelled_at is not None
     for order in Order.objects.filter(group=group):
         assert order.status == OrderStatus.CANCELLED
         assert order.cancelled_at is not None
-    queued = sorted(call.args[0] for call in mock_delay.call_args_list)
-    assert queued == sorted(str(order.id) for order in orders)
+        assert OrderOutboxEvent.objects.filter(order=order)
+
     assert "TOTAL ORDER GROUPS: 1" in result
     assert "Cancelled 2 unpaid orders" in result
 
@@ -185,7 +175,7 @@ def test_cancel_task_skips_recent_groups(
     """
     Test that a group younger than 4 hours is left alone.
     """
-    mocker.patch(DELAY_PATH)
+    mock_delay = mocker.patch(DELAY_PATH)
     group = order_group_factory(
         user=customer, payment_method=PaymentMethod.DIGITAL
     )
@@ -196,6 +186,7 @@ def test_cancel_task_skips_recent_groups(
 
     group.refresh_from_db()
     assert group.status == OrderGroupStatus.PENDING
+    mock_delay.assert_not_called()
 
 
 def test_cancel_task_skips_cash_groups(
@@ -204,7 +195,8 @@ def test_cancel_task_skips_cash_groups(
     """
     Test that cash orders are never auto-cancelled.
     """
-    mocker.patch(DELAY_PATH)
+    mock_delay = mocker.patch(DELAY_PATH)
+
     group = order_group_factory(
         user=customer, payment_method=PaymentMethod.CASH
     )
@@ -215,6 +207,7 @@ def test_cancel_task_skips_cash_groups(
 
     group.refresh_from_db()
     assert group.status == OrderGroupStatus.PENDING
+    mock_delay.assert_not_called()
 
 
 def test_cancel_task_skips_group_with_a_paid_order(
@@ -223,7 +216,7 @@ def test_cancel_task_skips_group_with_a_paid_order(
     """
     Test that a group with any paid order is not cancelled.
     """
-    mocker.patch(DELAY_PATH)
+    mock_delay = mocker.patch(DELAY_PATH)
     group = order_group_factory(
         user=customer, payment_method=PaymentMethod.DIGITAL
     )
@@ -235,6 +228,7 @@ def test_cancel_task_skips_group_with_a_paid_order(
 
     group.refresh_from_db()
     assert group.status == OrderGroupStatus.PENDING
+    mock_delay.assert_not_called()
 
 
 def test_cancel_task_skips_group_whose_payment_was_verified(
@@ -283,3 +277,48 @@ def test_cancel_group_recheck_ignores_group_no_longer_pending(
 
     assert result is None
     mock_delay.assert_not_called()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_missing_inventory_does_not_mark_order_restocked(
+    cancelled_order_with_items,
+):
+    order, product = cancelled_order_with_items()
+
+    # Simulate corrupted data. Bypass Inventory.delete(), which
+    # intentionally prevents direct inventory deletion.
+    Inventory.objects.filter(product=product).delete()
+
+    with pytest.raises(Inventory.DoesNotExist):
+        restock_inventory_with_cancelled_order(str(order.id))
+
+    order.refresh_from_db()
+    assert order.restocked_at is None
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_restock_only_adds_stock_once(
+    cancelled_order_with_items,
+):
+    order, product = cancelled_order_with_items()
+    barrier = Barrier(2)
+
+    def restock():
+        close_old_connections()
+        try:
+            barrier.wait(timeout=10)
+            return restock_inventory_with_cancelled_order(
+                str(order.id)
+            )
+        finally:
+            close_old_connections()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(restock) for _ in range(2)]
+        for future in futures:
+            future.result(timeout=30)
+
+    order.refresh_from_db()
+
+    assert stock_of(product) == 13  # 10 + 3, not 10 + 3 + 3
+    assert order.restocked_at is not None
