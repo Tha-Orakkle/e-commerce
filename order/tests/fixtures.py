@@ -1,9 +1,15 @@
-from decimal import Decimal
-
 import pytest
+from django.utils import timezone
 
-from order.models import OrderGroup, Order, OrderItem
-from order.utils.delivery import calculate_delivery_fee
+from order.models import (
+    Order,
+    OrderGroup,
+    OrderItem,
+    OrderOutboxEvent,
+    OrderOutboxEventStatus,
+    OrderOutboxEventType,
+    OrderStatus,
+)
 
 
 @pytest.fixture
@@ -86,3 +92,60 @@ def populated_order_group_factory(customer_factory,
         return group
 
     return create_populated_order_group
+
+
+@pytest.fixture
+def cancelled_order_with_items(shopowner, order_group_factory, order_factory,
+                               order_item_factory, product_factory):
+    """
+    Build a cancelled order with one item of quantity 3 for a product
+    holding 10 units. Returns (order, product).
+    """
+    def build(status=OrderStatus.CANCELLED):
+        shop = shopowner.owned_shop
+        product = product_factory(shop=shop)
+        product.inventory.add(qty=10, handle="test")
+        group = order_group_factory()
+        order = order_factory(group=group, shop=shop, status=status)
+        order_item_factory(order=order, product=product, quantity=3)
+        return order, product
+
+    return build
+
+
+@pytest.fixture
+def order_outbox_event_factory(cancelled_order_with_items):
+    """
+    Creates an order outbox event for a cancelled order.
+    """
+    def build(order=None, **kwargs):
+        order = order or cancelled_order_with_items()[0]
+
+        return OrderOutboxEvent.objects.create(
+            order=order,
+            event_type=OrderOutboxEventType.RESTOCK_CANCELLED_ORDER,
+            payload=str(order.id),
+            **kwargs
+        )
+
+    return build
+
+
+@pytest.fixture
+def order_outbox_event(order_outbox_event_factory):
+    """
+    Order outbox event.
+    """
+    return order_outbox_event_factory()
+
+
+@pytest.fixture
+def published_order_outbox_event(order_outbox_event_factory):
+    """
+    Create a published order outbox event.
+    """
+    return order_outbox_event_factory(
+        status=OrderOutboxEventStatus.PUBLISHED,
+        published_at=timezone.now(),
+        last_error=""
+    )
