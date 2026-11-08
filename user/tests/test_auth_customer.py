@@ -1,13 +1,12 @@
+import pytest
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 
-import pytest
-
 from cart.models import Cart
 from shop.models import Shop
 from user.models import UserProfile
-
 
 User = get_user_model()
 
@@ -27,26 +26,34 @@ REG_DATA = {
     'already_shopowner': False
 }
 
+
 @pytest.mark.django_db(transaction=True)
-def test_customer_registration(mock_verification_email_task,  client, db_access):
+def test_customer_registration(
+    mock_verification_email_task,
+    client
+):
     """"
     Test the customer registration process.
-    """ 
+    """
     data = REG_DATA
     res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
     mock_verification_email_task.assert_called_once()
     assert res.status_code == status.HTTP_201_CREATED
     assert res.data['status'] == "success"
     assert res.data['message'] == "Customer registration successful."
-    assert res.data['data']['is_customer'] == True
-    assert res.data['data']['is_staff'] == False
-    assert res.data['data']['is_shopowner'] == False
+    assert res.data['data']['is_customer'] is True
+    assert res.data['data']['is_staff'] is False
+    assert res.data['data']['is_shopowner'] is False
     assert res.data['data']['profile']['first_name'] == data['first_name']
     assert res.data['data']['profile']['last_name'] == data['last_name']
 
 
 @pytest.mark.django_db(transaction=True)
-def test_customer_registration_for_shopowner(mock_verification_email_task, client, shopowner):
+def test_customer_registration_for_shopowner(
+    mock_verification_email_task,
+    client,
+    shopowner
+):
     """
     Test the customer registration process for an existing shop owner.
     """
@@ -56,11 +63,11 @@ def test_customer_registration_for_shopowner(mock_verification_email_task, clien
     assert res.status_code == status.HTTP_201_CREATED
     assert res.data['status'] == "success"
     assert res.data['message'] == "Customer registration successful."
-    assert res.data['data']['is_customer'] == True
-    assert res.data['data']['is_shopowner'] == True
-    assert res.data['data']['is_staff'] == True
+    assert res.data['data']['is_customer'] is True
+    assert res.data['data']['is_shopowner'] is True
+    assert res.data['data']['is_staff'] is True
     assert res.data['data']['profile']['first_name'] == data['first_name']
-    assert res.data['data']['profile']['last_name'] == data['last_name'] 
+    assert res.data['data']['profile']['last_name'] == data['last_name']
 
 
 def test_customer_created_with_cart_and_profile(client, db_access):
@@ -79,7 +86,9 @@ def test_customer_created_with_cart_and_profile(client, db_access):
     assert user.shop is None
 
 
-def test_customer_registration_for_shopowner_with_invalid_password(client, shopowner):
+def test_customer_registration_for_shopowner_with_invalid_password(
+    client, shopowner
+):
     """
     Test the customer registration process for an existing shop owner
     with an invalid password.
@@ -96,10 +105,13 @@ def test_customer_registration_for_shopowner_with_invalid_password(client, shopo
     assert res.data['status'] == "error"
     assert res.data['code'] == "invalid_credentials"
     assert res.data['message'] == "Customer registration failed."
-    assert res.data['errors']['non_field_errors'] == ['Invalid credentials matching any shop owner.']
+    assert res.data['errors']['non_field_errors'] == [
+        'Invalid credentials matching any shop owner.']
 
 
-def test_customer_registration_for_shopowner_with_invalid_email(client, shopowner):
+def test_customer_registration_for_shopowner_with_invalid_email(
+    client, shopowner
+):
     """
     Test the customer registration process for an existing shop owner
     where the shop owner with email dooes not exist.
@@ -114,7 +126,9 @@ def test_customer_registration_for_shopowner_with_invalid_email(client, shopowne
     assert res.data['status'] == "error"
     assert res.data['code'] == "invalid_credentials"
     assert res.data['message'] == "Customer registration failed."
-    assert res.data['errors']['non_field_errors'] == ['Invalid credentials matching any shop owner.']
+    assert res.data['errors']['non_field_errors'] == [
+        'Invalid credentials matching any shop owner.']
+
 
 def test_customer_registration_with_missing_data(client):
     """
@@ -124,13 +138,15 @@ def test_customer_registration_with_missing_data(client):
     res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['status'] == "error"
-    assert res.data['code'] == "validation_error" 
+    assert res.data['code'] == "validation_error"
     assert res.data['message'] == "Customer registration failed."
     assert res.data['errors']['email'] == ["This field is required."]
     assert res.data['errors']['first_name'] == ["This field is required."]
     assert res.data['errors']['last_name'] == ["This field is required."]
     assert res.data['errors']['password'] == ["This field is required."]
-    assert res.data['errors']['confirm_password'] == ["This field is required."]
+    assert res.data['errors']['confirm_password'] == [
+        "This field is required."]
+
 
 def test_customer_registration_blank_data_values(client):
     """
@@ -152,7 +168,9 @@ def test_customer_registration_blank_data_values(client):
     assert res.data['errors']['first_name'] == ["This field may not be blank."]
     assert res.data['errors']['last_name'] == ["This field may not be blank."]
     assert res.data['errors']['password'] == ["This field may not be blank."]
-    assert res.data['errors']['confirm_password'] == ["This field may not be blank."]
+    assert res.data['errors']['confirm_password'] == [
+        "This field may not be blank."]
+
 
 def test_customer_registration_with_invalid_email_address(client):
     """
@@ -166,12 +184,13 @@ def test_customer_registration_with_invalid_email_address(client):
     assert res.data['message'] == "Customer registration failed."
     assert res.data['errors']['email'] == ["Enter a valid email address."]
 
+
 def test_customer_registration_with_weak_password(client, db_access):
     """
     Test the customer registration process with weak password.
     """
     data = {**REG_DATA, 'password': 'weak'}
-    errors = [    
+    errors = [
         'Password must be at least 8 characters long.',
         'Password must contain at least one digit.',
         'Password must contain at least one letter.',
@@ -187,14 +206,15 @@ def test_customer_registration_with_weak_password(client, db_access):
     pwd_errors = res.data['errors']['password']
     assert all(error in errors for error in pwd_errors)
 
+
 def test_customer_regitration_password_without_letters(client, db_access):
     """
     Test the customer registration process with a password without letters.
     """
     data = {**REG_DATA,
-        'password': '12345678#',
-        'confirm_password': '12345678#'
-    }
+            'password': '12345678#',
+            'confirm_password': '12345678#'
+            }
     res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['status'] == 'error'
@@ -203,18 +223,21 @@ def test_customer_regitration_password_without_letters(client, db_access):
     pwd_errors = res.data['errors']['password']
     assert "Password must contain at least one letter." in pwd_errors
 
+
 def test_customer_registration_with_mismatching_password(client, db_access):
     """
     Test the customer registration process with mismatching passwords.
     """
     data = {**REG_DATA, 'confirm_password': 'Password123456#'
-    }
+            }
     res = client.post(CUSTOMER_REGISTRATION_URL, data, format='json')
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert res.data['status'] == "error"
     assert res.data['code'] == "validation_error"
     assert res.data['message'] == "Customer registration failed."
-    assert res.data['errors']['confirm_password'] == ['Passwords do not match.']
+    assert res.data['errors']['confirm_password'] == [
+        'Passwords do not match.']
+
 
 def test_customer_registration_existing_email(client, customer):
     """
@@ -230,10 +253,12 @@ def test_customer_registration_existing_email(client, customer):
     assert res.data['errors']['email'] == ["User with email already exists."]
     assert User.objects.filter(email=customer.email).exists() is True
 
+
 # ==========================================================
 # CUSTOMER LOGIN TESTS
 # ==========================================================
 CUSTOMER_LOGIN_URL = reverse('customer-login')
+
 
 def test_customer_login(client, customer):
     """
@@ -247,13 +272,20 @@ def test_customer_login(client, customer):
     res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
     assert res.status_code == status.HTTP_200_OK
     assert res.data['status'] == "success"
-    assert res.data['message'] == f"Log in successful."
+    assert res.data['message'] == "Log in successful."
     assert res.data['data']['id'] == str(customer.id)
     assert res.data['data']['email'] == customer.email
-    assert res.cookies['access_token']['httponly'] is True
-    assert res.cookies['refresh_token']['httponly'] is True
     assert res.cookies['refresh_token']['max-age'] is not None
-    assert res.cookies['refresh_token']['max-age'] == 604800
+    assert res.cookies['refresh_token']['max-age'] == 2592000
+
+    expected_secure = settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"]
+
+    for cookie_name in ("access_token", "refresh_token"):
+        cookie = res.cookies[cookie_name]
+
+        assert cookie["httponly"] is True
+        assert bool(cookie["secure"]) is expected_secure
+
 
 def test_customer_login_as_shopowner_and_customer(client, shopowner):
     """
@@ -269,13 +301,20 @@ def test_customer_login_as_shopowner_and_customer(client, shopowner):
     res = client.post(CUSTOMER_LOGIN_URL, data, format='json')
     assert res.status_code == status.HTTP_200_OK
     assert res.data['status'] == "success"
-    assert res.data['message'] == f"Log in successful."
+    assert res.data['message'] == "Log in successful."
     assert res.data['data']['id'] == str(shopowner.id)
     assert res.data['data']['email'] == shopowner.email
-    assert res.cookies['access_token']['httponly'] is True
-    assert res.cookies['refresh_token']['httponly'] is True
     assert res.cookies['refresh_token']['max-age'] is not None
-    assert res.cookies['refresh_token']['max-age'] == 604800
+    assert res.cookies['refresh_token']['max-age'] == 2592000
+
+    expected_secure = settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"]
+
+    for cookie_name in ("access_token", "refresh_token"):
+        cookie = res.cookies[cookie_name]
+
+        assert cookie["httponly"] is True
+        assert bool(cookie["secure"]) is expected_secure
+
 
 def test_customer_login_false_remember_me(client, customer):
     """
@@ -293,6 +332,7 @@ def test_customer_login_false_remember_me(client, customer):
     assert res.cookies['refresh_token'] is not None
     assert res.cookies['refresh_token']['max-age'] == 86400
 
+
 def test_customer_login_as_shopowner(client, shopowner):
     """
     Test customer login as shop owner.
@@ -308,7 +348,9 @@ def test_customer_login_as_shopowner(client, shopowner):
     assert res.data['code'] == "invalid_credentials"
     assert res.data['message'] == "Log in failed."
     assert res.data['errors'] is not None
-    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    assert res.data['errors']['non_field_errors'] == [
+        "Invalid login credentials were provided."]
+
 
 def test_customer_login_missing_email(client):
     """
@@ -327,6 +369,7 @@ def test_customer_login_missing_email(client):
     assert res.data['errors'] is not None
     assert res.data['errors']['email'] == ['This field is required.']
 
+
 def test_customer_login_missing_password(client):
     """
     Test customer login process with missing password.
@@ -343,6 +386,7 @@ def test_customer_login_missing_password(client):
     assert res.data['errors'] is not None
     assert res.data['errors']['password'] == ['This field is required.']
 
+
 def test_customer_login_invalid_password(client, customer):
     """
     Test customer login process with invalid password.
@@ -358,7 +402,9 @@ def test_customer_login_invalid_password(client, customer):
     assert res.data['code'] == "invalid_credentials"
     assert res.data['message'] == "Log in failed."
     assert res.data['errors'] is not None
-    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    assert res.data['errors']['non_field_errors'] == [
+        "Invalid login credentials were provided."]
+
 
 def test_customer_login_invalid_email(client, db_access):
     """"
@@ -374,7 +420,9 @@ def test_customer_login_invalid_email(client, db_access):
     assert res.data['code'] == "invalid_credentials"
     assert res.data['message'] == "Log in failed."
     assert res.data['errors'] is not None
-    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    assert res.data['errors']['non_field_errors'] == [
+        "Invalid login credentials were provided."]
+
 
 def test_customer_login_nonexistent_email(client, db_access):
     """
@@ -390,4 +438,5 @@ def test_customer_login_nonexistent_email(client, db_access):
     assert res.data['code'] == "invalid_credentials"
     assert res.data['message'] == "Log in failed."
     assert res.data['errors'] is not None
-    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    assert res.data['errors']['non_field_errors'] == [
+        "Invalid login credentials were provided."]

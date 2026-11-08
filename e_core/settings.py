@@ -188,8 +188,8 @@ JWT_AUTH_HTTPONLY = True
 
 # simple_jwt configurations
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     "SIGNING_KEY": SECRET_KEY,
     'ALGORITHM': 'HS256',
     'UPDATE_LAST_LOGIN': True,
@@ -197,7 +197,7 @@ SIMPLE_JWT = {
     'AUTH_COOKIE': 'access_token',
     'AUTH_COOKIE_REFRESH': 'refresh_token', 
     'AUTH_COOKIE_HTTP_ONLY': True,
-    'AUTH_COOKIE_SECURE': True,
+    'AUTH_COOKIE_SECURE': not DEBUG,
     'AUTH_COOKIE_PATH': '/',
     'AUTH_COOKIE_SAMESITE': 'Lax',
 }

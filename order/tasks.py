@@ -169,7 +169,7 @@ def _cancel_group_if_still_unpaid(group_id, cutoff_time):
             OrderOutboxEvent.objects.get_or_create(
                 order=order,
                 event_type=OrderOutboxEventType.RESTOCK_CANCELLED_ORDER,
-                defaults={"payload": str(order.id)},
+                defaults={"payload": {"order_id": str(order.id)}}
             )
 
         Order.objects.bulk_update(
