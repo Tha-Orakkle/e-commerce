@@ -1,7 +1,9 @@
+import uuid
+
+from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 
-import uuid
 from cart.models import Cart
 from user.models import UserProfile
 
@@ -9,19 +11,21 @@ from user.models import UserProfile
 # SHOP STFF CREATION TESTS
 # ==========================================================
 STAFF_CREATION_DATA = {
-        'first_name': 'Jane',
-        'last_name': 'Doe',
-        'telephone': '08121119999',
-        'staff_handle': 'staff1',
-        'password': 'Password123#',
-        'confirm_password': 'Password123#'        
-    } 
+    'first_name': 'Jane',
+    'last_name': 'Doe',
+    'telephone': '08121119999',
+    'staff_handle': 'staff1',
+    'password': 'Password123#',
+    'confirm_password': 'Password123#'
+}
+
 
 def get_staff_creation_url(id):
     return reverse(
         'shop-staff-list-create',
         kwargs={'shop_id': id}
-)
+    )
+
 
 def test_shop_staff_creation_by_shop_owner(request, client, shopowner):
     """
@@ -31,15 +35,15 @@ def test_shop_staff_creation_by_shop_owner(request, client, shopowner):
     url = get_staff_creation_url(shopowner.owned_shop.id)
     data = STAFF_CREATION_DATA
     res = client.post(url, data, format='json')
-    
+
     assert res.status_code == status.HTTP_201_CREATED
     assert res.data['message'] == "Shop staff member creation successful."
     assert res.data['data'] is not None
     assert res.data['data']['staff_handle'] == data['staff_handle']
-    assert res.data['data']['is_staff'] == True
+    assert res.data['data']['is_staff'] is True
     assert res.data['data']['profile']['first_name'] == data['first_name']
     assert res.data['data']['profile']['last_name'] == data['last_name']
-    
+
 
 def test_shop_staff_created_does_not_have_cart(client, shopowner):
     """
@@ -49,7 +53,7 @@ def test_shop_staff_created_does_not_have_cart(client, shopowner):
     url = get_staff_creation_url(shopowner.owned_shop.id)
     data = STAFF_CREATION_DATA
     res = client.post(url, data, format='json')
-    
+
     assert res.status_code == status.HTTP_201_CREATED
     assert res.data['message'] == "Shop staff member creation successful."
     assert res.data['data'] is not None
@@ -58,7 +62,9 @@ def test_shop_staff_created_does_not_have_cart(client, shopowner):
     assert UserProfile.objects.filter(user_id=staff_id).exists()
 
 
-def test_shop_staff_creation_by_shop_owner_without_access_token(client, shopowner):
+def test_shop_staff_creation_by_shop_owner_without_access_token(
+    client, shopowner
+):
     """
     Test shop staff creation by shop owner without access token.
     """
@@ -69,10 +75,13 @@ def test_shop_staff_creation_by_shop_owner_without_access_token(client, shopowne
     assert res.status_code == status.HTTP_401_UNAUTHORIZED
     assert res.data['status'] == "error"
     assert res.data['code'] == "unauthorized"
-    assert res.data['message'] == "Authentication credentials were not provided."
+    expected_msg = "Authentication credentials were not provided."
+    assert res.data['message'] == expected_msg
 
 
-def test_shop_staff_creation_by_shop_owner_wit_invalid_access_token(client, shopowner):
+def test_shop_staff_creation_by_shop_owner_wit_invalid_access_token(
+    client, shopowner
+):
     """
     Test shop staff creation by shop owner with invalid token.
     """
@@ -87,6 +96,7 @@ def test_shop_staff_creation_by_shop_owner_wit_invalid_access_token(client, shop
     print(res.data['message'])
     assert res.data['message'] == "Token is invalid or expired"
 
+
 def test_shop_staff_creation_by_customer(client, customer, shopowner):
     """
     Test shop staff creation by a customer.
@@ -99,7 +109,9 @@ def test_shop_staff_creation_by_customer(client, customer, shopowner):
     assert res.status_code == status.HTTP_403_FORBIDDEN
     assert res.data['status'] == "error"
     assert res.data['code'] == "forbidden"
-    assert res.data['message'] == "You do not have permission to perform this action."
+    expected_msg = "You do not have permission to perform this action."
+    assert res.data['message'] == expected_msg
+
 
 def test_shop_staff_creation_by_non_owner_shop(client, shopowner_factory):
     """
@@ -115,7 +127,9 @@ def test_shop_staff_creation_by_non_owner_shop(client, shopowner_factory):
     assert res.status_code == status.HTTP_403_FORBIDDEN
     assert res.data['status'] == "error"
     assert res.data['code'] == "forbidden"
-    assert res.data['message'] == "You do not have permission to perform this action."
+    expected_msg = "You do not have permission to perform this action."
+    assert res.data['message'] == expected_msg
+
 
 def test_shop_staff_creation_with_non_existing_shop_id(client, shopowner):
     """
@@ -131,6 +145,7 @@ def test_shop_staff_creation_with_non_existing_shop_id(client, shopowner):
     assert res.data['code'] == "not_found"
     assert res.data['message'] == "No shop matching the given ID found."
 
+
 def test_shop_staff_creation_with_invalid_shop_uuid(client, shopowner):
     """
     Test shop staff creation with invalid shop UUID.
@@ -145,6 +160,7 @@ def test_shop_staff_creation_with_invalid_shop_uuid(client, shopowner):
     assert res.data['code'] == "invalid_uuid"
     assert res.data['message'] == "Invalid shop id."
 
+
 def test_shop_staff_creation_by_shop_staff(client, shop_staff):
     """
     Test shop staff creation by a shop staff.
@@ -157,7 +173,9 @@ def test_shop_staff_creation_by_shop_staff(client, shop_staff):
     assert res.status_code == status.HTTP_403_FORBIDDEN
     assert res.data['status'] == "error"
     assert res.data['code'] == "forbidden"
-    assert res.data['message'] == "You do not have permission to perform this action."
+    expected_msg = "You do not have permission to perform this action."
+    assert res.data['message'] == expected_msg
+
 
 def test_shop_staff_creation_with_existing_staff_handle(client, shopowner):
     """
@@ -178,7 +196,9 @@ def test_shop_staff_creation_with_existing_staff_handle(client, shopowner):
     assert res2.data['code'] == "validation_error"
     assert res2.data['message'] == "Shop staff member creation failed."
     assert res2.data['errors'] is not None
-    assert res2.data['errors']['staff_handle'] == ["Staff member with handle already exists."]
+    assert res2.data['errors']['staff_handle'] == [
+        "Staff member with handle already exists."]
+
 
 def test_shop_staff_creation_with_invalid_staff_handle(client, shopowner):
     """
@@ -196,12 +216,15 @@ def test_shop_staff_creation_with_invalid_staff_handle(client, shopowner):
     assert res.data['code'] == "validation_error"
     assert res.data['message'] == "Shop staff member creation failed."
     assert res.data['errors'] is not None
-    assert res.data['errors']['staff_handle'] == ["Ensure this field has at least 3 characters."]
+    assert res.data['errors']['staff_handle'] == [
+        "Ensure this field has at least 3 characters."]
 
     invalid_data['staff_handle'] = 'a' * 21  # too long
     res = client.post(url, invalid_data, format='json')
     assert res.status_code == status.HTTP_400_BAD_REQUEST
-    assert res.data['errors']['staff_handle'] == ["Ensure this field has no more than 20 characters."]
+    assert res.data['errors']['staff_handle'] == [
+        "Ensure this field has no more than 20 characters."]
+
 
 def test_shop_staff_creation_with_missing_data(client, shopowner):
     """
@@ -209,7 +232,7 @@ def test_shop_staff_creation_with_missing_data(client, shopowner):
     """
     client.force_authenticate(user=shopowner)
     url = get_staff_creation_url(shopowner.owned_shop.id)
-    incomplete_data = {} 
+    incomplete_data = {}
 
     res = client.post(url, incomplete_data, format='json')
 
@@ -219,13 +242,17 @@ def test_shop_staff_creation_with_missing_data(client, shopowner):
     assert res.data['message'] == "Shop staff member creation failed."
     assert res.data['errors'] is not None
     assert res.data['errors']['password'] == ["This field is required."]
-    assert res.data['errors']['confirm_password'] == ["This field is required."]
+    assert res.data['errors']['confirm_password'] == [
+        "This field is required."]
     assert res.data['errors']['first_name'] == ["This field is required."]
     assert res.data['errors']['last_name'] == ["This field is required."]
     assert res.data['errors']['telephone'] == ["This field is required."]
     assert res.data['errors']['staff_handle'] == ["This field is required."]
 
-def test_shop_staff_creation_with_invalid_first_and_last_name(client, shopowner):
+
+def test_shop_staff_creation_with_invalid_first_and_last_name(
+    client, shopowner
+):
     """
     Test shop staff creation with invalid first name and last name.
     """
@@ -242,15 +269,20 @@ def test_shop_staff_creation_with_invalid_first_and_last_name(client, shopowner)
     assert res.data['code'] == "validation_error"
     assert res.data['message'] == "Shop staff member creation failed."
     assert res.data['errors'] is not None
-    assert res.data['errors']['first_name'] == ["Ensure this field has at least 2 characters."]
-    assert res.data['errors']['last_name'] == ["Ensure this field has at least 2 characters."]
+    assert res.data['errors']['first_name'] == [
+        "Ensure this field has at least 2 characters."]
+    assert res.data['errors']['last_name'] == [
+        "Ensure this field has at least 2 characters."]
 
     invalid_data['first_name'] = 'J' * 31  # too long
     invalid_data['last_name'] = 'D' * 31   # too long
     res = client.post(url, invalid_data, format='json')
     assert res.status_code == status.HTTP_400_BAD_REQUEST
-    assert res.data['errors']['first_name'] == ["Ensure this field has no more than 30 characters."]
-    assert res.data['errors']['last_name'] == ["Ensure this field has no more than 30 characters."]
+    assert res.data['errors']['first_name'] == [
+        "Ensure this field has no more than 30 characters."]
+    assert res.data['errors']['last_name'] == [
+        "Ensure this field has no more than 30 characters."]
+
 
 def test_shop_staff_creation_with_invalid_telephone(client, shopowner):
     """
@@ -269,6 +301,7 @@ def test_shop_staff_creation_with_invalid_telephone(client, shopowner):
     assert res.data['message'] == "Shop staff member creation failed."
     assert res.data['errors'] is not None
     assert res.data['errors']['telephone'] == ["Enter a valid phone number."]
+
 
 def test_shop_staff_creation_with_invalid_passwords(client, shopowner):
     """
@@ -300,13 +333,16 @@ def test_shop_staff_creation_with_invalid_passwords(client, shopowner):
     assert res.data['code'] == "validation_error"
     assert res.data['message'] == "Shop staff member creation failed."
     assert res.data['errors'] is not None
-    assert res.data['errors']['confirm_password'] == ["Passwords do not match."]
+    assert res.data['errors']['confirm_password'] == [
+        "Passwords do not match."]
 
 # ==========================================================
 # SHOP OWNER AND STFF LOGIN TESTS
 # ==========================================================
 
+
 STAFF_LOGIN_URL = reverse('staff-login')
+
 
 def test_staff_login_as_shopowner(client, shopowner):
     """
@@ -325,9 +361,17 @@ def test_staff_login_as_shopowner(client, shopowner):
     assert res.data['message'] == "Log in successful."
     assert res.data['data'] is not None
     assert res.data['data']['id'] == str(shopowner.id)
-    assert res.cookies.get('access_token') is not None
-    assert res.cookies.get('refresh_token') is not None
-    assert res.cookies['refresh_token']['max-age'] == 604800
+    assert res.cookies['refresh_token']['max-age'] == 2592000
+
+    expected_secure = settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"]
+
+    for cookie_name in ("access_token", "refresh_token"):
+        cookie = res.cookies.get(cookie_name)
+
+        assert cookie is not None
+        assert cookie["httponly"] is True
+        assert bool(cookie["secure"]) is expected_secure
+
 
 def test_staff_login_as_shop_staff(client, shop_staff):
     """
@@ -346,9 +390,17 @@ def test_staff_login_as_shop_staff(client, shop_staff):
     assert res.data['message'] == "Log in successful."
     assert res.data['data'] is not None
     assert res.data['data']['id'] == str(shop_staff.id)
-    assert res.cookies.get('access_token') is not None
-    assert res.cookies.get('refresh_token') is not None
-    assert res.cookies['refresh_token']['max-age'] == 604800
+    assert res.cookies['refresh_token']['max-age'] == 2592000
+
+    expected_secure = settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"]
+
+    for cookie_name in ("access_token", "refresh_token"):
+        cookie = res.cookies.get(cookie_name)
+
+        assert cookie is not None
+        assert cookie["httponly"] is True
+        assert bool(cookie["secure"]) is expected_secure
+
 
 def test_staff_login_false_remember_me(client, shop_staff):
     """
@@ -371,6 +423,7 @@ def test_staff_login_false_remember_me(client, shop_staff):
     assert res.cookies.get('refresh_token') is not None
     assert res.cookies['refresh_token']['max-age'] == 86400
 
+
 def test_staff_login_with_invalid_shop_code(client, shop_staff):
     """
     Test staff login using invalid shop code.
@@ -388,9 +441,11 @@ def test_staff_login_with_invalid_shop_code(client, shop_staff):
     assert res.data['message'] == "Log in failed."
     assert res.data['code'] == "invalid_credentials"
     assert res.data['errors'] is not None
-    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    assert res.data['errors']['non_field_errors'] == [
+        "Invalid login credentials were provided."]
     assert res.cookies.get('access_token') is None
     assert res.cookies.get('refresh_token') is None
+
 
 def test_staff_login_with_invalid_staff_handle(client, shop_staff):
     """
@@ -409,9 +464,11 @@ def test_staff_login_with_invalid_staff_handle(client, shop_staff):
     assert res.data['message'] == "Log in failed."
     assert res.data['code'] == "invalid_credentials"
     assert res.data['errors'] is not None
-    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    assert res.data['errors']['non_field_errors'] == [
+        "Invalid login credentials were provided."]
     assert res.cookies.get('access_token') is None
     assert res.cookies.get('refresh_token') is None
+
 
 def test_staff_login_with_invalid_password(client, shop_staff):
     """
@@ -430,9 +487,11 @@ def test_staff_login_with_invalid_password(client, shop_staff):
     assert res.data['message'] == "Log in failed."
     assert res.data['code'] == "invalid_credentials"
     assert res.data['errors'] is not None
-    assert res.data['errors']['non_field_errors'] == ["Invalid login credentials were provided."]
+    assert res.data['errors']['non_field_errors'] == [
+        "Invalid login credentials were provided."]
     assert res.cookies.get('access_token') is None
     assert res.cookies.get('refresh_token') is None
+
 
 def test_staff_login_with_missing_shop_code(client, shop_staff):
     """
@@ -452,7 +511,8 @@ def test_staff_login_with_missing_shop_code(client, shop_staff):
     assert res.data['errors'] is not None
     assert res.data['errors']['shop_code'] == ["This field is required."]
     assert res.cookies.get('access_token') is None
-    assert res.cookies.get('refresh_token') is None    
+    assert res.cookies.get('refresh_token') is None
+
 
 def test_staff_login_with_missing_staff_handle(client, shop_staff):
     """
@@ -473,6 +533,7 @@ def test_staff_login_with_missing_staff_handle(client, shop_staff):
     assert res.data['errors']['staff_handle'] == ["This field is required."]
     assert res.cookies.get('access_token') is None
     assert res.cookies.get('refresh_token') is None
+
 
 def test_staff_login_with_missing_password(client, shop_staff):
     """
