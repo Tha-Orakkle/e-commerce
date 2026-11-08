@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from common.authentication.cookies import set_auth_cookie
 from common.exceptions import ErrorException
 from common.utils.api_responses import SuccessAPIResponse
 from common.utils.bools import parse_bool
@@ -30,7 +31,7 @@ class ShopOwnerOrStaffLoginView(APIView):
         staff_handle = request.data.get("staff_handle", "").strip()
         pwd = request.data.get("password", "").strip()
         remember_me = parse_bool(request.data.get("remember_me", False))
-        lifespan = timedelta(days=7) if remember_me else timedelta(days=1)
+        lifespan = timedelta(days=30) if remember_me else timedelta(days=1)
 
         if not shop_code:
             errors["shop_code"] = ["This field is required."]
@@ -38,19 +39,21 @@ class ShopOwnerOrStaffLoginView(APIView):
             errors["staff_handle"] = ["This field is required."]
         if not pwd:
             errors["password"] = ["This field is required."]
-        
+
         if errors:
             raise ErrorException(
                 detail="Log in failed.",
                 code="validation_error",
                 errors=errors
             )
-        admin_user = authenticate(shop_code=shop_code, staff_handle=staff_handle, password=pwd)
+        admin_user = authenticate(
+            shop_code=shop_code, staff_handle=staff_handle, password=pwd)
         if not admin_user or (admin_user and not admin_user.is_staff):
             raise ErrorException(
                 detail="Log in failed.",
                 code="invalid_credentials",
-                errors={"non_field_errors": ["Invalid login credentials were provided."]}
+                errors={"non_field_errors": [
+                    "Invalid login credentials were provided."]}
             )
         serializer = UserSerializer(admin_user)
         response = Response(
@@ -61,18 +64,13 @@ class ShopOwnerOrStaffLoginView(APIView):
         )
         refresh = RefreshToken.for_user(admin_user)
         refresh.set_exp(lifetime=lifespan)
-        response.set_cookie(
-            "refresh_token", str(refresh),
-            httponly=True, secure=False,
-            samesite="Lax", max_age=(604800 if remember_me else 86400)
+        set_auth_cookie(
+            response, "refresh_token", str(refresh), max_age=lifespan
         )
-        response.set_cookie(
-            "access_token", str(refresh.access_token),
-            httponly=True, secure=False,
-            samesite="Lax"
-        )
+        set_auth_cookie(response, "access_token", str(refresh.access_token))
+
         return response
-    
+
 
 class CustomerLoginView(APIView):
     authentication_classes = []  # noqa: RUF012
@@ -81,33 +79,34 @@ class CustomerLoginView(APIView):
     @extend_schema(**customer_login_schema)
     def post(self, request):
         """
-        Takes user email and password for authentication. 
+        Takes user email and password for authentication.
         Returns access_token and refresh_token cookies.
         """
         errors = {}
         email = request.data.get("email", None)
         pwd = request.data.get("password", None)
         remember_me = parse_bool(request.data.get("remember_me", False))
-        lifespan = timedelta(days=7) if remember_me else timedelta(days=1)
-        
+        lifespan = timedelta(days=30) if remember_me else timedelta(days=1)
+
         if not email:
             errors["email"] = ["This field is required."]
         if not pwd:
             errors["password"] = ["This field is required."]
-        
+
         if errors:
             raise ErrorException(
                 detail="Log in failed.",
                 code="validation_error",
                 errors=errors
-            )    
-            
+            )
+
         user = authenticate(email=email, password=pwd)
         if not user or (user and not user.is_customer):
             raise ErrorException(
                 detail="Log in failed.",
                 code="invalid_credentials",
-                errors={"non_field_errors": ["Invalid login credentials were provided."]}
+                errors={"non_field_errors": [
+                    "Invalid login credentials were provided."]}
             )
 
         serializer = UserSerializer(user)
@@ -118,14 +117,10 @@ class CustomerLoginView(APIView):
             ).to_dict(), status=status.HTTP_200_OK)
         refresh = RefreshToken.for_user(user)
         refresh.set_exp(lifetime=lifespan)
-        response.set_cookie(
-            "refresh_token", str(refresh),
-            httponly=True, secure=False,
-            samesite="Lax", max_age=(604800 if remember_me else 86400)
+
+        set_auth_cookie(
+            response, "refresh_token", str(refresh), max_age=lifespan
         )
-        response.set_cookie(
-            "access_token", str(refresh.access_token),
-            httponly=True, secure=False,
-            samesite="Lax"
-        )
+        set_auth_cookie(response, "access_token", str(refresh.access_token))
+
         return response
