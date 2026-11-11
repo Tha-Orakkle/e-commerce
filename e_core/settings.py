@@ -50,10 +50,11 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'django_filters',
     'django_celery_beat',
-    # 'drf_spectacular_sidecar',    
+    # 'drf_spectacular_sidecar',
 
 
     # 'rest_framework.authtoken',
