@@ -6,7 +6,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from common.authentication.cookies import set_auth_cookie
 from common.exceptions import ErrorException
@@ -14,6 +13,7 @@ from common.utils.api_responses import SuccessAPIResponse
 from common.utils.bools import parse_bool
 from user.api.v1.serializers import UserSerializer
 from user.api.v1.swagger import customer_login_schema, staff_login_schema
+from user.services.authentication import create_session_tokens
 
 
 class ShopOwnerOrStaffLoginView(APIView):
@@ -46,28 +46,40 @@ class ShopOwnerOrStaffLoginView(APIView):
                 code="validation_error",
                 errors=errors
             )
-        admin_user = authenticate(
-            shop_code=shop_code, staff_handle=staff_handle, password=pwd)
-        if not admin_user or (admin_user and not admin_user.is_staff):
+        user = authenticate(
+            shop_code=shop_code,
+            staff_handle=staff_handle,
+            password=pwd
+        )
+
+        if not user or (user and not user.is_staff):
             raise ErrorException(
                 detail="Log in failed.",
                 code="invalid_credentials",
                 errors={"non_field_errors": [
-                    "Invalid login credentials were provided."]}
+                    "Invalid login credentials were provided."
+                ]}
             )
-        serializer = UserSerializer(admin_user)
+        serializer = UserSerializer(user)
         response = Response(
             SuccessAPIResponse(
                 message="Log in successful.",
                 data=serializer.data
             ).to_dict(), status=status.HTTP_200_OK
         )
-        refresh = RefreshToken.for_user(admin_user)
-        refresh.set_exp(lifetime=lifespan)
+        tokens = create_session_tokens(user=user, lifetime=lifespan)
+
         set_auth_cookie(
-            response, "refresh_token", str(refresh), max_age=lifespan
+            response,
+            "refresh_token",
+            tokens["refresh"],
+            max_age=lifespan.total_seconds()
         )
-        set_auth_cookie(response, "access_token", str(refresh.access_token))
+        set_auth_cookie(
+            response,
+            "access_token",
+            tokens["access"]
+        )
 
         return response
 
@@ -115,12 +127,19 @@ class CustomerLoginView(APIView):
                 message="Log in successful.",
                 data=serializer.data,
             ).to_dict(), status=status.HTTP_200_OK)
-        refresh = RefreshToken.for_user(user)
-        refresh.set_exp(lifetime=lifespan)
+
+        tokens = create_session_tokens(user=user, lifetime=lifespan)
 
         set_auth_cookie(
-            response, "refresh_token", str(refresh), max_age=lifespan
+            response,
+            "refresh_token",
+            tokens["refresh"],
+            max_age=lifespan.total_seconds()
         )
-        set_auth_cookie(response, "access_token", str(refresh.access_token))
+        set_auth_cookie(
+            response,
+            "access_token",
+            tokens["access"]
+        )
 
         return response
